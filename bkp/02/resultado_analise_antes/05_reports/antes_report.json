@@ -1,0 +1,35 @@
+{
+  "analysis_type": "facial_asymmetry",
+  "input_file": "antes",
+  "rotation_correction_degrees": -0.38,
+  "measurements": {
+    "eye_level_difference_px": 0.5,
+    "eye_horizontal_asymmetry_px": 0.42,
+    "nose_deviation_px": 1.21,
+    "nose_wings_asymmetry_px": 2.42,
+    "chin_deviation_px": 0.21,
+    "mouth_center_deviation_px": 1.21,
+    "mouth_corners_asymmetry_px": 2.42,
+    "jawline_mean_asymmetry_px": 1.46,
+    "jawline_max_asymmetry_px": 2.58,
+    "overall_asymmetry_score": 1.04,
+    "ipd_px": 50.5,
+    "eye_level_difference_pct_ipd": 0.99,
+    "eye_horizontal_asymmetry_pct_ipd": 0.825,
+    "nose_deviation_pct_ipd": 2.393,
+    "nose_wings_asymmetry_pct_ipd": 4.785,
+    "chin_deviation_pct_ipd": 0.413,
+    "mouth_center_deviation_pct_ipd": 2.393,
+    "mouth_corners_asymmetry_pct_ipd": 4.785,
+    "jawline_mean_asymmetry_pct_ipd": 2.888,
+    "jawline_max_asymmetry_pct_ipd": 5.115,
+    "overall_asymmetry_score_pct_ipd": 2.053
+  },
+  "output_files": {
+    "original_image": "resultado_analise_antes/00_original/antes_original.jpg",
+    "annotated_image": "resultado_analise_antes/01_annotated/antes_annotated.jpg",
+    "aligned_image": "resultado_analise_antes/02_aligned/antes_aligned.jpg",
+    "heatmap": "resultado_analise_antes/03_heatmap/antes_heatmap.jpg",
+    "landmarks_image": "resultado_analise_antes/04_landmarks/antes_landmarks.jpg"
+  }
+}

@@ -1,0 +1,21 @@
+==================================================
+FACIAL ASYMMETRY ANALYSIS REPORT
+==================================================
+
+Input: foto-assimetria
+Rotation correction: -0.57 degrees
+
+MEASUREMENTS (in pixels):
+------------------------------
+Eye Level Difference: 0.17
+Eye Horizontal Asymmetry: 1.51
+Nose Deviation: 1.62
+Nose Wings Asymmetry: 2.75
+Chin Deviation: 1.49
+Mouth Center Deviation: 1.4
+Mouth Corners Asymmetry: 2.2
+Jawline Mean Asymmetry: 2.28
+Jawline Max Asymmetry: 2.9
+Overall Asymmetry Score: 1.52
+
+==================================================

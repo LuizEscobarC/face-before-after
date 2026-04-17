@@ -1,0 +1,130 @@
+
+════════════════════════════════════════════════════════════════════════
+════════════════════ RELATÓRIO DE ASSIMETRIA FACIAL ════════════════════
+════════════════════════════════════════════════════════════════════════
+  Gerado em : 17/04/2026 17:33
+  ANTES    (A) : antes
+  DEPOIS   (B) : depois
+  Correção rotação A : -0.38°
+  Correção rotação B : -0.62°
+  IPD (referência) : A=50.5px  B=94.0px
+  Unidade das métricas : %IPD (normalizada pela distância interpupilar)
+────────────────────────────────────────────────────────────────────────
+
+  SCORE GERAL DE ASSIMETRIA
+  ────────────────────────────────────────
+  ANTES      :   2.05 %IPD   🟠 Moderada
+  DEPOIS     :   0.65 %IPD   🟢 Excelente
+  Variação    : ✅ [MELHORA]  -68.3%
+
+  ✅ A simetria facial MELHOROU entre as duas fotos.
+
+────────────────────────────────────────────────────────────────────────
+  MÉTRICA (%IPD)                       ANTES  DEPOIS  VARIACAO%  +/-
+  ────────────────────────────────── ─────── ─────── ──────────  ────
+  Desnível dos olhos                    0.99    0.00    -100.0%  [+]
+  Assimetria horizontal dos olhos       0.82    1.06     +29.0%  [-]
+  Desvio da ponta do nariz              2.39    0.00    -100.0%  [+]
+  Assimetria das asas do nariz          4.79    1.06     -77.8%  [+]
+  Desvio do queixo                      0.41    0.00    -100.0%  [+]
+  Desvio do centro da boca              2.39    0.00    -100.0%  [+]
+  Assimetria dos cantos da boca         4.79    1.06     -77.8%  [+]
+  Assimetria média da mandíbula         2.89    3.72     +28.9%  [-]
+  Assimetria máx. da mandíbula          5.12    6.38     +24.8%  [-]
+  ────────────────────────────────── ─────── ─────── ──────────  ────
+  SCORE GERAL                           2.05    0.65     -68.3%  [+]
+────────────────────────────────────────────────────────────────────────
+
+──────────────────────── INTERPRETAÇÃO CLÍNICA ─────────────────────────
+
+  • Métricas que melhoraram : 6 de 9
+  • Métricas que pioraram   : 3 de 9
+
+  Pontos de atenção na análise mais recente:
+  ⚠️  MANDÍBULA: Assimetria mandibular acentuada — região do ângulo da mandíbula. (valor atual: 6.38 %IPD)
+
+─────────────────────────── ANÁLISE AVANÇADA ───────────────────────────
+
+  MÉTRICA                              ANTES  DEPOIS    IDEAL
+  ────────────────────────────────── ─────── ───────    ───────────────
+  fWHR (face width/height)              1.71    1.75    ~1.85
+  Razão do terço inferior               0.54    0.54    ~0.56
+  Canthal tilt médio (°)               -1.36   -0.75    ~+5°
+  Intercanthal / largura olho           1.38    1.45    ~1.0
+  Nariz / boca (largura)                0.56    0.48    ~0.70
+  Boca / IPD                            0.71    0.78    ~1.50
+  Desvio dos 3 terços                   0.09    0.09    0 (ideal)
+  Desvio bilateral global %IPD          4.91    2.65    0 (ideal)
+  Definição da linha mandibular         7.94    8.48    maior = mais definido
+
+  Forma facial : redondo → redondo
+
+───────────────────────── QUALIDADE DAS FOTOS ──────────────────────────
+
+  ANTES: yaw=+2.4° pitch=-16.6° roll=-0.5° | sharp=1091 | ΔE_lr=2.8
+    ⚠️  Pose facial fora do limite frontal (|yaw|=2.4°, |pitch|=16.6°). Métricas podem estar enviesadas.
+    ⚠️  Resolução facial baixa (130px). Use foto >= 400px.
+  DEPOIS: yaw=+0.4° pitch=-15.9° roll=-0.3° | sharp=541 | ΔE_lr=1.1
+    ⚠️  Pose facial fora do limite frontal (|yaw|=0.4°, |pitch|=15.9°). Métricas podem estar enviesadas.
+
+──────────────────────────── PLANO DE AÇÃO ─────────────────────────────
+
+  🔴 Intercanthal / largura do olho (atual 1.45 | ideal ~1.0 | severa)
+      • Razão muito alta = aparência mais larga do nasion; muito baixa = olhos próximos.
+      → [habito] Reposicionar foto (ao registrar)
+         https://www.bhphotovideo.com/explora/photography/tips-and-solutions/best-focal-lengths-portrait-photography
+      → [profissional] Avaliação rinoplástica (1×)
+         https://www2.cirurgiaplastica.org.br/
+
+  🔴 Boca / IPD (atual 0.78 | ideal ~1.50 | acentuada)
+      • Boca proporcional à IPD passa equilíbrio frontal (regra dos quintos).
+      → [habito] Hidratação labial e cuidado (diário)
+         https://www.aad.org/public/everyday-care/skin-care-basics/dry/dry-lips
+
+  🔴 Desvio dos 3 terços (atual 0.09 | ideal 0 | acentuada)
+      • Terços equilibrados = cânone neoclássico de harmonia.
+      → [postura] Postura cefálica neutra (diário)
+         https://www.apta.org/
+
+  🟠 Nariz / boca (largura) (atual 0.48 | ideal ~0.70 | moderada)
+      • Razão neoclássica de Ricketts: nariz ≈ 70% da boca dá harmonia frontal.
+      → [habito] Sorriso natural ao fotografar (ao registrar)
+         https://onlinelibrary.wiley.com/doi/10.1002/9781118786109
+      → [profissional] Rinoplastia consultiva (1×)
+         https://www2.cirurgiaplastica.org.br/
+
+  🟡 Canthal tilt médio (atual -0.75 | ideal ~+5° | leve)
+      • Tilt positivo é associado à percepção de juventude e atratividade (Rhee 2012).
+      → [habito] Sono adequado e hidratação (7–9 h/dia)
+         https://www.bmj.com/content/341/bmj.c6614
+
+  🟡 Desvio dos 5 quintos (atual 0.03 | ideal 0 | leve)
+      • Equilíbrio horizontal frontal — outro cânone neoclássico.
+      → [habito] Foto verdadeiramente frontal (ao registrar)
+         https://onlinelibrary.wiley.com/doi/10.1002/9781118786109
+
+  🟡 Filtro nasolabial (% IPD) (atual 29.79 | ideal ~22% | leve)
+      • Filtro alongado tende à percepção de envelhecimento; curto, à juventude.
+      → [habito] Postura facial e tônus do orbicular da boca (diário)
+         https://onlinelibrary.wiley.com/doi/10.1002/9781118786109
+
+  🟡 Largura mandibular (% IPD) (atual 189.37 | ideal ~155% | leve)
+      • Largura mandibular alta passa percepção de dimorfismo masculino.
+      → [exercicio] Mastigação resistida (gum/jawliner) (10–15 min/dia)
+         https://pubmed.ncbi.nlm.nih.gov/24495658/
+
+  🟡 fWHR (largura/altura sup.) (atual 1.75 | ideal ~1.85 | leve)
+      • fWHR alto correlaciona com percepção de dominância e força (Lefevre 2012); muito baixo passa percepção menos masculina.
+      → [habito] Mastigar goma sem açúcar bilateralmente (15 min/dia)
+         https://pubmed.ncbi.nlm.nih.gov/24495658/
+
+
+  LEGENDA DE SEVERIDADE (% da distância interpupilar):
+  🟢 Excelente  = < 1%    |  🟡 Leve     = 1–2%
+  🟠 Moderada   = 2–4%    |  🔴 Acentuada = 4–8%   |  🔴 Severa = > 8%
+
+  LEGENDA DE VARIAÇÃO:
+  ✅ ▼  = melhora ≥ 20%  |  🟡 ▼  = melhora 5–20%
+  ➡️   = estável ±5%    |  🟠/🔴 ▲ = piora
+
+════════════════════════════════════════════════════════════════════════

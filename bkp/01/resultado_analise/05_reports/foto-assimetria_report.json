@@ -1,0 +1,24 @@
+{
+  "analysis_type": "facial_asymmetry",
+  "input_file": "foto-assimetria",
+  "rotation_correction_degrees": -0.57,
+  "measurements": {
+    "eye_level_difference_px": 0.17,
+    "eye_horizontal_asymmetry_px": 1.51,
+    "nose_deviation_px": 1.62,
+    "nose_wings_asymmetry_px": 2.75,
+    "chin_deviation_px": 1.49,
+    "mouth_center_deviation_px": 1.4,
+    "mouth_corners_asymmetry_px": 2.2,
+    "jawline_mean_asymmetry_px": 2.28,
+    "jawline_max_asymmetry_px": 2.9,
+    "overall_asymmetry_score": 1.52
+  },
+  "output_files": {
+    "original_image": "./resultado_analise/00_original/foto-assimetria_original.jpg",
+    "annotated_image": "./resultado_analise/01_annotated/foto-assimetria_annotated.jpg",
+    "aligned_image": "./resultado_analise/02_aligned/foto-assimetria_aligned.jpg",
+    "heatmap": "./resultado_analise/03_heatmap/foto-assimetria_heatmap.jpg",
+    "landmarks_image": "./resultado_analise/04_landmarks/foto-assimetria_landmarks.jpg"
+  }
+}

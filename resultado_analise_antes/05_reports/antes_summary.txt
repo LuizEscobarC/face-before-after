@@ -1,0 +1,35 @@
+==================================================
+FACIAL ASYMMETRY ANALYSIS REPORT
+==================================================
+
+Input: antes
+Rotation correction: -0.38 degrees
+
+MEASUREMENTS (in pixels):
+------------------------------
+Eye Level Difference: 0.5
+Eye Horizontal Asymmetry: 0.42
+Nose Deviation: 1.21
+Nose Wings Asymmetry: 2.42
+Chin Deviation: 0.21
+Mouth Center Deviation: 1.21
+Mouth Corners Asymmetry: 2.42
+Jawline Mean Asymmetry: 1.46
+Jawline Max Asymmetry: 2.58
+Overall Asymmetry Score: 1.04
+Ipd: 50.5
+Eye Level Difference Pct Ipd: 0.99
+Eye Horizontal Asymmetry Pct Ipd: 0.825
+Nose Deviation Pct Ipd: 2.393
+Nose Wings Asymmetry Pct Ipd: 4.785
+Chin Deviation Pct Ipd: 0.413
+Mouth Center Deviation Pct Ipd: 2.393
+Mouth Corners Asymmetry Pct Ipd: 4.785
+Jawline Mean Asymmetry Pct Ipd: 2.888
+Jawline Max Asymmetry Pct Ipd: 5.115
+Overall Asymmetry Score Pct Ipd: 2.053
+Advanced: {'thirds_upper_ratio': 0.215, 'thirds_middle_ratio': 0.363, 'thirds_lower_ratio': 0.422, 'thirds_std_dev': 0.087, 'fifths_std_dev': 0.031, 'lower_third_ratio': 0.538, 'fwhr': 1.708, 'bizygomatic_px': 111.018, 'bigonial_px': 93.048, 'jaw_width_pct_ipd': 184.245, 'bizygomatic_to_bigonial_ratio': 1.193, 'gonial_angle_left_deg': 154.281, 'gonial_angle_right_deg': 152.13, 'gonial_angle_mean_deg': 153.205, 'chin_projection_pct_ipd': 51.483, 'jawline_definition_score': 7.943, 'canthal_tilt_left_deg': -2.726, 'canthal_tilt_right_deg': -0.0, 'canthal_tilt_mean_deg': -1.363, 'eye_aspect_ratio_left': 0.262, 'eye_aspect_ratio_right': 0.264, 'intercanthal_to_eyewidth_ratio': 1.381, 'brow_to_eyelid_left_pct_ipd': 26.731, 'brow_to_eyelid_right_pct_ipd': 27.721, 'brow_to_eyelid_mean_pct_ipd': 27.226, 'brow_tilt_left_deg': -4.289, 'brow_tilt_right_deg': -4.185, 'nasal_to_mouth_width_ratio': 0.556, 'alar_intercanthal_alignment_pct': 31.075, 'nasal_length_pct_face_height': 36.792, 'alar_width_pct_ipd': 39.602, 'mouth_to_ipd_ratio': 0.713, 'upper_lower_lip_ratio': 0.778, 'philtrum_length_pct_ipd': 31.682, 'upper_lip_thickness_pct_ipd': 13.861, 'lower_lip_thickness_pct_ipd': 17.821, 'face_height_to_width_ratio': 0.955, 'zygomatic_to_gonial_ratio': 1.193, 'face_shape_label': 'redondo', 'marquardt_deviation_px': 2.479, 'marquardt_deviation_pct_ipd': 4.908}
+Photo Quality: {'head_pose_yaw_deg': 2.405, 'head_pose_pitch_deg': -16.57, 'head_pose_roll_deg': -0.469, 'frontal_ok': False, 'focal_distortion_ratio': 0.18, 'focal_distortion_warning': False, 'lighting_asymmetry_delta_e': 2.76, 'face_pixel_width': 130, 'sharpness_laplacian_var': 1091.212, 'warnings': ['Pose facial fora do limite frontal (|yaw|=2.4°, |pitch|=16.6°). Métricas podem estar enviesadas.', 'Resolução facial baixa (130px). Use foto >= 400px.']}
+Skin: {'skin_uniformity_std_lab_left': 20.375, 'skin_uniformity_std_lab_right': 20.305, 'skin_uniformity_std_lab_forehead': 19.164, 'skin_lighting_delta_e_lr': 2.76, 'under_eye_darkness_left': 0.896, 'under_eye_darkness_right': 0.881}
+
+==================================================

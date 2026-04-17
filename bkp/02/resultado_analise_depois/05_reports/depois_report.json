@@ -1,0 +1,35 @@
+{
+  "analysis_type": "facial_asymmetry",
+  "input_file": "depois",
+  "rotation_correction_degrees": -0.62,
+  "measurements": {
+    "eye_level_difference_px": 0.0,
+    "eye_horizontal_asymmetry_px": 1.0,
+    "nose_deviation_px": 0.0,
+    "nose_wings_asymmetry_px": 1.0,
+    "chin_deviation_px": 0.0,
+    "mouth_center_deviation_px": 0.0,
+    "mouth_corners_asymmetry_px": 1.0,
+    "jawline_mean_asymmetry_px": 3.5,
+    "jawline_max_asymmetry_px": 6.0,
+    "overall_asymmetry_score": 0.61,
+    "ipd_px": 94.0,
+    "eye_level_difference_pct_ipd": 0.0,
+    "eye_horizontal_asymmetry_pct_ipd": 1.064,
+    "nose_deviation_pct_ipd": 0.0,
+    "nose_wings_asymmetry_pct_ipd": 1.064,
+    "chin_deviation_pct_ipd": 0.0,
+    "mouth_center_deviation_pct_ipd": 0.0,
+    "mouth_corners_asymmetry_pct_ipd": 1.064,
+    "jawline_mean_asymmetry_pct_ipd": 3.723,
+    "jawline_max_asymmetry_pct_ipd": 6.383,
+    "overall_asymmetry_score_pct_ipd": 0.65
+  },
+  "output_files": {
+    "original_image": "resultado_analise_depois/00_original/depois_original.jpg",
+    "annotated_image": "resultado_analise_depois/01_annotated/depois_annotated.jpg",
+    "aligned_image": "resultado_analise_depois/02_aligned/depois_aligned.jpg",
+    "heatmap": "resultado_analise_depois/03_heatmap/depois_heatmap.jpg",
+    "landmarks_image": "resultado_analise_depois/04_landmarks/depois_landmarks.jpg"
+  }
+}

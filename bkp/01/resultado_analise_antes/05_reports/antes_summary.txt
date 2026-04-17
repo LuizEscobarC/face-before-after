@@ -1,0 +1,21 @@
+==================================================
+FACIAL ASYMMETRY ANALYSIS REPORT
+==================================================
+
+Input: antes
+Rotation correction: -0.96 degrees
+
+MEASUREMENTS (in pixels):
+------------------------------
+Eye Level Difference: 0.0
+Eye Horizontal Asymmetry: 0.07
+Nose Deviation: 0.15
+Nose Wings Asymmetry: 0.28
+Chin Deviation: 0.02
+Mouth Center Deviation: 0.07
+Mouth Corners Asymmetry: 0.04
+Jawline Mean Asymmetry: 0.81
+Jawline Max Asymmetry: 1.68
+Overall Asymmetry Score: 0.15
+
+==================================================
