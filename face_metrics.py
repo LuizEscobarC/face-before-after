@@ -281,6 +281,7 @@ def eyes(lm: np.ndarray, ipd: float) -> Dict[str, Any]:
         "canthal_tilt_mean_deg":           (tilt_l + tilt_r) / 2.0,
         "eye_aspect_ratio_left":           ear_l,
         "eye_aspect_ratio_right":          ear_r,
+        "eye_aspect_ratio_mean":           (ear_l + ear_r) / 2.0,
         "intercanthal_to_eyewidth_ratio":  intercanthal_to_eyewidth,
         "brow_to_eyelid_left_pct_ipd":     100.0 * _safe_div(bed_l, ipd),
         "brow_to_eyelid_right_pct_ipd":    100.0 * _safe_div(bed_r, ipd),
@@ -628,6 +629,7 @@ def skin(image_bgr: np.ndarray, lm: np.ndarray) -> Dict[str, Any]:
 # ===========================================================================
 # (chave, ideal, tolerancia_relativa) — usado no relatório/HTML.
 ADVANCED_IDEALS: Dict[str, Tuple[float, float]] = {
+    "overall_asymmetry_score_pct_ipd":    (0.0,  1.0),
     "fwhr":                          (1.85, 0.10),  # 1.7–2.0
     "lower_third_ratio":             (0.56, 0.05),
     "canthal_tilt_mean_deg":         (5.0,  3.0),   # ~+5° é desejável
@@ -638,6 +640,9 @@ ADVANCED_IDEALS: Dict[str, Tuple[float, float]] = {
     "fifths_std_dev":                (0.0,  0.03),
     "marquardt_deviation_pct_ipd":   (0.0,  3.0),
     "jaw_width_pct_ipd":             (155.0, 20.0),
+    "jawline_definition_score":      (0.65, 0.20),
+    "upper_lower_lip_ratio":         (0.65, 0.15),
+    "philtrum_length_pct_ipd":       (26.0, 4.0),
 }
 
 

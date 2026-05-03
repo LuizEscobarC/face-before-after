@@ -66,6 +66,10 @@ _WHY_BENEFIT_MAP: Dict[str, str] = {
 _DEFAULT_BENEFIT = "aumenta o impacto da sua presença visual"
 
 
+def _clamp01(value: float) -> float:
+    return max(0.0, min(1.0, float(value)))
+
+
 # ---------------------------------------------------------------------------
 # Cálculo de desvio normalizado do ideal
 # ---------------------------------------------------------------------------
@@ -129,6 +133,7 @@ def _get_best_action_text(key: str, catalog_entry: Dict[str, Any]) -> Optional[s
 def get_top_leverage_recommendation(
     metrics: Dict[str, Any],
     max_tier: int = 1,
+    capture_confidence: float = 1.0,
 ) -> Dict[str, Any]:
     """Retorna a recomendação com maior alavancagem social dentro do tier máximo.
 
@@ -145,6 +150,7 @@ def get_top_leverage_recommendation(
             "time_to_result": str,
             "tier": int,
             "deviation_score": float,
+            "confidence_score": float,
         }
     """
     best_score = -1.0
@@ -163,6 +169,7 @@ def get_top_leverage_recommendation(
         if score > best_score:
             best_score = score
             action_text = _get_best_action_text(key, entry) or entry.get("label", key)
+            confidence_score = _clamp01(0.65 * _clamp01(capture_confidence) + 0.35 * _clamp01(score))
             best = {
                 "metric_key": key,
                 "short_action": action_text,
@@ -170,6 +177,7 @@ def get_top_leverage_recommendation(
                 "time_to_result": entry.get("time_to_result", "semanas"),
                 "tier": tier,
                 "deviation_score": round(best_score, 4),
+                "confidence_score": round(confidence_score, 3),
             }
 
     if not best:
@@ -181,6 +189,7 @@ def get_top_leverage_recommendation(
             "time_to_result": "imediato",
             "tier": 0,
             "deviation_score": 0.0,
+            "confidence_score": round(_clamp01(capture_confidence) * 0.6, 3),
         }
 
     return best

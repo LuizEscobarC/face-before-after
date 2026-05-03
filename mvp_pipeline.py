@@ -19,15 +19,17 @@ import json
 import os
 import sys
 from datetime import datetime
-from typing import Optional
+from typing import Any, Dict
 
 import cv2
 
 from face_asymmetry import FaceAsymmetryAnalyzer
+import face_metrics as fm
 from impression_layer import build_first_impression
 from visual_status import build_visual_status
 from top_leverage import get_top_leverage_recommendation, get_top3_actions
 from evolution_path import build_evolution_path
+from simulate_before_after import simulate as simulate_before_after
 import recommendations as rec
 
 
@@ -127,7 +129,11 @@ def get_score_tier(score: int) -> tuple:
 
 
 def get_top_insights(measurements: dict, top_n: int = 3) -> list:
-    """Retorna as métricas mais impactantes ordenadas por peso × valor."""
+    """Retorna as métricas mais impactantes ordenadas por peso × valor.
+
+    Mantido para diagnóstico interno/debug. A priorização oficial do produto
+    usa top_leverage + top3_actions_v2.
+    """
     scored = []
     for metric, weight in METRIC_WEIGHTS.items():
         value = measurements.get(metric, 0.0)
@@ -144,6 +150,91 @@ def get_top_insights(measurements: dict, top_n: int = 3) -> list:
     return scored[:top_n]
 
 
+def _clamp01(value: float) -> float:
+    return max(0.0, min(1.0, float(value)))
+
+
+def compute_capture_confidence(photo_quality: Dict[str, Any]) -> float:
+    """Estima confiança da captura [0, 1] a partir da qualidade da foto.
+
+    Combina frontalidade, nitidez, iluminação e distorção de lente para
+    controlar o quanto as recomendações devem ser interpretadas como confiáveis.
+    """
+    frontal_score = 1.0 if photo_quality.get("frontal_ok", False) else 0.35
+
+    sharpness = float(photo_quality.get("sharpness_laplacian_var", 0.0))
+    sharpness_score = _clamp01((sharpness - 40.0) / 140.0)
+
+    lighting_delta = float(photo_quality.get("lighting_asymmetry_delta_e", 99.0))
+    lighting_score = _clamp01((22.0 - lighting_delta) / 16.0)
+
+    focal_warn = bool(photo_quality.get("focal_distortion_warning", False))
+    focal_score = 0.55 if focal_warn else 1.0
+
+    confidence = (
+        frontal_score * 0.45
+        + sharpness_score * 0.25
+        + lighting_score * 0.20
+        + focal_score * 0.10
+    )
+    return round(_clamp01(confidence), 3)
+
+
+def build_next_step(
+    score: int,
+    evolution_path: Dict[str, Any],
+    top_leverage: Dict[str, Any],
+) -> Dict[str, str]:
+    """Gera chamada de próximo passo sem quebrar o fluxo de desejo."""
+    if score >= 75:
+        profile = "alto"
+        message = (
+            "Sua base visual já está forte. O próximo passo é manter consistência "
+            "e refinar o que mais gera presença."
+        )
+        action = "Reanalisar em 30 dias para confirmar evolução"
+        cta_text = "Quero acompanhar minha evolução"
+        cta_type = "assinatura"
+    elif score >= 45:
+        profile = "medio"
+        message = (
+            "A principal alavanca já está clara. Agora o foco é validar progresso "
+            "com uma rotina curta e objetiva."
+        )
+        action = "Executar plano de 30 dias e reanalisar"
+        cta_text = "Quero o plano completo"
+        cta_type = "upgrade"
+    else:
+        profile = "baixo"
+        message = (
+            "Existe potencial real para destravar rápido. O ganho vem de começar "
+            "agora com a ação certa."
+        )
+        action = "Iniciar plano guiado com checkpoints em 7/30/90 dias"
+        cta_text = "Quero começar agora"
+        cta_type = "upgrade"
+
+    urgency_hook = ""
+    phase_1_actions = evolution_path.get("phase_1", {}).get("actions", [])
+    if phase_1_actions:
+        first_action = phase_1_actions[0].get("titulo", "")
+        if first_action:
+            urgency_hook = f"Comece hoje por: {first_action}."
+
+    leverage_text = top_leverage.get("short_action", "")
+    if leverage_text and not urgency_hook:
+        urgency_hook = f"Sua maior alavanca agora é: {leverage_text}."
+
+    return {
+        "profile": profile,
+        "message": message,
+        "action": action,
+        "cta_text": cta_text,
+        "cta_type": cta_type,
+        "urgency_hook": urgency_hook,
+    }
+
+
 # ============================================================================
 # GERAÇÃO DO RELATÓRIO COMPARTILHÁVEL
 # ============================================================================
@@ -153,8 +244,13 @@ def build_shareable_report(
     score: int,
     tier_label: str,
     tier_description: str,
-    top_insights: list,
-    measurements: dict,
+    first_impression: Dict[str, Any],
+    visual_status_data: Dict[str, Any],
+    top_leverage: Dict[str, Any],
+    top_actions: list,
+    evolution: Dict[str, Any],
+    next_step: Dict[str, Any],
+    capture_confidence: float,
     rotation_deg: float,
 ) -> str:
     now = datetime.now().strftime('%d/%m/%Y %H:%M')
@@ -178,69 +274,67 @@ def build_shareable_report(
         f"  {tier_description}",
         '',
         f"  % do potencial visual já aproveitado : {score}%",
+        f"  Confianca da captura              : {int(round(capture_confidence * 100))}%",
         '',
         sep,
-        f"  🎯 MUDANÇA PRINCIPAL (maior alavanca)",
+        f"  💬 DIAGNOSTICO DA PRIMEIRA IMPRESSAO",
+        sep,
+        f"  {first_impression.get('headline', '')}",
+        '',
+        f"  Sinal positivo: {first_impression.get('positive_signal', '')}",
+        f"  Principal risco: {first_impression.get('main_risk', '')}",
+        '',
+        sep,
+        f"  📈 LEITURA DE STATUS VISUAL",
+        sep,
+        f"  Dominancia    : {visual_status_data.get('dominance_score', 0):.1f}/10",
+        f"  Atratividade  : {visual_status_data.get('attractiveness_score', 0):.1f}/10",
+        f"  Cuidado/Frescor: {visual_status_data.get('freshness_score', 0):.1f}/10",
+        '',
+        f"  {visual_status_data.get('narrative', '')}",
+        '',
+        sep,
+        f"  🎯 MUDANCA PRINCIPAL (maior alavanca)",
+        sep,
+        f"  {top_leverage.get('short_action', '')}",
+        '',
+        f"  Por que isso importa: {top_leverage.get('why_it_matters', '')}",
+        f"  Tempo esperado: {top_leverage.get('time_to_result', 'semanas')}",
+        '',
+        sep,
+        f"  ✅ 3 ACOES PRIORIZADAS",
         sep,
     ]
 
-    if top_insights:
-        main = top_insights[0]
+    for item in top_actions:
         lines += [
-            f"  {main['short_name']}",
-            f"",
-            f"  {main['detail']}",
+            f"  {item['rank']}. {item['short_action']}",
+            f"     {item['why_it_matters']}",
+            f"     Tempo: {item['time_to_result']} | Tier: {item['tier']}",
             '',
         ]
 
-    # Injetar first_impression e visual_status se disponíveis
-    # (passados via kwargs opcionais — fallback silencioso se ausentes)
-    first_imp = locals().get('first_impression_txt')
-    if first_imp:
-        lines += [
-            sep,
-            f"  💬 PRIMEIRA IMPRESSAO",
-            sep,
-            f"  {first_imp}",
-            '',
-        ]
-
+    phase_1 = evolution.get("phase_1", {})
+    phase_2 = evolution.get("phase_2", {})
+    phase_3 = evolution.get("phase_3", {})
     lines += [
         sep,
-        f"  ✅ 3 AÇÕES PRIORIZADAS POR IMPACTO",
+        f"  🧭 CAMINHO CURTO DE EVOLUCAO",
         sep,
+        f"  {phase_1.get('label', '0-7 dias')}: {phase_1.get('focus', '')}",
+        f"  {phase_2.get('label', '7-30 dias')}: {phase_2.get('focus', '')}",
+        f"  {phase_3.get('label', '30-90 dias')}: {phase_3.get('focus', '')}",
+        '',
+        sep,
+        f"  ➜ PROXIMO PASSO",
+        sep,
+        f"  {next_step.get('message', '')}",
+        '',
+        f"  {next_step.get('urgency_hook', '')}",
+        '',
+        f"  [{next_step.get('cta_text', '')}]",
+        '',
     ]
-
-    for i, insight in enumerate(top_insights, 1):
-        lines.append(f"  {i}. {insight['short_name']}")
-        lines.append(f"     {insight['detail']}")
-        lines.append('')
-
-    lines += [
-        sep,
-        f"  📊 MEDIÇÕES DETALHADAS",
-        sep,
-        f"  {'Métrica':<38} {'Valor (px)':>10}",
-        f"  {'─'*38} {'─'*10}",
-    ]
-
-    labels = {
-        'eye_level_difference_px':      'Desnível dos olhos',
-        'eye_horizontal_asymmetry_px':  'Assimetria horizontal dos olhos',
-        'nose_deviation_px':            'Desvio da ponta do nariz',
-        'nose_wings_asymmetry_px':      'Assimetria das asas do nariz',
-        'chin_deviation_px':            'Desvio do queixo',
-        'mouth_center_deviation_px':    'Desvio do centro da boca',
-        'mouth_corners_asymmetry_px':   'Assimetria dos cantos da boca',
-        'jawline_mean_asymmetry_px':    'Assimetria média da mandíbula',
-        'jawline_max_asymmetry_px':     'Assimetria máx. da mandíbula',
-        'overall_asymmetry_score':      'SCORE GERAL DE ASSIMETRIA (px)',
-    }
-
-    for key, label in labels.items():
-        val = measurements.get(key, 0.0)
-        lines.append(f"  {label:<38} {val:>10.2f}")
-
     lines += [
         '',
         '═' * width,
@@ -276,20 +370,61 @@ def run(image_path: str, output_dir: str) -> dict:
     aligned_img, rotation_matrix = analyzer.align_face(img, landmarks)
     aligned_landmarks = analyzer.transform_landmarks(landmarks, rotation_matrix)
     analyzer.compute_midline(aligned_landmarks)
-    measurements = analyzer.measure_asymmetry(aligned_landmarks)
+    asymmetry_measurements = analyzer.measure_asymmetry(aligned_landmarks)
     annotated_img = analyzer.draw_annotations(aligned_img.copy(), aligned_landmarks)
+
+    # 2b. Métricas avançadas (proporções, pele e qualidade de captura)
+    advanced_bundle = fm.compute_all(
+        aligned_img,
+        aligned_landmarks,
+        face_rect_w=face_rect.width(),
+    )
+    advanced_metrics = advanced_bundle.get("advanced", {})
+    skin_metrics = advanced_bundle.get("skin", {})
+    photo_quality_metrics = advanced_bundle.get("photo_quality", {})
+
+    # Merge flat para alimentar os módulos de produto sem fallback excessivo
+    measurements = {
+        **asymmetry_measurements,
+        **advanced_metrics,
+        **skin_metrics,
+        **photo_quality_metrics,
+    }
+    capture_confidence = compute_capture_confidence(photo_quality_metrics)
 
     # 3. Calcular score e insights
     score = asymmetry_to_score(measurements['overall_asymmetry_score'])
     tier_label, tier_description = get_score_tier(score)
-    top_insights = get_top_insights(measurements, top_n=3)
+    debug_top_insights = get_top_insights(measurements, top_n=3)
 
     # 3b. Módulos do produto de entrada
     first_impression = build_first_impression(measurements)
     visual_status_data = build_visual_status(measurements)
-    top_leverage = get_top_leverage_recommendation(measurements, max_tier=1)
+    top_leverage = get_top_leverage_recommendation(
+        measurements,
+        max_tier=1,
+        capture_confidence=capture_confidence,
+    )
     top3_v2 = get_top3_actions(measurements, max_tier=2)
-    evolution = build_evolution_path(measurements, rec.REC_CATALOG)
+    evolution = build_evolution_path(
+        measurements,
+        rec.REC_CATALOG,
+        capture_confidence=capture_confidence,
+    )
+    next_step = build_next_step(score, evolution, top_leverage)
+
+    # 3c. Simulação antes/depois sem IA paga (não bloqueante)
+    simulation_outputs = None
+    simulation_error = None
+    try:
+        simulation_landmarks = [tuple(map(int, pt)) for pt in landmarks]
+        simulation_outputs = simulate_before_after(
+            image_path=image_path,
+            landmarks=simulation_landmarks,
+            output_dir=output_dir,
+        )
+    except Exception as exc:  # pylint: disable=broad-except
+        simulation_error = str(exc)
 
     # 4. Gerar relatório texto
     report_txt = build_shareable_report(
@@ -297,8 +432,13 @@ def run(image_path: str, output_dir: str) -> dict:
         score=score,
         tier_label=tier_label,
         tier_description=tier_description,
-        top_insights=top_insights,
-        measurements=measurements,
+        first_impression=first_impression,
+        visual_status_data=visual_status_data,
+        top_leverage=top_leverage,
+        top_actions=top3_v2,
+        evolution=evolution,
+        next_step=next_step,
+        capture_confidence=capture_confidence,
         rotation_deg=analyzer.rotation_angle,
     )
 
@@ -310,21 +450,38 @@ def run(image_path: str, output_dir: str) -> dict:
         'score': score,
         'tier': tier_label,
         'tier_description': tier_description,
+        'capture_confidence': capture_confidence,
         'main_insight': {
-            'short_name': top_insights[0]['short_name'],
-            'detail': top_insights[0]['detail'],
-        } if top_insights else {},
+            'metric_key': top_leverage.get('metric_key'),
+            'short_name': top_leverage.get('short_action'),
+            'detail': top_leverage.get('why_it_matters'),
+        } if top_leverage else {},
         'top_3_actions': [
-            {'rank': i + 1, 'action': ins['short_name'], 'detail': ins['detail']}
-            for i, ins in enumerate(top_insights)
+            {
+                'rank': item['rank'],
+                'action': item['short_action'],
+                'detail': item['why_it_matters'],
+                'tier': item['tier'],
+                'metric_key': item['metric_key'],
+            }
+            for item in top3_v2
         ],
         'measurements': measurements,
+        'measurements_blocks': advanced_bundle,
+        'photo_warnings': photo_quality_metrics.get('warnings', []),
+        'debug_top_3_actions_px': [
+            {'rank': i + 1, 'action': ins['short_name'], 'detail': ins['detail']}
+            for i, ins in enumerate(debug_top_insights)
+        ],
         # --- Produto de Entrada: novos campos ---
         'first_impression': first_impression,
         'visual_status': visual_status_data,
         'top_leverage': top_leverage,
         'top3_actions_v2': top3_v2,
         'evolution_path': evolution,
+        'next_step': next_step,
+        'simulation_paths': simulation_outputs,
+        'simulation_error': simulation_error,
     }
 
     # 6. Salvar outputs

@@ -103,6 +103,7 @@ def get_mutable_metrics(
 def build_evolution_path(
     metrics: Dict[str, Any],
     catalog: Dict[str, Any] = None,
+    capture_confidence: float = 1.0,
 ) -> Dict[str, Any]:
     """Constrói a trilha de evolução em 3 fases.
 
@@ -128,15 +129,29 @@ def build_evolution_path(
     tier0_actions: List[Dict] = []
     tier1_actions: List[Dict] = []
     tier2_actions: List[Dict] = []
+    tier0_sev_ranks: List[int] = []
+    tier1_sev_ranks: List[int] = []
+    tier2_sev_ranks: List[int] = []
 
     for key in mutable:
         entry = catalog.get(key, {})
         value = metrics.get(key)
         sev = _get_metric_severity(key, value)
 
-        tier0_actions.extend(_actions_for_tier(entry, 0, sev))
-        tier1_actions.extend(_actions_for_tier(entry, 1, sev))
-        tier2_actions.extend(_actions_for_tier(entry, 2, sev))
+        tier0_new = _actions_for_tier(entry, 0, sev)
+        tier1_new = _actions_for_tier(entry, 1, sev)
+        tier2_new = _actions_for_tier(entry, 2, sev)
+
+        tier0_actions.extend(tier0_new)
+        tier1_actions.extend(tier1_new)
+        tier2_actions.extend(tier2_new)
+
+        if tier0_new:
+            tier0_sev_ranks.append(_sev_rank(sev))
+        if tier1_new:
+            tier1_sev_ranks.append(_sev_rank(sev))
+        if tier2_new:
+            tier2_sev_ranks.append(_sev_rank(sev))
 
     # Desduplicar por título
     def _dedup(actions: List[Dict]) -> List[Dict]:
@@ -153,6 +168,35 @@ def build_evolution_path(
     tier1_actions = _dedup(tier1_actions)
     tier2_actions = _dedup(tier2_actions)
 
+    def _clamp01(value: float) -> float:
+        return max(0.0, min(1.0, float(value)))
+
+    def _confidence_label(score: float) -> str:
+        if score >= 0.75:
+            return "muito provável"
+        if score >= 0.50:
+            return "provável"
+        if score >= 0.30:
+            return "possível"
+        return "desafiador"
+
+    def _phase_confidence(
+        actions: List[Dict],
+        sev_ranks: List[int],
+        base_score: float,
+    ) -> float:
+        if not actions:
+            return 0.0
+        avg_rank = sum(sev_ranks) / len(sev_ranks) if sev_ranks else 2.0
+        severity_factor = max(0.45, 1.0 - (avg_rank - 1.0) * 0.15)
+        action_factor = min(1.0, 0.60 + 0.15 * len(actions))
+        confidence = base_score * _clamp01(capture_confidence) * severity_factor * action_factor
+        return round(_clamp01(confidence), 3)
+
+    phase_1_conf = _phase_confidence(tier0_actions[:3], tier0_sev_ranks, base_score=0.88)
+    phase_2_conf = _phase_confidence(tier1_actions[:3], tier1_sev_ranks, base_score=0.72)
+    phase_3_conf = _phase_confidence(tier2_actions[:2], tier2_sev_ranks, base_score=0.58)
+
     # Determinar métricas alvo por fase
     def _target_metric_label(tier_actions: List[Dict]) -> str:
         if tier_actions:
@@ -166,6 +210,8 @@ def build_evolution_path(
         "target_metric": _target_metric_label(tier0_actions),
         "reanalysis_date": (today + timedelta(days=7)).isoformat(),
         "reanalysis_label": "em 7 dias",
+        "confidence_score": phase_1_conf,
+        "confidence_label": _confidence_label(phase_1_conf),
     }
 
     phase_2 = {
@@ -175,6 +221,8 @@ def build_evolution_path(
         "target_metric": _target_metric_label(tier1_actions),
         "reanalysis_date": (today + timedelta(days=30)).isoformat(),
         "reanalysis_label": "em 30 dias",
+        "confidence_score": phase_2_conf,
+        "confidence_label": _confidence_label(phase_2_conf),
     }
 
     phase_3 = {
@@ -185,6 +233,8 @@ def build_evolution_path(
         "reanalysis_date": (today + timedelta(days=90)).isoformat(),
         "reanalysis_label": "em 90 dias",
         "requires_professional": len(tier2_actions) > 0,
+        "confidence_score": phase_3_conf,
+        "confidence_label": _confidence_label(phase_3_conf),
     }
 
     return {
