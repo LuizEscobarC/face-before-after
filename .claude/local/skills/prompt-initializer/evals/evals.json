@@ -1,0 +1,23 @@
+{
+  "skill_name": "prompt-initializer",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "preciso criar um novo endpoint GET /tickets/summary que retorna o total de chamados abertos agrupados por status para uma instalação. o filtro obrigatório é installation_id.",
+      "expected_output": "Creates a .prompt.md file at .claude/local/prompts/tickets/task-tickets-summary-endpoint-<date>.prompt.md. The file must contain: (1) a Context section listing affected tables (chamados_geral, instalacao) and DB connection (mysql), (2) a Dependency Map section with all identifiers verified in .claude/local/context/, (3) an Isolation Rules checklist in Business Rules, (4) Steps checklist including pint, integration-prober, domain-context-updater, generate-postman, and api-doc-generator, (5) a ReAct validation report confirming all 6 layers passed. The skill must NOT write any implementation code before the .prompt.md is finalized.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "temos um bug: o endpoint GET /weather/metrics está retornando installation_id como string '6363' em vez de integer 6363 na resposta JSON. tá quebrando o frontend.",
+      "expected_output": "Creates a .prompt.md file at .claude/local/prompts/weather/task-fix-installation-id-type-<date>.prompt.md typed as 'bugfix'. The file must contain: (1) Context with symptoms (string vs integer), affected service (WeatherMetricsService), (2) Dependency Map showing WeatherMetricsService, WeatherInfluxRepository, CachedWeatherInfluxRepository — all with definition paths in .claude/local/context/weather/, (3) Isolation Rules noting no DB writes needed (read-only diagnostic), (4) Steps starting with clear-cache, then laravel-bug-diagnostician, then fix, then integration-prober. Layer 6 reflection must show all identifiers resolved.",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "quero entender por que o cálculo de custo de energia no relatório mensal está diferente do que aparece no sistema legado. preciso mapear o fluxo completo de cálculo antes de tocar em qualquer código.",
+      "expected_output": "Creates a .prompt.md file at .claude/local/prompts/reports/energy/task-investigate-energy-cost-calculation-<date>.prompt.md typed as 'investigation'. The file must contain: (1) Context loading energy module docs from .claude/local/context/reports/energy/, (2) Dependency Map tracing EnergyReportBuilder → EnergyDataProvider → repositories, with DB connections documented (mysql for instalacao, mysql_dados for daily data), (3) Isolation Rules with 'SELECT-only — no writes in investigation task' explicitly stated, (4) Instance samples from energia_dados_diario showing actual numeric ranges. The skill must NOT suggest any code changes — this is an investigation prompt.",
+      "files": []
+    }
+  ]
+}

@@ -1,0 +1,55 @@
+
+════════════════════════════════════════════════════════════
+  ANÁLISE DE PRESENÇA VISUAL FACIAL
+  03/05/2026 18:15
+════════════════════════════════════════════════════════════
+
+  📸 Foto analisada : depois.png
+  🔄 Correção de rotação aplicada : -0.6°
+
+────────────────────────────────────────────────────────────
+  SCORE DE SIMETRIA FACIAL
+────────────────────────────────────────────────────────────
+  87 / 100  —  Muito boa
+  Você já tem uma base forte. Pequenos ajustes aumentam ainda mais sua presença.
+
+  % do potencial visual já aproveitado : 87%
+
+────────────────────────────────────────────────────────────
+  🎯 MUDANÇA PRINCIPAL (maior alavanca)
+────────────────────────────────────────────────────────────
+  Ângulo facial na foto
+
+  A assimetria da mandíbula é visualmente reduzida quando o ângulo da câmera é frontal e levemente acima do queixo. Evitar ângulos laterais em fotos de perfil.
+
+────────────────────────────────────────────────────────────
+  ✅ 3 AÇÕES PRIORIZADAS POR IMPACTO
+────────────────────────────────────────────────────────────
+  1. Ângulo facial na foto
+     A assimetria da mandíbula é visualmente reduzida quando o ângulo da câmera é frontal e levemente acima do queixo. Evitar ângulos laterais em fotos de perfil.
+
+  2. Sorriso e expressão equilibrada
+     Os cantos da boca em alturas diferentes reduzem a percepção de simetria. Um sorriso leve, consciente e equilibrado é a mudança mais rápida de implementar.
+
+  3. Posicionamento do queixo na foto
+     O queixo desviado da linha central é um dos fatores que mais reduz a percepção de simetria. Praticar posicionamento frontal neutro aumenta o impacto visual imediatamente.
+
+────────────────────────────────────────────────────────────
+  📊 MEDIÇÕES DETALHADAS
+────────────────────────────────────────────────────────────
+  Métrica                                Valor (px)
+  ────────────────────────────────────── ──────────
+  Desnível dos olhos                           0.00
+  Assimetria horizontal dos olhos              0.08
+  Desvio da ponta do nariz                     0.18
+  Assimetria das asas do nariz                 0.77
+  Desvio do queixo                             1.59
+  Desvio do centro da boca                     0.73
+  Assimetria dos cantos da boca                3.72
+  Assimetria média da mandíbula                6.03
+  Assimetria máx. da mandíbula                 7.87
+  SCORE GERAL DE ASSIMETRIA (px)               1.52
+
+════════════════════════════════════════════════════════════
+  Gerado por Face Before/After MVP
+════════════════════════════════════════════════════════════

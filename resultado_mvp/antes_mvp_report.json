@@ -1,0 +1,41 @@
+{
+  "input_file": "antes.png",
+  "generated_at": "2026-05-03T16:56:51.556390",
+  "rotation_correction_degrees": -0.96,
+  "score": 96,
+  "tier": "Excelente",
+  "tier_description": "Sua simetria facial está no nível de quem é percebido como muito atraente em fotos.",
+  "main_insight": {
+    "short_name": "Sorriso e expressão equilibrada",
+    "detail": "Os cantos da boca em alturas diferentes reduzem a percepção de simetria. Um sorriso leve, consciente e equilibrado é a mudança mais rápida de implementar."
+  },
+  "top_3_actions": [
+    {
+      "rank": 1,
+      "action": "Sorriso e expressão equilibrada",
+      "detail": "Os cantos da boca em alturas diferentes reduzem a percepção de simetria. Um sorriso leve, consciente e equilibrado é a mudança mais rápida de implementar."
+    },
+    {
+      "rank": 2,
+      "action": "Ângulo facial na foto",
+      "detail": "A assimetria da mandíbula é visualmente reduzida quando o ângulo da câmera é frontal e levemente acima do queixo. Evitar ângulos laterais em fotos de perfil."
+    },
+    {
+      "rank": 3,
+      "action": "Iluminação frontal e simétrica",
+      "detail": "A assimetria das asas do nariz é amplificada por iluminação lateral. Luz frontal difusa, como luz natural de frente, minimiza esse efeito visualmente."
+    }
+  ],
+  "measurements": {
+    "eye_level_difference_px": 0.0,
+    "eye_horizontal_asymmetry_px": 0.73,
+    "nose_deviation_px": 0.04,
+    "nose_wings_asymmetry_px": 1.13,
+    "chin_deviation_px": 0.21,
+    "mouth_center_deviation_px": 0.33,
+    "mouth_corners_asymmetry_px": 1.73,
+    "jawline_mean_asymmetry_px": 1.29,
+    "jawline_max_asymmetry_px": 2.69,
+    "overall_asymmetry_score": 0.51
+  }
+}

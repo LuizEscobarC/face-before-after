@@ -84,6 +84,11 @@ REC_CATALOG: Dict[str, Dict[str, Any]] = {
             {"titulo": "Perrett 1999 — Symmetry and human facial attractiveness",
              "url": "https://doi.org/10.1016/S1090-5138(99)00014-8"},
         ],
+        "actionability_tier": 0,
+        "time_to_result": "semanas",
+        "cost_level": 0,
+        "mutable": True,
+        "social_perception_weight": 0.90,
     },
 
     "fwhr": {
@@ -135,6 +140,11 @@ REC_CATALOG: Dict[str, Dict[str, Any]] = {
             {"titulo": "Wikipedia — fWHR",
              "url": "https://en.wikipedia.org/wiki/Facial_width-to-height_ratio"},
         ],
+        "actionability_tier": 1,
+        "time_to_result": "meses",
+        "cost_level": 1,
+        "mutable": True,
+        "social_perception_weight": 0.75,
     },
 
     "lower_third_ratio": {
@@ -163,6 +173,11 @@ REC_CATALOG: Dict[str, Dict[str, Any]] = {
             {"titulo": "Naini — Facial Aesthetics (Wiley)",
              "url": "https://www.wiley.com/en-us/Facial+Aesthetics-p-9781405181921"},
         ],
+        "actionability_tier": 1,
+        "time_to_result": "meses",
+        "cost_level": 0,
+        "mutable": True,
+        "social_perception_weight": 0.50,
     },
 
     "canthal_tilt_mean_deg": {
@@ -193,6 +208,11 @@ REC_CATALOG: Dict[str, Dict[str, Any]] = {
             {"titulo": "Wikipedia — Canthus",
              "url": "https://en.wikipedia.org/wiki/Canthus"},
         ],
+        "actionability_tier": 1,
+        "time_to_result": "semanas",
+        "cost_level": 1,
+        "mutable": True,
+        "social_perception_weight": 0.85,
     },
 
     "intercanthal_to_eyewidth_ratio": {
@@ -221,6 +241,11 @@ REC_CATALOG: Dict[str, Dict[str, Any]] = {
             {"titulo": "Farkas — Anthropometry of the Head and Face",
              "url": "https://www.worldcat.org/title/26595060"},
         ],
+        "actionability_tier": 0,
+        "time_to_result": "imediato",
+        "cost_level": 0,
+        "mutable": False,
+        "social_perception_weight": 0.60,
     },
 
     "nasal_to_mouth_width_ratio": {
@@ -249,6 +274,11 @@ REC_CATALOG: Dict[str, Dict[str, Any]] = {
             {"titulo": "Ricketts RM 1982 — Divine proportion",
              "url": "https://pubmed.ncbi.nlm.nih.gov/7041859/"},
         ],
+        "actionability_tier": 0,
+        "time_to_result": "imediato",
+        "cost_level": 0,
+        "mutable": False,
+        "social_perception_weight": 0.65,
     },
 
     "mouth_to_ipd_ratio": {
@@ -270,6 +300,11 @@ REC_CATALOG: Dict[str, Dict[str, Any]] = {
             {"titulo": "Wikipedia — Neoclassical canons",
              "url": "https://en.wikipedia.org/wiki/Neoclassical_canons_of_facial_proportions"},
         ],
+        "actionability_tier": 0,
+        "time_to_result": "imediato",
+        "cost_level": 0,
+        "mutable": True,
+        "social_perception_weight": 0.45,
     },
 
     "thirds_std_dev": {
@@ -291,6 +326,11 @@ REC_CATALOG: Dict[str, Dict[str, Any]] = {
             {"titulo": "Naini — Facial Aesthetics",
              "url": "https://www.wiley.com/en-us/Facial+Aesthetics-p-9781405181921"},
         ],
+        "actionability_tier": 0,
+        "time_to_result": "imediato",
+        "cost_level": 0,
+        "mutable": True,
+        "social_perception_weight": 0.55,
     },
 
     "fifths_std_dev": {
@@ -312,6 +352,11 @@ REC_CATALOG: Dict[str, Dict[str, Any]] = {
             {"titulo": "Wikipedia — Neoclassical canons",
              "url": "https://en.wikipedia.org/wiki/Neoclassical_canons_of_facial_proportions"},
         ],
+        "actionability_tier": 0,
+        "time_to_result": "imediato",
+        "cost_level": 0,
+        "mutable": False,
+        "social_perception_weight": 0.40,
     },
 
     "marquardt_deviation_pct_ipd": {
@@ -341,6 +386,11 @@ REC_CATALOG: Dict[str, Dict[str, Any]] = {
             {"titulo": "Marquardt — Phi mask",
              "url": "https://en.wikipedia.org/wiki/Marquardt_Beauty_Mask"},
         ],
+        "actionability_tier": 0,
+        "time_to_result": "semanas",
+        "cost_level": 0,
+        "mutable": True,
+        "social_perception_weight": 0.70,
     },
 
     "jaw_width_pct_ipd": {
@@ -369,6 +419,11 @@ REC_CATALOG: Dict[str, Dict[str, Any]] = {
             {"titulo": "Hammond et al. 2018 — Facial exercise",
              "url": "https://jamanetwork.com/journals/jamadermatology/fullarticle/2666780"},
         ],
+        "actionability_tier": 1,
+        "time_to_result": "meses",
+        "cost_level": 1,
+        "mutable": True,
+        "social_perception_weight": 0.65,
     },
 
     "jawline_definition_score": {
@@ -407,6 +462,11 @@ REC_CATALOG: Dict[str, Dict[str, Any]] = {
             {"titulo": "Hammond et al. 2018",
              "url": "https://jamanetwork.com/journals/jamadermatology/fullarticle/2666780"},
         ],
+        "actionability_tier": 1,
+        "time_to_result": "semanas",
+        "cost_level": 1,
+        "mutable": True,
+        "social_perception_weight": 0.80,
     },
 
     "upper_lower_lip_ratio": {
@@ -428,6 +488,11 @@ REC_CATALOG: Dict[str, Dict[str, Any]] = {
             {"titulo": "Heidekrueger PI 2017 — lip ratio",
              "url": "https://pubmed.ncbi.nlm.nih.gov/27915313/"},
         ],
+        "actionability_tier": 0,
+        "time_to_result": "imediato",
+        "cost_level": 0,
+        "mutable": True,
+        "social_perception_weight": 0.45,
     },
 
     "philtrum_length_pct_ipd": {
@@ -456,6 +521,11 @@ REC_CATALOG: Dict[str, Dict[str, Any]] = {
             {"titulo": "Naini — Facial Aesthetics",
              "url": "https://www.wiley.com/en-us/Facial+Aesthetics-p-9781405181921"},
         ],
+        "actionability_tier": 0,
+        "time_to_result": "imediato",
+        "cost_level": 0,
+        "mutable": True,
+        "social_perception_weight": 0.40,
     },
 
     "face_shape_label": {
@@ -469,6 +539,11 @@ REC_CATALOG: Dict[str, Dict[str, Any]] = {
             {"titulo": "GQ — face shape guide",
              "url": "https://www.gq.com/story/grooming-tips-by-face-shape"},
         ],
+        "actionability_tier": 0,
+        "time_to_result": "imediato",
+        "cost_level": 0,
+        "mutable": False,
+        "social_perception_weight": 0.30,
     },
 }
 

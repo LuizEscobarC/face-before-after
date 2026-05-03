@@ -1,0 +1,127 @@
+{
+  "input_file": "depois.png",
+  "generated_at": "2026-05-03T18:15:09.323391",
+  "rotation_correction_degrees": -0.62,
+  "score": 87,
+  "tier": "Muito boa",
+  "tier_description": "Você já tem uma base forte. Pequenos ajustes aumentam ainda mais sua presença.",
+  "main_insight": {
+    "short_name": "Ângulo facial na foto",
+    "detail": "A assimetria da mandíbula é visualmente reduzida quando o ângulo da câmera é frontal e levemente acima do queixo. Evitar ângulos laterais em fotos de perfil."
+  },
+  "top_3_actions": [
+    {
+      "rank": 1,
+      "action": "Ângulo facial na foto",
+      "detail": "A assimetria da mandíbula é visualmente reduzida quando o ângulo da câmera é frontal e levemente acima do queixo. Evitar ângulos laterais em fotos de perfil."
+    },
+    {
+      "rank": 2,
+      "action": "Sorriso e expressão equilibrada",
+      "detail": "Os cantos da boca em alturas diferentes reduzem a percepção de simetria. Um sorriso leve, consciente e equilibrado é a mudança mais rápida de implementar."
+    },
+    {
+      "rank": 3,
+      "action": "Posicionamento do queixo na foto",
+      "detail": "O queixo desviado da linha central é um dos fatores que mais reduz a percepção de simetria. Praticar posicionamento frontal neutro aumenta o impacto visual imediatamente."
+    }
+  ],
+  "measurements": {
+    "eye_level_difference_px": 0.0,
+    "eye_horizontal_asymmetry_px": 0.08,
+    "nose_deviation_px": 0.18,
+    "nose_wings_asymmetry_px": 0.77,
+    "chin_deviation_px": 1.59,
+    "mouth_center_deviation_px": 0.73,
+    "mouth_corners_asymmetry_px": 3.72,
+    "jawline_mean_asymmetry_px": 6.03,
+    "jawline_max_asymmetry_px": 7.87,
+    "overall_asymmetry_score": 1.52,
+    "ipd_px": 93.01,
+    "eye_level_difference_pct_ipd": 0.0,
+    "eye_horizontal_asymmetry_pct_ipd": 0.091,
+    "nose_deviation_pct_ipd": 0.192,
+    "nose_wings_asymmetry_pct_ipd": 0.823,
+    "chin_deviation_pct_ipd": 1.706,
+    "mouth_center_deviation_pct_ipd": 0.781,
+    "mouth_corners_asymmetry_pct_ipd": 4.002,
+    "jawline_mean_asymmetry_pct_ipd": 6.479,
+    "jawline_max_asymmetry_pct_ipd": 8.464,
+    "overall_asymmetry_score_pct_ipd": 1.632
+  },
+  "first_impression": {
+    "headline": "Primeira impressão sólida. Face detectada com qualidade suficiente para análise completa.",
+    "tags": [
+      "equilíbrio visual"
+    ],
+    "main_risk": "Nenhum fator crítico identificado — manutenção e consistência são o foco.",
+    "positive_signal": "Face detectada com qualidade suficiente para análise completa"
+  },
+  "visual_status": {
+    "dominance_score": 6.06,
+    "attractiveness_score": 7.94,
+    "freshness_score": 6.8,
+    "narrative": "Você tem harmonia e equilíbrio visual. Aumentar a percepção de força facial é o passo que mais soma."
+  },
+  "top_leverage": {
+    "metric_key": "overall_asymmetry_score_pct_ipd",
+    "short_action": "Mastigação bilateral consciente",
+    "why_it_matters": "melhora imediatamente como você é percebido em fotos e vídeos",
+    "time_to_result": "semanas",
+    "tier": 0,
+    "deviation_score": 0.0
+  },
+  "top3_actions_v2": [
+    {
+      "rank": 1,
+      "metric_key": "overall_asymmetry_score_pct_ipd",
+      "short_action": "Mastigação bilateral consciente",
+      "why_it_matters": "melhora imediatamente como você é percebido em fotos e vídeos",
+      "time_to_result": "semanas",
+      "tier": 0
+    }
+  ],
+  "evolution_path": {
+    "mutable_metrics": [
+      "overall_asymmetry_score_pct_ipd"
+    ],
+    "phase_1": {
+      "label": "Esta semana (0–7 dias)",
+      "focus": "Ajustes imediatos de foto, expressão, iluminação e postura",
+      "actions": [
+        {
+          "titulo": "Mastigação bilateral consciente",
+          "descricao": "Alterne deliberadamente o lado da mastigação a cada refeição.",
+          "frequencia": "todas as refeições",
+          "metric_label": "Assimetria global"
+        },
+        {
+          "titulo": "Postura neutra de cabeça",
+          "descricao": "Evite head-tilt habitual; alinhe orelha sobre ombro em frente ao espelho 2× ao dia.",
+          "frequencia": "diário",
+          "metric_label": "Assimetria global"
+        }
+      ],
+      "target_metric": "Assimetria global",
+      "reanalysis_date": "2026-05-10",
+      "reanalysis_label": "em 7 dias"
+    },
+    "phase_2": {
+      "label": "Próximos 30 dias",
+      "focus": "Hábitos consistentes: skincare, exercício, mastigação bilateral",
+      "actions": [],
+      "target_metric": "Métricas gerais",
+      "reanalysis_date": "2026-06-02",
+      "reanalysis_label": "em 30 dias"
+    },
+    "phase_3": {
+      "label": "3 meses",
+      "focus": "Avaliação profissional acessível (se indicado) + consolidação",
+      "actions": [],
+      "target_metric": "Métricas gerais",
+      "reanalysis_date": "2026-08-01",
+      "reanalysis_label": "em 90 dias",
+      "requires_professional": false
+    }
+  }
+}
