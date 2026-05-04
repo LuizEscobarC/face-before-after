@@ -1,15 +1,257 @@
 {
   "input_file": "antes.png",
-  "generated_at": "2026-05-03T16:56:51.556390",
-  "rotation_correction_degrees": -0.96,
-  "score": 96,
-  "tier": "Excelente",
-  "tier_description": "Sua simetria facial está no nível de quem é percebido como muito atraente em fotos.",
+  "generated_at": "2026-05-03T19:24:43.705058",
+  "rotation_correction_degrees": -0.38,
+  "score": 86,
+  "tier": "Muito boa",
+  "tier_description": "Você já tem uma base forte. Pequenos ajustes aumentam ainda mais sua presença.",
+  "capture_confidence": 0.707,
   "main_insight": {
-    "short_name": "Sorriso e expressão equilibrada",
-    "detail": "Os cantos da boca em alturas diferentes reduzem a percepção de simetria. Um sorriso leve, consciente e equilibrado é a mudança mais rápida de implementar."
+    "metric_key": "jawline_definition_score",
+    "short_name": "Chin tucks + retração cervical",
+    "detail": "projeta presença antes mesmo de você falar — estrutura que transmite autoridade"
   },
-  "top_3_actions": [
+  "measurements": {
+    "eye_level_difference_px": 0.0,
+    "eye_horizontal_asymmetry_px": 0.35,
+    "nose_deviation_px": 1.07,
+    "nose_wings_asymmetry_px": 2.28,
+    "chin_deviation_px": 1.54,
+    "mouth_center_deviation_px": 2.27,
+    "mouth_corners_asymmetry_px": 5.6,
+    "jawline_mean_asymmetry_px": 1.5,
+    "jawline_max_asymmetry_px": 3.05,
+    "overall_asymmetry_score": 1.7,
+    "ipd_px": 50.17,
+    "eye_level_difference_pct_ipd": 0.0,
+    "eye_horizontal_asymmetry_pct_ipd": 0.693,
+    "nose_deviation_pct_ipd": 2.13,
+    "nose_wings_asymmetry_pct_ipd": 4.539,
+    "chin_deviation_pct_ipd": 3.071,
+    "mouth_center_deviation_pct_ipd": 4.521,
+    "mouth_corners_asymmetry_pct_ipd": 11.168,
+    "jawline_mean_asymmetry_pct_ipd": 2.995,
+    "jawline_max_asymmetry_pct_ipd": 6.089,
+    "overall_asymmetry_score_pct_ipd": 3.389,
+    "thirds_upper_ratio": 0.204,
+    "thirds_middle_ratio": 0.374,
+    "thirds_lower_ratio": 0.422,
+    "thirds_std_dev": 0.094,
+    "fifths_std_dev": 0.031,
+    "lower_third_ratio": 0.53,
+    "fwhr": 1.67,
+    "bizygomatic_px": 111.005,
+    "bigonial_px": 92.0,
+    "jaw_width_pct_ipd": 183.385,
+    "bizygomatic_to_bigonial_ratio": 1.207,
+    "gonial_angle_left_deg": 157.101,
+    "gonial_angle_right_deg": 152.125,
+    "gonial_angle_mean_deg": 154.613,
+    "chin_projection_pct_ipd": 49.845,
+    "jawline_definition_score": 7.822,
+    "canthal_tilt_left_deg": -2.482,
+    "canthal_tilt_right_deg": -3.107,
+    "canthal_tilt_mean_deg": -2.794,
+    "eye_aspect_ratio_left": 0.275,
+    "eye_aspect_ratio_right": 0.262,
+    "eye_aspect_ratio_mean": 0.268,
+    "intercanthal_to_eyewidth_ratio": 1.413,
+    "brow_to_eyelid_left_pct_ipd": 28.561,
+    "brow_to_eyelid_right_pct_ipd": 27.05,
+    "brow_to_eyelid_mean_pct_ipd": 27.805,
+    "brow_tilt_left_deg": -3.908,
+    "brow_tilt_right_deg": -4.67,
+    "nasal_to_mouth_width_ratio": 0.541,
+    "alar_intercanthal_alignment_pct": 30.948,
+    "nasal_length_pct_face_height": 36.281,
+    "alar_width_pct_ipd": 39.916,
+    "mouth_to_ipd_ratio": 0.738,
+    "upper_lower_lip_ratio": 0.706,
+    "philtrum_length_pct_ipd": 31.879,
+    "upper_lip_thickness_pct_ipd": 14.019,
+    "lower_lip_thickness_pct_ipd": 19.853,
+    "face_height_to_width_ratio": 0.968,
+    "zygomatic_to_gonial_ratio": 1.207,
+    "face_shape_label": "redondo",
+    "marquardt_deviation_px": 3.036,
+    "marquardt_deviation_pct_ipd": 6.052,
+    "skin_uniformity_std_lab_left": 19.585,
+    "skin_uniformity_std_lab_right": 20.532,
+    "skin_uniformity_std_lab_forehead": 15.506,
+    "skin_lighting_delta_e_lr": 3.246,
+    "under_eye_darkness_left": 0.114,
+    "under_eye_darkness_right": 0.121,
+    "head_pose_yaw_deg": 0.099,
+    "head_pose_pitch_deg": -17.65,
+    "head_pose_roll_deg": 0.96,
+    "frontal_ok": false,
+    "focal_distortion_ratio": 0.18,
+    "focal_distortion_warning": false,
+    "lighting_asymmetry_delta_e": 3.246,
+    "face_pixel_width": 130,
+    "sharpness_laplacian_var": 1091.212,
+    "warnings": [
+      "Pose facial fora do limite frontal (|yaw|=0.1°, |pitch|=17.6°). Métricas podem estar enviesadas.",
+      "Resolução facial baixa (130px). Use foto >= 400px."
+    ]
+  },
+  "measurements_blocks": {
+    "advanced": {
+      "thirds_upper_ratio": 0.204,
+      "thirds_middle_ratio": 0.374,
+      "thirds_lower_ratio": 0.422,
+      "thirds_std_dev": 0.094,
+      "fifths_std_dev": 0.031,
+      "lower_third_ratio": 0.53,
+      "fwhr": 1.67,
+      "bizygomatic_px": 111.005,
+      "bigonial_px": 92.0,
+      "jaw_width_pct_ipd": 183.385,
+      "bizygomatic_to_bigonial_ratio": 1.207,
+      "gonial_angle_left_deg": 157.101,
+      "gonial_angle_right_deg": 152.125,
+      "gonial_angle_mean_deg": 154.613,
+      "chin_projection_pct_ipd": 49.845,
+      "jawline_definition_score": 7.822,
+      "canthal_tilt_left_deg": -2.482,
+      "canthal_tilt_right_deg": -3.107,
+      "canthal_tilt_mean_deg": -2.794,
+      "eye_aspect_ratio_left": 0.275,
+      "eye_aspect_ratio_right": 0.262,
+      "eye_aspect_ratio_mean": 0.268,
+      "intercanthal_to_eyewidth_ratio": 1.413,
+      "brow_to_eyelid_left_pct_ipd": 28.561,
+      "brow_to_eyelid_right_pct_ipd": 27.05,
+      "brow_to_eyelid_mean_pct_ipd": 27.805,
+      "brow_tilt_left_deg": -3.908,
+      "brow_tilt_right_deg": -4.67,
+      "nasal_to_mouth_width_ratio": 0.541,
+      "alar_intercanthal_alignment_pct": 30.948,
+      "nasal_length_pct_face_height": 36.281,
+      "alar_width_pct_ipd": 39.916,
+      "mouth_to_ipd_ratio": 0.738,
+      "upper_lower_lip_ratio": 0.706,
+      "philtrum_length_pct_ipd": 31.879,
+      "upper_lip_thickness_pct_ipd": 14.019,
+      "lower_lip_thickness_pct_ipd": 19.853,
+      "face_height_to_width_ratio": 0.968,
+      "zygomatic_to_gonial_ratio": 1.207,
+      "face_shape_label": "redondo",
+      "marquardt_deviation_px": 3.036,
+      "marquardt_deviation_pct_ipd": 6.052
+    },
+    "photo_quality": {
+      "head_pose_yaw_deg": 0.099,
+      "head_pose_pitch_deg": -17.65,
+      "head_pose_roll_deg": 0.96,
+      "frontal_ok": false,
+      "focal_distortion_ratio": 0.18,
+      "focal_distortion_warning": false,
+      "lighting_asymmetry_delta_e": 3.246,
+      "face_pixel_width": 130,
+      "sharpness_laplacian_var": 1091.212,
+      "warnings": [
+        "Pose facial fora do limite frontal (|yaw|=0.1°, |pitch|=17.6°). Métricas podem estar enviesadas.",
+        "Resolução facial baixa (130px). Use foto >= 400px."
+      ]
+    },
+    "skin": {
+      "skin_uniformity_std_lab_left": 19.585,
+      "skin_uniformity_std_lab_right": 20.532,
+      "skin_uniformity_std_lab_forehead": 15.506,
+      "skin_lighting_delta_e_lr": 3.246,
+      "under_eye_darkness_left": 0.114,
+      "under_eye_darkness_right": 0.121
+    }
+  },
+  "photo_warnings": [
+    "Pose facial fora do limite frontal (|yaw|=0.1°, |pitch|=17.6°). Métricas podem estar enviesadas.",
+    "Resolução facial baixa (130px). Use foto >= 400px."
+  ],
+  "capture_recommendations": [
+    {
+      "area": "enquadramento",
+      "tip": "Incline levemente a cabeça para cima — o ângulo vertical atual (18°) reduz a precisão da análise e da simulação."
+    },
+    {
+      "area": "resolução",
+      "tip": "Use uma foto com o rosto mais próximo ou em resolução maior — o rosto está pequeno na imagem, o que limita a precisão das medições."
+    }
+  ],
+  "first_impression": {
+    "headline": "Dois ou mais fatores estão reduzindo sua impressão visual. O mais impactante: irregularidade de tom de pele visível.",
+    "tags": [
+      "pele irregular",
+      "assimetria visível"
+    ],
+    "main_risk": "Irregularidade de tom de pele visível — isso afeta diretamente a percepção de cuidado",
+    "positive_signal": "Equilíbrio facial consistente — nenhum ponto de atenção dominante"
+  },
+  "visual_status": {
+    "dominance_score": 6.41,
+    "attractiveness_score": 2.91,
+    "freshness_score": 4.84,
+    "narrative": "Você transmite autoridade. Ajustar o ângulo do olhar e a simetria amplia ainda mais sua presença."
+  },
+  "top_leverage": {
+    "metric_key": "jawline_definition_score",
+    "short_action": "Chin tucks + retração cervical",
+    "why_it_matters": "projeta presença antes mesmo de você falar — estrutura que transmite autoridade",
+    "time_to_result": "semanas",
+    "tier": 1,
+    "deviation_score": 0.8,
+    "confidence_score": 0.74
+  },
+  "top3_actions_v2": [
+    {
+      "rank": 1,
+      "metric_key": "overall_asymmetry_score_pct_ipd",
+      "short_action": "Mastigação bilateral consciente",
+      "why_it_matters": "muda como você aparece em fotos — o que as pessoas veem antes de te conhecer",
+      "time_to_result": "semanas",
+      "tier": 0
+    },
+    {
+      "rank": 2,
+      "metric_key": "jawline_definition_score",
+      "short_action": "Chin tucks + retração cervical",
+      "why_it_matters": "projeta presença antes mesmo de você falar — estrutura que transmite autoridade",
+      "time_to_result": "semanas",
+      "tier": 1
+    },
+    {
+      "rank": 3,
+      "metric_key": "intercanthal_to_eyewidth_ratio",
+      "short_action": "Reposicionar foto",
+      "why_it_matters": "elimina distorção que prejudica a primeira impressão na foto — muda como o olhar é lido",
+      "time_to_result": "imediato",
+      "tier": 0
+    }
+  ],
+  "debug_top_3_actions": [
+    {
+      "rank": 1,
+      "action": "Mastigação bilateral consciente",
+      "detail": "muda como você aparece em fotos — o que as pessoas veem antes de te conhecer",
+      "tier": 0,
+      "metric_key": "overall_asymmetry_score_pct_ipd"
+    },
+    {
+      "rank": 2,
+      "action": "Chin tucks + retração cervical",
+      "detail": "projeta presença antes mesmo de você falar — estrutura que transmite autoridade",
+      "tier": 1,
+      "metric_key": "jawline_definition_score"
+    },
+    {
+      "rank": 3,
+      "action": "Reposicionar foto",
+      "detail": "elimina distorção que prejudica a primeira impressão na foto — muda como o olhar é lido",
+      "tier": 0,
+      "metric_key": "intercanthal_to_eyewidth_ratio"
+    }
+  ],
+  "debug_top_3_actions_px": [
     {
       "rank": 1,
       "action": "Sorriso e expressão equilibrada",
@@ -17,25 +259,119 @@
     },
     {
       "rank": 2,
-      "action": "Ângulo facial na foto",
-      "detail": "A assimetria da mandíbula é visualmente reduzida quando o ângulo da câmera é frontal e levemente acima do queixo. Evitar ângulos laterais em fotos de perfil."
+      "action": "Expressão e relaxamento labial",
+      "detail": "O centro do lábio superior desvia quando há tensão assimétrica nos músculos faciais. Expressão neutra ou sorriso leve e simétrico é a mudança de maior alavanca nesse ponto."
     },
     {
       "rank": 3,
-      "action": "Iluminação frontal e simétrica",
-      "detail": "A assimetria das asas do nariz é amplificada por iluminação lateral. Luz frontal difusa, como luz natural de frente, minimiza esse efeito visualmente."
+      "action": "Posicionamento do queixo na foto",
+      "detail": "O queixo desviado da linha central é um dos fatores que mais reduz a percepção de simetria. Praticar posicionamento frontal neutro aumenta o impacto visual imediatamente."
     }
   ],
-  "measurements": {
-    "eye_level_difference_px": 0.0,
-    "eye_horizontal_asymmetry_px": 0.73,
-    "nose_deviation_px": 0.04,
-    "nose_wings_asymmetry_px": 1.13,
-    "chin_deviation_px": 0.21,
-    "mouth_center_deviation_px": 0.33,
-    "mouth_corners_asymmetry_px": 1.73,
-    "jawline_mean_asymmetry_px": 1.29,
-    "jawline_max_asymmetry_px": 2.69,
-    "overall_asymmetry_score": 0.51
-  }
+  "evolution_path": {
+    "mutable_metrics": [
+      "overall_asymmetry_score_pct_ipd",
+      "fwhr",
+      "canthal_tilt_mean_deg",
+      "mouth_to_ipd_ratio",
+      "thirds_std_dev",
+      "marquardt_deviation_pct_ipd",
+      "jaw_width_pct_ipd",
+      "jawline_definition_score",
+      "philtrum_length_pct_ipd"
+    ],
+    "phase_1": {
+      "label": "Esta semana (0–7 dias)",
+      "focus": "Ajustes imediatos de foto, expressão, iluminação e postura",
+      "actions": [
+        {
+          "titulo": "SPF 30+ diariamente + hidratante noturno",
+          "descricao": "Aplicar SPF 30+ toda manhã; hidratante noturno antes de dormir.",
+          "frequencia": "diário",
+          "metric_label": "Protocolo SPF + hidratação"
+        },
+        {
+          "titulo": "Mastigar goma sem açúcar bilateralmente",
+          "descricao": "Hipertrofia leve do masseter aumenta percepção de largura.",
+          "frequencia": "15 min/dia",
+          "metric_label": "fWHR (largura/altura sup.)"
+        },
+        {
+          "titulo": "Hidratação labial e cuidado",
+          "descricao": "Lábios bem hidratados aparentam volume e largura natural maior.",
+          "frequencia": "diário",
+          "metric_label": "Boca / IPD"
+        }
+      ],
+      "target_metric": "fWHR (largura/altura sup.)",
+      "reanalysis_date": "2026-05-10",
+      "reanalysis_label": "em 7 dias",
+      "confidence_score": 0.492,
+      "confidence_label": "possível"
+    },
+    "phase_2": {
+      "label": "Próximos 30 dias",
+      "focus": "Hábitos consistentes: skincare, exercício, mastigação bilateral",
+      "actions": [
+        {
+          "titulo": "Mastigação resistida (gum/jawliner)",
+          "descricao": "Hipertrofia leve do masseter pode aumentar largura percebida.",
+          "frequencia": "10–15 min/dia",
+          "metric_label": "Largura mandibular (% IPD)"
+        },
+        {
+          "titulo": "Chin tucks + retração cervical",
+          "descricao": "3×15 reps diário; reduz papada postural.",
+          "frequencia": "diário",
+          "metric_label": "Definição da linha mandibular"
+        }
+      ],
+      "target_metric": "Largura mandibular (% IPD)",
+      "reanalysis_date": "2026-06-02",
+      "reanalysis_label": "em 30 dias",
+      "confidence_score": 0.355,
+      "confidence_label": "possível"
+    },
+    "phase_3": {
+      "label": "3 meses",
+      "focus": "Avaliação profissional acessível (se indicado) + consolidação",
+      "actions": [
+        {
+          "titulo": "Bucomaxilo + ortodontista",
+          "descricao": "Avaliação cefalométrica para descartar assimetria esquelética.",
+          "frequencia": "1×",
+          "metric_label": "Assimetria global"
+        },
+        {
+          "titulo": "Consulta com oftalmoplástico",
+          "descricao": "Tilt é estrutural (osso orbital/ligamento cantal). Opções: cantopexia, preenchimento de têmpora.",
+          "frequencia": "1×",
+          "metric_label": "Canthal tilt médio"
+        }
+      ],
+      "target_metric": "Assimetria global",
+      "reanalysis_date": "2026-08-01",
+      "reanalysis_label": "em 90 dias",
+      "requires_professional": true,
+      "confidence_score": 0.295,
+      "confidence_label": "desafiador"
+    },
+    "skin_alert": true
+  },
+  "next_step": {
+    "profile": "alto",
+    "message": "Seu ativo visual já está acima da média. O próximo passo é ver o antes/depois e refinar.",
+    "action": "Visualizar simulação antes/depois + reanálise em 30 dias",
+    "cta_text": "Ver minha simulação antes/depois",
+    "cta_type": "simulacao",
+    "urgency_hook": "Você pode começar com ‘SPF 30+ diariamente + hidratante noturno’ ainda hoje."
+  },
+  "simulation_paths": {
+    "symmetrized": "resultado_mvp/antes_symmetrized.jpg",
+    "ideal_proportions": "resultado_mvp/antes_ideal_proportions.jpg",
+    "comparison_grid": "resultado_mvp/antes_comparison_grid.jpg"
+  },
+  "simulation_error": null,
+  "benchmark_message": "Você já está acima da média — e os ajustes certos ampliam ainda mais o impacto.",
+  "score_context": "Resultado entre os 20% melhores que analisamos."
 }

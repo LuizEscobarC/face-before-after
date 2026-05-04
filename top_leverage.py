@@ -20,46 +20,70 @@ import recommendations as rec
 
 _WHY_BENEFIT_MAP: Dict[str, str] = {
     "overall_asymmetry_score_pct_ipd": (
-        "melhora imediatamente como você é percebido em fotos e vídeos"
+        "muda como você aparece em fotos — o que as pessoas veem antes de te conhecer"
     ),
     "canthal_tilt_mean_deg": (
-        "aumenta a percepção de juventude e energia visual"
+        "aumenta a percepção de juventude e energia — o que os outros sentem ao te olhar"
     ),
     "fwhr": (
-        "amplia a percepção de presença e autoridade"
+        "projeta presença antes mesmo de você falar — proporção associada a líderes e autoridade"
     ),
     "jawline_definition_score": (
-        "define a estrutura facial — o que mais transmite força e saúde"
+        "projeta presença antes mesmo de você falar — estrutura que transmite autoridade"
     ),
     "intercanthal_to_eyewidth_ratio": (
-        "elimina distorção que prejudica a primeira impressão na foto"
+        "elimina distorção que prejudica a primeira impressão na foto — muda como o olhar é lido"
     ),
     "nasal_to_mouth_width_ratio": (
-        "equilibra as proporções centrais — o que mais capta atenção no rosto"
+        "equilibra o centro do rosto — harmonia que o cérebro detecta em milissegundos"
     ),
     "mouth_to_ipd_ratio": (
-        "equilibra a proporção da boca com o restante do rosto"
+        "proporciona o sorriso ao rosto — o que muda a percepção de expressividade e abertura"
     ),
     "thirds_std_dev": (
-        "harmoniza os três terços faciais — base da percepção de equilíbrio"
+        "harmoniza o rosto globalmente — base invisível que o cérebro reconhece como equilíbrio"
     ),
     "fifths_std_dev": (
-        "elimina desequilíbrio lateral que distrai na primeira impressão"
+        "equilibra as proporções horizontais — detalhe que influencia percepção de beleza"
     ),
     "marquardt_deviation_pct_ipd": (
         "aproxima o rosto das proporções que o cérebro reconhece como harmônicas"
     ),
     "jaw_width_pct_ipd": (
-        "aumenta a percepção de dimorfismo e presença visual"
+        "define o contorno facial — o que muda a percepção de força na primeira impressão"
     ),
     "upper_lower_lip_ratio": (
-        "equilibra a proporção labial — detalhe que aumenta harmonia frontal"
+        "equilibra o sorriso — detalhe percebido em qualquer foto ou conversa presencial"
     ),
     "philtrum_length_pct_ipd": (
-        "ajusta o filtro nasolabial para a proporção associada à juventude"
+        "ajusta a proporção facial central — o que mais transmite juventude no terço médio"
     ),
     "lower_third_ratio": (
-        "equilibra o terço inferior — marcador de proporção sexual"
+        "define o terço inferior — impacta diretamente a leitura de maturidade e presença"
+    ),
+    "bizygomatic_to_bigonial_ratio": (
+        "define o contorno facial — o que muda a percepção de força na primeira impressão"
+    ),
+    "under_eye_darkness_left": (
+        "reduz o sinal mais visível de cansaço — o que mais impacta percepção de energia"
+    ),
+    "under_eye_darkness_right": (
+        "reduz o sinal mais visível de cansaço — o que mais impacta percepção de energia"
+    ),
+    "skin_uniformity_std_lab_left": (
+        "uniformiza o tom da pele — o que transmite cuidado e vitalidade à primeira vista"
+    ),
+    "skin_uniformity_std_lab_right": (
+        "uniformiza o tom da pele — o que transmite cuidado e vitalidade à primeira vista"
+    ),
+    "eye_aspect_ratio_mean": (
+        "abre o olhar — o que muda como você transmite presença e atenção"
+    ),
+    "face_shape_label": (
+        "trabalha o contorno do rosto — impacto direto na primeira leitura visual"
+    ),
+    "skin_spf_protocol": (
+        "protege e uniformiza o tom da pele — o hábito com maior retorno visual por esforço"
     ),
 }
 

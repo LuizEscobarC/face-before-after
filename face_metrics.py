@@ -609,7 +609,11 @@ def skin(image_bgr: np.ndarray, lm: np.ndarray) -> Dict[str, Any]:
         ], dtype=np.int32)
         l_under = _roi_mean_lab(image_bgr, ue_poly)[0]
         l_cheek = _roi_mean_lab(image_bgr, cheek_poly)[0]
-        return _safe_div(l_under, l_cheek, default=1.0)
+        # Retorna escala de escuridão [0, ~0.4]: 0 = sem olheira, >0.2 = visível.
+        # Usamos 1 - ratio para que 0 = igual ao bochecha (saudável) e
+        # valores positivos = mais escuro que bochecha.
+        ratio = _safe_div(l_under, l_cheek, default=1.0)
+        return max(0.0, 1.0 - ratio)
 
     ue_l = _under_eye_dark(LM_LEFT_EYE,  cheek_l)
     ue_r = _under_eye_dark(LM_RIGHT_EYE, cheek_r)
@@ -638,6 +642,13 @@ ADVANCED_IDEALS: Dict[str, Tuple[float, float]] = {
     "mouth_to_ipd_ratio":            (1.50, 0.20),
     "thirds_std_dev":                (0.0,  0.03),  # ideal = 0
     "fifths_std_dev":                (0.0,  0.03),
+    # Métricas usadas por visual_status.py
+    "bizygomatic_to_bigonial_ratio": (1.30, 0.15),  # ~1.3 ideal (zigomático > gonial)
+    "eye_aspect_ratio_mean":         (0.30, 0.04),  # abertura ocular [0.26, 0.35]
+    "skin_uniformity_std_lab_left":  (0.0,  10.0),  # ideal=0, aceitável<10, ruim>25
+    "skin_uniformity_std_lab_right": (0.0,  10.0),
+    "under_eye_darkness_left":       (0.0,  0.05),  # ideal=0 (sem olheira), ruim>0.25
+    "under_eye_darkness_right":      (0.0,  0.05),
     "marquardt_deviation_pct_ipd":   (0.0,  3.0),
     "jaw_width_pct_ipd":             (155.0, 20.0),
     "jawline_definition_score":      (0.65, 0.20),

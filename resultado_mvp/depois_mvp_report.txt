@@ -1,7 +1,7 @@
 
 ════════════════════════════════════════════════════════════
   ANÁLISE DE PRESENÇA VISUAL FACIAL
-  03/05/2026 18:32
+  03/05/2026 22:17
 ════════════════════════════════════════════════════════════
 
   📸 Foto analisada : depois.png
@@ -13,66 +13,84 @@
   87 / 100  —  Muito boa
   Você já tem uma base forte. Pequenos ajustes aumentam ainda mais sua presença.
 
-  % do potencial visual já aproveitado : 87%
-  Confianca da captura              : 71%
+  Confiança da captura : 71%  (aceitável — resultados confiáveis)
+  Contexto: Resultado entre os 20% melhores que analisamos.
+
+  Você já está acima da média — e os ajustes certos ampliam ainda mais o impacto.
+
+  🔍 Assimetria medida: 1.6% do IPD (baixa) — limiar invisível a olho nu é < 2%
 
 ────────────────────────────────────────────────────────────
   💬 DIAGNOSTICO DA PRIMEIRA IMPRESSAO
 ────────────────────────────────────────────────────────────
-  Face detectada com qualidade suficiente para análise completa. O que está pesando mais: irregularidade de tom de pele visível.
+  Equilíbrio facial consistente. Ponto a refinar: irregularidade de tom de pele visível.
 
-  Sinal positivo: Face detectada com qualidade suficiente para análise completa
-  Principal risco: Irregularidade de tom de pele visível — isso afeta diretamente a percepção de cuidado
 
 ────────────────────────────────────────────────────────────
   📈 LEITURA DE STATUS VISUAL
 ────────────────────────────────────────────────────────────
   Dominancia    : 6.9/10
   Atratividade  : 5.4/10
-  Cuidado/Frescor: 2.5/10
+  Cuidado/Frescor: 4.2/10
 
   Presença e estrutura são seus pontos fortes. Recuperar a aparência de energia visual é o próximo passo de maior impacto.
 
 ────────────────────────────────────────────────────────────
-  🎯 MUDANCA PRINCIPAL (maior alavanca)
+  🎯 ALAVANCA PRINCIPAL
 ────────────────────────────────────────────────────────────
-  Chin tucks + retração cervical
+  Estrutural  : Retração cervical guiada
+  Hábito urgente: SPF 30+ diariamente + hidratante noturno
 
-  Por que isso importa: define a estrutura facial — o que mais transmite força e saúde
-  Tempo esperado: semanas
+  Por que importa: projeta presença antes mesmo de você falar — estrutura que transmite autoridade
+  Tempo estrutural: semanas
 
 ────────────────────────────────────────────────────────────
-  ✅ 3 ACOES PRIORIZADAS
+  ✨ 3 REFINAMENTOS DE ALTO IMPACTO
 ────────────────────────────────────────────────────────────
-  1. Reposicionar foto
-     elimina distorção que prejudica a primeira impressão na foto
-     Tempo: imediato | Tier: 0
+  1. SPF 30+ diariamente + hidratante noturno
+     SPF diário é o hábito de maior retorno para uniformidade de tom — efeito visual em semanas, custo mínimo.
+     Tempo: semanas
 
-  2. Chin tucks + retração cervical
-     define a estrutura facial — o que mais transmite força e saúde
-     Tempo: semanas | Tier: 1
-
-  3. Postura cefálica neutra
-     harmoniza os três terços faciais — base da percepção de equilíbrio
-     Tempo: imediato | Tier: 0
+  2. Retração cervical guiada
+     projeta presença antes mesmo de você falar — estrutura que transmite autoridade
+     Tempo: semanas
 
 ────────────────────────────────────────────────────────────
   🧭 CAMINHO CURTO DE EVOLUCAO
 ────────────────────────────────────────────────────────────
-  Esta semana (0–7 dias): Ajustes imediatos de foto, expressão, iluminação e postura
-  Próximos 30 dias: Hábitos consistentes: skincare, exercício, mastigação bilateral
-  3 meses: Avaliação profissional acessível (se indicado) + consolidação
+  Esta semana (0–7 dias) [provável]: Foco em Assimetria global — ajustes de postura, expressão e registro fotográfico
+  Próximos 30 dias [possível]: Hábitos diários focados em Largura mandibular (% IPD)
+  3 meses [desafiador]: Avaliação profissional acessível (se indicado) + consolidação
+
+  ⚠️  A fase de 3 meses provavelmente requer acompanhamento profissional; pele e olheiras estão no nível de maior impacto visual — a 1ª ação da semana já trata isso.
+
+────────────────────────────────────────────────────────────
+  📸 VISUALIZACOES GERADAS
+────────────────────────────────────────────────────────────
+  → depois_symmetrized.jpg
+     Como você ficaria com a assimetria zerada
+
+  → depois_ideal_proportions.jpg
+     Proporções ideais sobrepostas — referência dos ajustes possíveis
+
+  → depois_comparison_grid.jpg
+     Grade comparativa: atual vs. projeção lado a lado
 
 ────────────────────────────────────────────────────────────
   ➜ PROXIMO PASSO
 ────────────────────────────────────────────────────────────
-  Sua base visual já está forte. O próximo passo é manter consistência e refinar o que mais gera presença.
+  Seu ativo visual já está acima da média. O próximo passo é ver o antes/depois e refinar.
 
-  Comece hoje por: Mastigação bilateral consciente.
+  Você já tem a base. A simulação mostra exatamente o que muda.
 
-  [Quero acompanhar minha evolução]
+  [Começar meu plano de refinamento — reanálise em 30 dias]
+
+────────────────────────────────────────────────────────────
+  📷 PARA MELHORAR A PROXIMA ANALISE
+────────────────────────────────────────────────────────────
+  [ENQUADRAMENTO] Incline levemente a cabeça para cima — o ângulo vertical atual (16°) reduz a precisão da análise e da simulação.
 
 
 ════════════════════════════════════════════════════════════
-  Gerado por Face Before/After MVP
+  Face Before/After — Análise de Presença Visual
 ════════════════════════════════════════════════════════════

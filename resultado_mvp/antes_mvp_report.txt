@@ -1,54 +1,100 @@
 
 ════════════════════════════════════════════════════════════
   ANÁLISE DE PRESENÇA VISUAL FACIAL
-  03/05/2026 16:56
+  03/05/2026 19:24
 ════════════════════════════════════════════════════════════
 
   📸 Foto analisada : antes.png
-  🔄 Correção de rotação aplicada : -1.0°
+  🔄 Correção de rotação aplicada : -0.4°
 
 ────────────────────────────────────────────────────────────
   SCORE DE SIMETRIA FACIAL
 ────────────────────────────────────────────────────────────
-  96 / 100  —  Excelente
-  Sua simetria facial está no nível de quem é percebido como muito atraente em fotos.
+  86 / 100  —  Muito boa
+  Você já tem uma base forte. Pequenos ajustes aumentam ainda mais sua presença.
 
-  % do potencial visual já aproveitado : 96%
+  % do potencial visual já aproveitado : 86%
+  Confiança da captura              : 71%
+  Contexto: Resultado entre os 20% melhores que analisamos.
 
-────────────────────────────────────────────────────────────
-  🎯 MUDANÇA PRINCIPAL (maior alavanca)
-────────────────────────────────────────────────────────────
-  Sorriso e expressão equilibrada
-
-  Os cantos da boca em alturas diferentes reduzem a percepção de simetria. Um sorriso leve, consciente e equilibrado é a mudança mais rápida de implementar.
+  Você já está acima da média — e os ajustes certos ampliam ainda mais o impacto.
 
 ────────────────────────────────────────────────────────────
-  ✅ 3 AÇÕES PRIORIZADAS POR IMPACTO
+  💬 DIAGNOSTICO DA PRIMEIRA IMPRESSAO
 ────────────────────────────────────────────────────────────
-  1. Sorriso e expressão equilibrada
-     Os cantos da boca em alturas diferentes reduzem a percepção de simetria. Um sorriso leve, consciente e equilibrado é a mudança mais rápida de implementar.
+  Dois ou mais fatores estão reduzindo sua impressão visual. O mais impactante: irregularidade de tom de pele visível.
 
-  2. Ângulo facial na foto
-     A assimetria da mandíbula é visualmente reduzida quando o ângulo da câmera é frontal e levemente acima do queixo. Evitar ângulos laterais em fotos de perfil.
-
-  3. Iluminação frontal e simétrica
-     A assimetria das asas do nariz é amplificada por iluminação lateral. Luz frontal difusa, como luz natural de frente, minimiza esse efeito visualmente.
+  Sinal positivo: Equilíbrio facial consistente — nenhum ponto de atenção dominante
+  Principal risco: Irregularidade de tom de pele visível — isso afeta diretamente a percepção de cuidado
 
 ────────────────────────────────────────────────────────────
-  📊 MEDIÇÕES DETALHADAS
+  📈 LEITURA DE STATUS VISUAL
 ────────────────────────────────────────────────────────────
-  Métrica                                Valor (px)
-  ────────────────────────────────────── ──────────
-  Desnível dos olhos                           0.00
-  Assimetria horizontal dos olhos              0.73
-  Desvio da ponta do nariz                     0.04
-  Assimetria das asas do nariz                 1.13
-  Desvio do queixo                             0.21
-  Desvio do centro da boca                     0.33
-  Assimetria dos cantos da boca                1.73
-  Assimetria média da mandíbula                1.29
-  Assimetria máx. da mandíbula                 2.69
-  SCORE GERAL DE ASSIMETRIA (px)               0.51
+  Dominancia    : 6.4/10
+  Atratividade  : 2.9/10
+  Cuidado/Frescor: 4.8/10
+
+  Você transmite autoridade. Ajustar o ângulo do olhar e a simetria amplia ainda mais sua presença.
+
+────────────────────────────────────────────────────────────
+  🎯 MUDANCA PRINCIPAL (maior alavanca)
+────────────────────────────────────────────────────────────
+  Chin tucks + retração cervical
+
+  Por que isso importa: projeta presença antes mesmo de você falar — estrutura que transmite autoridade
+  Tempo esperado: semanas
+
+────────────────────────────────────────────────────────────
+  ✅ 3 ACOES PRIORIZADAS
+────────────────────────────────────────────────────────────
+  1. Mastigação bilateral consciente
+     muda como você aparece em fotos — o que as pessoas veem antes de te conhecer
+     Tempo: semanas | Tier: 0
+
+  2. Chin tucks + retração cervical
+     projeta presença antes mesmo de você falar — estrutura que transmite autoridade
+     Tempo: semanas | Tier: 1
+
+  3. Reposicionar foto
+     elimina distorção que prejudica a primeira impressão na foto — muda como o olhar é lido
+     Tempo: imediato | Tier: 0
+
+────────────────────────────────────────────────────────────
+  🧭 CAMINHO CURTO DE EVOLUCAO
+────────────────────────────────────────────────────────────
+  Esta semana (0–7 dias) [possível]: Ajustes imediatos de foto, expressão, iluminação e postura
+  Próximos 30 dias [possível]: Hábitos consistentes: skincare, exercício, mastigação bilateral
+  3 meses [desafiador]: Avaliação profissional acessível (se indicado) + consolidação
+
+  ⚠️  Esta fase provavelmente requer acompanhamento profissional para ser efetiva.
+
+  ⚠️  Pele e olheiras estão no nível de maior impacto visual —
+      a 1ª ação da semana já trata isso.
+
+────────────────────────────────────────────────────────────
+  📸 VISUALIZACOES GERADAS:
+────────────────────────────────────────────────────────────
+  → Rosto simetrizado:     antes_symmetrized.jpg
+  → Proporções ideais:      antes_ideal_proportions.jpg
+  → Grade comparativa:      antes_comparison_grid.jpg
+  (abra os arquivos na pasta de saída para visualizar)
+
+────────────────────────────────────────────────────────────
+  ➜ PROXIMO PASSO
+────────────────────────────────────────────────────────────
+  Seu ativo visual já está acima da média. O próximo passo é ver o antes/depois e refinar.
+
+  Você pode começar com ‘SPF 30+ diariamente + hidratante noturno’ ainda hoje.
+
+  [Ver minha simulação antes/depois]
+
+────────────────────────────────────────────────────────────
+  📷 PARA MELHORAR A PROXIMA ANALISE
+────────────────────────────────────────────────────────────
+  [ENQUADRAMENTO] Incline levemente a cabeça para cima — o ângulo vertical atual (18°) reduz a precisão da análise e da simulação.
+
+  [RESOLUÇÃO] Use uma foto com o rosto mais próximo ou em resolução maior — o rosto está pequeno na imagem, o que limita a precisão das medições.
+
 
 ════════════════════════════════════════════════════════════
   Gerado por Face Before/After MVP

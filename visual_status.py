@@ -133,22 +133,37 @@ def _build_narrative(d: float, a: float, f: float) -> str:
     weakest = min(scores, key=lambda k: scores[k])
     key = (strongest, weakest)
     if strongest == weakest:
-        return (
+        base = (
             "Suas três dimensões visuais estão equilibradas "
             f"({d:.1f}, {a:.1f}, {f:.1f}/10). "
             "Foco na consistência e manutenção dos hábitos."
         )
-    return _NARRATIVE_MAP.get(
+        return base + _freshness_alert(f)
+    base = _NARRATIVE_MAP.get(
         key,
         (
             f"Seus pontos mais fortes são {strongest} ({scores[strongest]:.1f}/10). "
             f"Maior oportunidade: {weakest} ({scores[weakest]:.1f}/10)."
         ),
     )
+    return base + _freshness_alert(f)
 
 
 # ---------------------------------------------------------------------------
-# Interface pública
+# Alerta de frescor critico
+# ---------------------------------------------------------------------------
+
+
+def _freshness_alert(freshness_score: float) -> str:
+    """Retorna frase de impacto quando frescor está crítico (< 4.0)."""
+    if freshness_score < 4.0:
+        return (
+            " Olheiras e irregularidade de tom são os sinais que mais envelhecem"
+            " a percepção visual — e os que melhor respondem a hábito simples."
+        )
+    return ""
+
+
 # ---------------------------------------------------------------------------
 
 

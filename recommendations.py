@@ -434,8 +434,8 @@ REC_CATALOG: Dict[str, Dict[str, Any]] = {
         "why_matters": "Linha definida está associada a baixa adiposidade submentoniana e bom tônus.",
         "actions_by_severity": {
             "leve": [
-                {"tipo": "exercicio", "titulo": "Chin tucks + retração cervical",
-                 "descricao": "3×15 reps diário; reduz papada postural.",
+                {"tipo": "exercicio", "titulo": "Retração cervical guiada",
+                 "descricao": "3×15 reps diário; redução de papada postural e definição do perfil.",
                  "frequencia": "diário",
                  "fonte": {"titulo": "Mayo Clinic — chin tucks",
                            "url": "https://www.mayoclinichealthsystem.org/hometown-health/speaking-of-health/exercises-to-prevent-or-fix-rounded-shoulders"}},
@@ -544,6 +544,71 @@ REC_CATALOG: Dict[str, Dict[str, Any]] = {
         "cost_level": 0,
         "mutable": False,
         "social_perception_weight": 0.30,
+    },
+
+    "skin_spf_protocol": {
+        "label": "Protocolo SPF + hidratação",
+        "ideal": "rotina diária",
+        "what_is": (
+            "Rotina básica de fotoproteção e hidratação diária como base para uniformidade de tom."
+        ),
+        "how_measured": "Ativado quando skin_uniformity_std_lab ou under_eye_darkness estão acima do limiar.",
+        "why_matters": (
+            "SPF diário é o hábito de maior retorno para uniformidade de tom a médio prazo — "
+            "o investimento mais barato com impacto visual mais consistente."
+        ),
+        "actions_by_severity": {
+            "leve": [
+                {
+                    "tipo": "habito",
+                    "titulo": "SPF 30+ diariamente + hidratante noturno",
+                    "descricao": "Aplicar SPF 30+ toda manhã antes de sair; hidratante noturno antes de dormir.",
+                    "frequencia": "diário",
+                    "fonte": {
+                        "titulo": "AAD — skin care basics",
+                        "url": "https://www.aad.org/public/everyday-care/skin-care-basics",
+                    },
+                },
+            ],
+            "moderada": [
+                {
+                    "tipo": "habito",
+                    "titulo": "SPF 50+ + vitamina C tópica + hidratante noturno",
+                    "descricao": (
+                        "SPF 50+ diário, vitamina C sérica de manhã, "
+                        "hidratante noturno com niacinamida ou retinol de entrada."
+                    ),
+                    "frequencia": "diário",
+                    "fonte": {
+                        "titulo": "AAD — skin care routine",
+                        "url": "https://www.aad.org/public/everyday-care/skin-care-basics/routines",
+                    },
+                },
+            ],
+            "severa": [
+                {
+                    "tipo": "profissional",
+                    "titulo": "Avaliação dermatológica + rotina completa",
+                    "descricao": "Irregularidade de tom marcada pode ter causas tratáveis (melasma, rosácea) — avaliação recomendada.",
+                    "frequencia": "1×",
+                    "fonte": {
+                        "titulo": "SBD — Sociedade Brasileira de Dermatologia",
+                        "url": "https://www.sbd.org.br/",
+                    },
+                },
+            ],
+        },
+        "references": [
+            {
+                "titulo": "AAD — sunscreen FAQs",
+                "url": "https://www.aad.org/public/everyday-care/sun-protection/sunscreen-patients/sunscreen-faqs",
+            }
+        ],
+        "actionability_tier": 0,
+        "time_to_result": "semanas",
+        "cost_level": 1,
+        "mutable": True,
+        "social_perception_weight": 0.70,
     },
 }
 

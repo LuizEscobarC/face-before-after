@@ -26,7 +26,7 @@ _IMPRESSION_RULES: List[Dict[str, Any]] = [
             > 0.15
         ),
         "risk": (
-            "Olhar transmite cansaço — olhos caídos e área periorbital escura "
+            "Olhar transmite cansaço — olhos caídos e área escura ao redor dos olhos "
             "reduzem energia visual"
         ),
         "tag": "aparência cansada",
@@ -38,8 +38,8 @@ _IMPRESSION_RULES: List[Dict[str, Any]] = [
             and m.get("jawline_definition_score", 0.5) < 0.3
         ),
         "risk": (
-            "Estrutura facial suave reduz percepção de presença — mandíbula e "
-            "proporção de largura abaixo do ideal"
+            "Estrutura facial suave reduz percepção de presença — "
+            "mandíbula e face mais estreita do que o ideal de autoridade"
         ),
         "tag": "presença suave",
     },
@@ -63,7 +63,7 @@ _IMPRESSION_RULES: List[Dict[str, Any]] = [
         "id": "visible_asymmetry",
         "condition": lambda m: m.get("overall_asymmetry_score_pct_ipd", 0.0) > 3.0,
         "risk": (
-            "Assimetria facial acima do limiar perceptível — é o fator com maior "
+            "Assimetria facial no nível perceptível — é o fator com maior "
             "peso na percepção atual"
         ),
         "tag": "assimetria visível",
@@ -92,7 +92,7 @@ _POSITIVE_SIGNALS: List[Dict[str, Any]] = [
     {
         "id": "good_canthal",
         "condition": lambda m: m.get("canthal_tilt_mean_deg", 0.0) >= 3.0,
-        "signal": "Olhar jovial e energético — canthal tilt positivo aumenta atratividade percebida",
+        "signal": "Olhar jovial e energético — ângulo do olhar favorável aumenta atratividade percebida",
     },
     {
         "id": "strong_presence",
@@ -114,7 +114,7 @@ _POSITIVE_SIGNALS: List[Dict[str, Any]] = [
     {
         "id": "default",
         "condition": lambda m: True,
-        "signal": "Face detectada com qualidade suficiente para análise completa",
+        "signal": "Equilíbrio facial consistente — nenhum ponto de atenção dominante",
     },
 ]
 
@@ -148,19 +148,19 @@ def build_first_impression(metrics: Dict[str, Any]) -> Dict[str, Any]:
     positive_short = positive["signal"].split("—")[0].strip()
 
     if not risks_found:
-        headline = f"Primeira impressão sólida. {positive['signal']}."
+        if positive["id"] == "default":
+            headline = "Primeira impressão equilibrada. Oportunidades existem, mas nenhuma urgente."
+        else:
+            headline = f"Primeira impressão sólida. {positive['signal']}."
         main_risk = "Nenhum fator crítico identificado — manutenção e consistência são o foco."
     elif len(risks_found) == 1:
         risk_short = risks_found[0]["risk"].split("—")[0].strip().lower()
-        headline = (
-            f"{positive_short}. O que está pesando mais: {risk_short}."
-        )
+        headline = f"{positive_short}. Ponto a refinar: {risk_short}."
         main_risk = risks_found[0]["risk"]
     else:
         risk_short = risks_found[0]["risk"].split("—")[0].strip().lower()
         headline = (
-            f"Dois ou mais fatores estão reduzindo sua impressão visual. "
-            f"O mais impactante: {risk_short}."
+            f"{positive_short}. Mais de um ponto de refinamento — o principal: {risk_short}."
         )
         main_risk = risks_found[0]["risk"]
 

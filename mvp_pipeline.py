@@ -180,50 +180,151 @@ def compute_capture_confidence(photo_quality: Dict[str, Any]) -> float:
     return round(_clamp01(confidence), 3)
 
 
+def build_capture_recommendations(photo_quality: Dict[str, Any]) -> list:
+    """Gera orientações de captura em linguagem de benefício a partir da qualidade da foto.
+
+    Cada item: {"area": str, "tip": str}
+    Retorna lista vazia quando a foto está dentro dos parâmetros ideais.
+    """
+    tips = []
+
+    frontal_ok = bool(photo_quality.get("frontal_ok", True))
+    yaw = abs(float(photo_quality.get("head_pose_yaw_deg", 0.0)))
+    pitch = abs(float(photo_quality.get("head_pose_pitch_deg", 0.0)))
+
+    if not frontal_ok:
+        if pitch > 7.0:
+            direction = "para baixo" if float(photo_quality.get("head_pose_pitch_deg", 0.0)) > 0 else "para cima"
+            tips.append({
+                "area": "enquadramento",
+                "tip": (
+                    f"Incline levemente a cabeça {direction} — o ângulo vertical atual "
+                    f"({pitch:.0f}°) reduz a precisão da análise e da simulação."
+                ),
+            })
+        if yaw > 7.0:
+            direction = "esquerda" if float(photo_quality.get("head_pose_yaw_deg", 0.0)) > 0 else "direita"
+            tips.append({
+                "area": "enquadramento",
+                "tip": (
+                    f"Gire levemente a cabeça para a {direction} até ficar frontal — "
+                    f"o desvio lateral ({yaw:.0f}°) distorce as medidas de simetria."
+                ),
+            })
+
+    lighting_delta = float(photo_quality.get("lighting_asymmetry_delta_e", 0.0))
+    if lighting_delta > 12.0:
+        tips.append({
+            "area": "iluminação",
+            "tip": (
+                "Use luz frontal e difusa (ex.: janela na sua frente) — "
+                "a iluminação atual está mais forte de um lado, o que afeta "
+                "a leitura de pele e simetria."
+            ),
+        })
+
+    sharpness = float(photo_quality.get("sharpness_laplacian_var", 999.0))
+    if sharpness < 80.0:
+        tips.append({
+            "area": "nitidez",
+            "tip": (
+                "Apoie o celular ou segure firme ao tirar a foto — "
+                "a imagem está com movimento ou foco insuficiente, "
+                "o que reduz a precisão da análise."
+            ),
+        })
+
+    focal_warn = bool(photo_quality.get("focal_distortion_warning", False))
+    if focal_warn:
+        tips.append({
+            "area": "distância",
+            "tip": (
+                "Aumente a distância da câmera para pelo menos 50 cm — "
+                "fotos muito próximas (selfie) distorcem as proporções do nariz "
+                "e alteram os resultados de proporção."
+            ),
+        })
+
+    face_w = int(photo_quality.get("face_pixel_width", 999))
+    if face_w < 200:
+        tips.append({
+            "area": "resolução",
+            "tip": (
+                "Use uma foto com o rosto mais próximo ou em resolução maior — "
+                "o rosto está pequeno na imagem, o que limita a precisão das medições."
+            ),
+        })
+
+    return tips
+
+
+def _get_score_context(score: int, tier: str) -> dict:
+    """Retorna benchmark_message e score_context hardcoded por tier."""
+    if score >= 90:
+        return {
+            "benchmark_message": "Resultado excepcional — harmonia facial acima de 95% das análises.",
+            "score_context": "Sua análise está entre os 5% com maior harmonia facial.",
+        }
+    if score >= 80:
+        return {
+            "benchmark_message": "Você já está acima da média — e os ajustes certos ampliam ainda mais o impacto.",
+            "score_context": "Resultado entre os 20% melhores que analisamos.",
+        }
+    if score >= 60:
+        return {
+            "benchmark_message": "Base sólida. Dois ajustes específicos mudam o jogo completamente.",
+            "score_context": "Resultado acima de 55% dos rostos analisados.",
+        }
+    return {
+        "benchmark_message": "O diagnóstico revelou oportunidades concretas — cada ponto tem ação clara.",
+        "score_context": "Análise com múltiplos pontos de melhoria — situação comum e reversível.",
+    }
+
+
 def build_next_step(
     score: int,
     evolution_path: Dict[str, Any],
     top_leverage: Dict[str, Any],
 ) -> Dict[str, str]:
     """Gera chamada de próximo passo sem quebrar o fluxo de desejo."""
-    if score >= 75:
+    if score >= 80:
         profile = "alto"
         message = (
-            "Sua base visual já está forte. O próximo passo é manter consistência "
-            "e refinar o que mais gera presença."
+            "Seu ativo visual já está acima da média. O próximo passo é ver o antes/depois e refinar."
         )
-        action = "Reanalisar em 30 dias para confirmar evolução"
-        cta_text = "Quero acompanhar minha evolução"
-        cta_type = "assinatura"
-    elif score >= 45:
+        action = "Visualizar simulação antes/depois + reanálise em 30 dias"
+        cta_text = "Ver minha simulação antes/depois"
+        cta_type = "simulacao"
+    elif score >= 60:
         profile = "medio"
         message = (
-            "A principal alavanca já está clara. Agora o foco é validar progresso "
-            "com uma rotina curta e objetiva."
+            "A mudança principal está identificada. Sete dias já são suficientes para notar a diferença."
         )
-        action = "Executar plano de 30 dias e reanalisar"
-        cta_text = "Quero o plano completo"
-        cta_type = "upgrade"
+        action = "Análise completa com simulação visual e plano de 30 dias"
+        cta_text = "Começar o plano de 7 dias"
+        cta_type = "plano_7d"
     else:
         profile = "baixo"
         message = (
-            "Existe potencial real para destravar rápido. O ganho vem de começar "
-            "agora com a ação certa."
+            "Existe potencial real. O ajuste principal é acessível e começa hoje."
         )
-        action = "Iniciar plano guiado com checkpoints em 7/30/90 dias"
-        cta_text = "Quero começar agora"
-        cta_type = "upgrade"
+        action = "Análise completa com acompanhamento de 3 meses e checkpoints"
+        cta_text = "Quero entender meus 3 pontos de melhoria"
+        cta_type = "detalhamento"
 
-    urgency_hook = ""
-    phase_1_actions = evolution_path.get("phase_1", {}).get("actions", [])
-    if phase_1_actions:
-        first_action = phase_1_actions[0].get("titulo", "")
-        if first_action:
-            urgency_hook = f"Comece hoje por: {first_action}."
+    if profile == "alto":
+        urgency_hook = "Você já tem a base. A simulação mostra exatamente o que muda."
+    else:
+        urgency_hook = ""
+        phase_1_actions = evolution_path.get("phase_1", {}).get("actions", [])
+        if phase_1_actions:
+            first_action = phase_1_actions[0].get("titulo", "")
+            if first_action:
+                urgency_hook = f"Você pode começar com \u2018{first_action}\u2019 ainda hoje."
 
-    leverage_text = top_leverage.get("short_action", "")
-    if leverage_text and not urgency_hook:
-        urgency_hook = f"Sua maior alavanca agora é: {leverage_text}."
+        leverage_text = top_leverage.get("short_action", "")
+        if leverage_text and not urgency_hook:
+            urgency_hook = f"Sua maior alavanca agora é: {leverage_text}."
 
     return {
         "profile": profile,
@@ -239,6 +340,15 @@ def build_next_step(
 # GERAÇÃO DO RELATÓRIO COMPARTILHÁVEL
 # ============================================================================
 
+
+def _capture_confidence_label(confidence: float) -> str:
+    if confidence >= 0.80:
+        return "boa"
+    if confidence >= 0.60:
+        return "aceitável — resultados confiáveis"
+    return "limitada — recomendamos nova foto"
+
+
 def build_shareable_report(
     image_path: str,
     score: int,
@@ -251,7 +361,13 @@ def build_shareable_report(
     evolution: Dict[str, Any],
     next_step: Dict[str, Any],
     capture_confidence: float,
+    capture_recommendations: list,
     rotation_deg: float,
+    simulation_paths: dict = None,
+    simulation_error: str = None,
+    benchmark_message: str = "",
+    score_context: str = "",
+    key_metric_insight: str = "",
 ) -> str:
     now = datetime.now().strftime('%d/%m/%Y %H:%M')
     width = 60
@@ -273,16 +389,23 @@ def build_shareable_report(
         f"  {score} / 100  —  {tier_label}",
         f"  {tier_description}",
         '',
-        f"  % do potencial visual já aproveitado : {score}%",
-        f"  Confianca da captura              : {int(round(capture_confidence * 100))}%",
+        f"  Confiança da captura : {int(round(capture_confidence * 100))}%  ({_capture_confidence_label(capture_confidence)})",
+    ]
+
+    if score_context:
+        lines.append(f"  Contexto: {score_context}")
+    if benchmark_message:
+        lines += ['', f"  {benchmark_message}"]
+    if key_metric_insight:
+        lines += ['', f"  🔍 {key_metric_insight}"]
+
+    lines += [
         '',
         sep,
         f"  💬 DIAGNOSTICO DA PRIMEIRA IMPRESSAO",
         sep,
         f"  {first_impression.get('headline', '')}",
         '',
-        f"  Sinal positivo: {first_impression.get('positive_signal', '')}",
-        f"  Principal risco: {first_impression.get('main_risk', '')}",
         '',
         sep,
         f"  📈 LEITURA DE STATUS VISUAL",
@@ -294,15 +417,49 @@ def build_shareable_report(
         f"  {visual_status_data.get('narrative', '')}",
         '',
         sep,
-        f"  🎯 MUDANCA PRINCIPAL (maior alavanca)",
+        f"  🎯 ALAVANCA PRINCIPAL",
         sep,
-        f"  {top_leverage.get('short_action', '')}",
-        '',
-        f"  Por que isso importa: {top_leverage.get('why_it_matters', '')}",
-        f"  Tempo esperado: {top_leverage.get('time_to_result', 'semanas')}",
-        '',
+    ]
+
+    if evolution.get("skin_alert"):
+        lines += [
+            f"  Estrutural  : {top_leverage.get('short_action', '')}",
+            f"  Hábito urgente: SPF 30+ diariamente + hidratante noturno",
+            '',
+            f"  Por que importa: {top_leverage.get('why_it_matters', '')}",
+            f"  Tempo estrutural: {top_leverage.get('time_to_result', 'semanas')}",
+            '',
+        ]
+    else:
+        lines += [
+            f"  {top_leverage.get('short_action', '')}",
+            '',
+            f"  Por que isso importa: {top_leverage.get('why_it_matters', '')}",
+            f"  Tempo esperado: {top_leverage.get('time_to_result', 'semanas')}",
+            '',
+        ]
+
+    # Aviso de captura ANTES das 3 ações quando confiança baixa
+    if capture_recommendations and capture_confidence < 0.60:
+        lines += [
+            sep,
+            f"  ⚠️  ANTES DE AGIR, MELHORE A CAPTURA:",
+            sep,
+        ]
+        for tip in capture_recommendations:
+            lines += [
+                f"  [{tip['area'].upper()}] {tip['tip']}",
+                '',
+            ]
+        lines += [
+            "  Uma foto em melhores condições pode mudar completamente as recomendações.",
+            '',
+        ]
+
+    actions_header = "✨ 3 REFINAMENTOS DE ALTO IMPACTO" if score >= 80 else "✅ 3 ACOES PRIORIZADAS"
+    lines += [
         sep,
-        f"  ✅ 3 ACOES PRIORIZADAS",
+        f"  {actions_header}",
         sep,
     ]
 
@@ -310,21 +467,66 @@ def build_shareable_report(
         lines += [
             f"  {item['rank']}. {item['short_action']}",
             f"     {item['why_it_matters']}",
-            f"     Tempo: {item['time_to_result']} | Tier: {item['tier']}",
+            f"     Tempo: {item['time_to_result']}",
             '',
         ]
 
     phase_1 = evolution.get("phase_1", {})
     phase_2 = evolution.get("phase_2", {})
     phase_3 = evolution.get("phase_3", {})
+    ph1_conf = phase_1.get("confidence_label", "")
+    ph2_conf = phase_2.get("confidence_label", "")
+    ph3_conf = phase_3.get("confidence_label", "")
+
     lines += [
         sep,
         f"  🧭 CAMINHO CURTO DE EVOLUCAO",
         sep,
-        f"  {phase_1.get('label', '0-7 dias')}: {phase_1.get('focus', '')}",
-        f"  {phase_2.get('label', '7-30 dias')}: {phase_2.get('focus', '')}",
-        f"  {phase_3.get('label', '30-90 dias')}: {phase_3.get('focus', '')}",
+        f"  {phase_1.get('label', '0-7 dias')} [{ph1_conf}]: {phase_1.get('focus', '')}",
+        f"  {phase_2.get('label', '7-30 dias')} [{ph2_conf}]: {phase_2.get('focus', '')}",
+        f"  {phase_3.get('label', '30-90 dias')} [{ph3_conf}]: {phase_3.get('focus', '')}",
         '',
+    ]
+
+    if ph3_conf == "desafiador" or evolution.get("skin_alert", False):
+        _alert_parts = []
+        if ph3_conf == "desafiador":
+            _alert_parts.append("a fase de 3 meses provavelmente requer acompanhamento profissional")
+        if evolution.get("skin_alert", False):
+            _alert_parts.append("pele e olheiras estão no nível de maior impacto visual — a 1ª ação da semana já trata isso")
+        lines += [
+            f"  ⚠️  {'; '.join(_alert_parts).capitalize()}.",
+            '',
+        ]
+
+    if simulation_paths:
+        lines += [
+            sep,
+            f"  📸 VISUALIZACOES GERADAS",
+            sep,
+            f"  → {os.path.basename(simulation_paths.get('symmetrized', ''))}",
+            f"     Como você ficaria com a assimetria zerada",
+            '',
+            f"  → {os.path.basename(simulation_paths.get('ideal_proportions', ''))}",
+            f"     Proporções ideais sobrepostas — referência dos ajustes possíveis",
+            '',
+            f"  → {os.path.basename(simulation_paths.get('comparison_grid', ''))}",
+            f"     Grade comparativa: atual vs. projeção lado a lado",
+            '',
+        ]
+    elif simulation_error:
+        lines += [
+            '',
+            f"  (simulação visual não gerada: {simulation_error})",
+            '',
+        ]
+
+    # Quando simulação já foi exibida acima, mudar CTA para evitar contradição
+    _cta_display = next_step.get('cta_text', '')
+    if simulation_paths and next_step.get('cta_type') == 'simulacao':
+        _cta_display = "Começar meu plano de refinamento — reanálise em 30 dias"
+
+    lines += [
         sep,
         f"  ➜ PROXIMO PASSO",
         sep,
@@ -332,13 +534,27 @@ def build_shareable_report(
         '',
         f"  {next_step.get('urgency_hook', '')}",
         '',
-        f"  [{next_step.get('cta_text', '')}]",
+        f"  [{_cta_display}]",
         '',
     ]
+
+    # Aviso de captura no final quando confiança OK (posição discreta)
+    if capture_recommendations and capture_confidence >= 0.60:
+        lines += [
+            sep,
+            f"  📷 PARA MELHORAR A PROXIMA ANALISE",
+            sep,
+        ]
+        for tip in capture_recommendations:
+            lines += [
+                f"  [{tip['area'].upper()}] {tip['tip']}",
+                '',
+            ]
+
     lines += [
         '',
         '═' * width,
-        f"  Gerado por Face Before/After MVP",
+        f"  Face Before/After — Análise de Presença Visual",
         '═' * width,
         '',
     ]
@@ -391,10 +607,12 @@ def run(image_path: str, output_dir: str) -> dict:
         **photo_quality_metrics,
     }
     capture_confidence = compute_capture_confidence(photo_quality_metrics)
+    capture_recommendations = build_capture_recommendations(photo_quality_metrics)
 
     # 3. Calcular score e insights
     score = asymmetry_to_score(measurements['overall_asymmetry_score'])
     tier_label, tier_description = get_score_tier(score)
+    score_context_data = _get_score_context(score, tier_label)
     debug_top_insights = get_top_insights(measurements, top_n=3)
 
     # 3b. Módulos do produto de entrada
@@ -411,7 +629,53 @@ def run(image_path: str, output_dir: str) -> dict:
         rec.REC_CATALOG,
         capture_confidence=capture_confidence,
     )
+
+    # Injetar SPF nas 3 ações priorizadas quando skin_alert ativo
+    if evolution.get("skin_alert"):
+        _spf_short = "SPF 30+ diariamente + hidratante noturno"
+        _already = any(a.get("short_action") == _spf_short for a in top3_v2)
+        if not _already:
+            _spf_item = {
+                "rank": 1,
+                "metric_key": "skin_spf_protocol",
+                "short_action": _spf_short,
+                "why_it_matters": (
+                    "SPF diário é o hábito de maior retorno para uniformidade de tom"
+                    " — efeito visual em semanas, custo mínimo."
+                ),
+                "time_to_result": "semanas",
+                "tier": 0,
+            }
+            top3_v2 = [_spf_item] + top3_v2[:2]
+            for _i, _item in enumerate(top3_v2, 1):
+                _item["rank"] = _i
+
+    # Filtrar ações de captura/foto dos refinamentos (já estão no bloco de captura)
+    _CAPTURE_TITLES = {"reposicionar foto", "sorriso natural ao fotografar"}
+    top3_v2 = [
+        a for a in top3_v2
+        if a.get("short_action", "").lower().strip() not in _CAPTURE_TITLES
+    ]
+    # Renumérar após filtro
+    for _i, _item in enumerate(top3_v2[:3], 1):
+        _item["rank"] = _i
+    top3_v2 = top3_v2[:3]
+
     next_step = build_next_step(score, evolution, top_leverage)
+
+    # Insight numérico único deste rosto
+    _asym_pct = measurements.get('overall_asymmetry_score_pct_ipd')
+    _canthal = measurements.get('canthal_tilt_mean_deg')
+    if _asym_pct is not None:
+        _asym_label = "baixa" if _asym_pct < 2.0 else ("moderada" if _asym_pct < 4.0 else "elevada")
+        key_metric_insight = (
+            f"Assimetria medida: {_asym_pct:.1f}% do IPD ({_asym_label})"
+            f" — limiar invisível a olho nu é < 2%"
+        )
+    elif _canthal is not None:
+        key_metric_insight = f"Ângulo canthal: {_canthal:.1f}° — referência juvenil é +3° a +8°"
+    else:
+        key_metric_insight = ""
 
     # 3c. Simulação antes/depois sem IA paga (não bloqueante)
     simulation_outputs = None
@@ -439,7 +703,13 @@ def run(image_path: str, output_dir: str) -> dict:
         evolution=evolution,
         next_step=next_step,
         capture_confidence=capture_confidence,
+        capture_recommendations=capture_recommendations,
         rotation_deg=analyzer.rotation_angle,
+        simulation_paths=simulation_outputs,
+        simulation_error=simulation_error,
+        benchmark_message=score_context_data["benchmark_message"],
+        score_context=score_context_data["score_context"],
+        key_metric_insight=key_metric_insight,
     )
 
     # 5. Montar payload JSON
@@ -456,7 +726,17 @@ def run(image_path: str, output_dir: str) -> dict:
             'short_name': top_leverage.get('short_action'),
             'detail': top_leverage.get('why_it_matters'),
         } if top_leverage else {},
-        'top_3_actions': [
+        'measurements': measurements,
+        'measurements_blocks': advanced_bundle,
+        'photo_warnings': photo_quality_metrics.get('warnings', []),
+        'capture_recommendations': capture_recommendations,
+        # --- Produto de Entrada: hierarquia oficial de priorizacao ---
+        'first_impression': first_impression,
+        'visual_status': visual_status_data,
+        'top_leverage': top_leverage,
+        'top3_actions_v2': top3_v2,
+        # --- Debug interno (nao exibir ao usuario final) ---
+        'debug_top_3_actions': [
             {
                 'rank': item['rank'],
                 'action': item['short_action'],
@@ -466,22 +746,16 @@ def run(image_path: str, output_dir: str) -> dict:
             }
             for item in top3_v2
         ],
-        'measurements': measurements,
-        'measurements_blocks': advanced_bundle,
-        'photo_warnings': photo_quality_metrics.get('warnings', []),
         'debug_top_3_actions_px': [
             {'rank': i + 1, 'action': ins['short_name'], 'detail': ins['detail']}
             for i, ins in enumerate(debug_top_insights)
         ],
-        # --- Produto de Entrada: novos campos ---
-        'first_impression': first_impression,
-        'visual_status': visual_status_data,
-        'top_leverage': top_leverage,
-        'top3_actions_v2': top3_v2,
         'evolution_path': evolution,
         'next_step': next_step,
         'simulation_paths': simulation_outputs,
         'simulation_error': simulation_error,
+        'benchmark_message': score_context_data['benchmark_message'],
+        'score_context': score_context_data['score_context'],
     }
 
     # 6. Salvar outputs

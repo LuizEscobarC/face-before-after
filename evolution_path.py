@@ -66,6 +66,17 @@ def _infer_tier_from_tipo(tipo: str) -> int:
     return mapping.get(tipo.lower(), 1)
 
 
+def _check_skin_alert(metrics: Dict[str, Any]) -> bool:
+    """Retorna True se pele/olheiras estão em nível de alerta."""
+    left = float(metrics.get("skin_uniformity_std_lab_left", 0.0) or 0.0)
+    right = float(metrics.get("skin_uniformity_std_lab_right", 0.0) or 0.0)
+    skin_mean = (left + right) / 2.0 if (left or right) else 0.0
+    dark_l = float(metrics.get("under_eye_darkness_left", 0.0) or 0.0)
+    dark_r = float(metrics.get("under_eye_darkness_right", 0.0) or 0.0)
+    dark_mean = (dark_l + dark_r) / 2.0 if (dark_l or dark_r) else 0.0
+    return skin_mean > 20.0 or dark_mean > 0.15
+
+
 # ---------------------------------------------------------------------------
 # Interface pública
 # ---------------------------------------------------------------------------
@@ -203,22 +214,48 @@ def build_evolution_path(
             return tier_actions[0].get("metric_label", "")
         return "Métricas gerais"
 
+    _p1_target = _target_metric_label(tier0_actions)
+    _p1_focus = (
+        f"Foco em {_p1_target} — ajustes de postura, expressão e registro fotográfico"
+        if _p1_target and _p1_target != "Métricas gerais"
+        else "Ajustes de expressão, postura e registro fotográfico"
+    )
+
     phase_1 = {
         "label": "Esta semana (0–7 dias)",
-        "focus": "Ajustes imediatos de foto, expressão, iluminação e postura",
+        "focus": _p1_focus,
         "actions": tier0_actions[:3],
-        "target_metric": _target_metric_label(tier0_actions),
+        "target_metric": _p1_target,
         "reanalysis_date": (today + timedelta(days=7)).isoformat(),
         "reanalysis_label": "em 7 dias",
         "confidence_score": phase_1_conf,
         "confidence_label": _confidence_label(phase_1_conf),
     }
 
+    # Injetar ação de pele como 1ª da fase 1 quando skin_alert ativo
+    if _check_skin_alert(metrics):
+        _spf_action = {
+            "titulo": "SPF 30+ diariamente + hidratante noturno",
+            "descricao": "Aplicar SPF 30+ toda manhã; hidratante noturno antes de dormir.",
+            "frequencia": "diário",
+            "metric_label": "Protocolo SPF + hidratação",
+        }
+        existing_titles = {a.get("titulo", "") for a in phase_1["actions"]}
+        if _spf_action["titulo"] not in existing_titles:
+            phase_1["actions"] = [_spf_action] + phase_1["actions"][:2]
+
+    _p2_target = _target_metric_label(tier1_actions)
+    _p2_focus = (
+        f"Hábitos diários focados em {_p2_target}"
+        if _p2_target and _p2_target != "Métricas gerais"
+        else "Hábitos diários: skincare, exercício e postura"
+    )
+
     phase_2 = {
         "label": "Próximos 30 dias",
-        "focus": "Hábitos consistentes: skincare, exercício, mastigação bilateral",
+        "focus": _p2_focus,
         "actions": tier1_actions[:3],
-        "target_metric": _target_metric_label(tier1_actions),
+        "target_metric": _p2_target,
         "reanalysis_date": (today + timedelta(days=30)).isoformat(),
         "reanalysis_label": "em 30 dias",
         "confidence_score": phase_2_conf,
@@ -242,4 +279,5 @@ def build_evolution_path(
         "phase_1": phase_1,
         "phase_2": phase_2,
         "phase_3": phase_3,
+        "skin_alert": _check_skin_alert(metrics),
     }

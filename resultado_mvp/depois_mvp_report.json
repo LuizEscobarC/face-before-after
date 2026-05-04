@@ -1,6 +1,6 @@
 {
   "input_file": "depois.png",
-  "generated_at": "2026-05-03T18:32:15.675225",
+  "generated_at": "2026-05-03T22:17:01.944561",
   "rotation_correction_degrees": -0.62,
   "score": 87,
   "tier": "Muito boa",
@@ -8,32 +8,9 @@
   "capture_confidence": 0.707,
   "main_insight": {
     "metric_key": "jawline_definition_score",
-    "short_name": "Chin tucks + retração cervical",
-    "detail": "define a estrutura facial — o que mais transmite força e saúde"
+    "short_name": "Retração cervical guiada",
+    "detail": "projeta presença antes mesmo de você falar — estrutura que transmite autoridade"
   },
-  "top_3_actions": [
-    {
-      "rank": 1,
-      "action": "Reposicionar foto",
-      "detail": "elimina distorção que prejudica a primeira impressão na foto",
-      "tier": 0,
-      "metric_key": "intercanthal_to_eyewidth_ratio"
-    },
-    {
-      "rank": 2,
-      "action": "Chin tucks + retração cervical",
-      "detail": "define a estrutura facial — o que mais transmite força e saúde",
-      "tier": 1,
-      "metric_key": "jawline_definition_score"
-    },
-    {
-      "rank": 3,
-      "action": "Postura cefálica neutra",
-      "detail": "harmoniza os três terços faciais — base da percepção de equilíbrio",
-      "tier": 0,
-      "metric_key": "thirds_std_dev"
-    }
-  ],
   "measurements": {
     "eye_level_difference_px": 0.0,
     "eye_horizontal_asymmetry_px": 0.08,
@@ -102,8 +79,8 @@
     "skin_uniformity_std_lab_right": 21.321,
     "skin_uniformity_std_lab_forehead": 53.416,
     "skin_lighting_delta_e_lr": 1.516,
-    "under_eye_darkness_left": 0.864,
-    "under_eye_darkness_right": 0.839,
+    "under_eye_darkness_left": 0.136,
+    "under_eye_darkness_right": 0.161,
     "head_pose_yaw_deg": -0.478,
     "head_pose_pitch_deg": -16.187,
     "head_pose_roll_deg": 0.342,
@@ -181,12 +158,75 @@
       "skin_uniformity_std_lab_right": 21.321,
       "skin_uniformity_std_lab_forehead": 53.416,
       "skin_lighting_delta_e_lr": 1.516,
-      "under_eye_darkness_left": 0.864,
-      "under_eye_darkness_right": 0.839
+      "under_eye_darkness_left": 0.136,
+      "under_eye_darkness_right": 0.161
     }
   },
   "photo_warnings": [
     "Pose facial fora do limite frontal (|yaw|=0.5°, |pitch|=16.2°). Métricas podem estar enviesadas."
+  ],
+  "capture_recommendations": [
+    {
+      "area": "enquadramento",
+      "tip": "Incline levemente a cabeça para cima — o ângulo vertical atual (16°) reduz a precisão da análise e da simulação."
+    }
+  ],
+  "first_impression": {
+    "headline": "Equilíbrio facial consistente. Ponto a refinar: irregularidade de tom de pele visível.",
+    "tags": [
+      "pele irregular"
+    ],
+    "main_risk": "Irregularidade de tom de pele visível — isso afeta diretamente a percepção de cuidado",
+    "positive_signal": "Equilíbrio facial consistente — nenhum ponto de atenção dominante"
+  },
+  "visual_status": {
+    "dominance_score": 6.91,
+    "attractiveness_score": 5.39,
+    "freshness_score": 4.23,
+    "narrative": "Presença e estrutura são seus pontos fortes. Recuperar a aparência de energia visual é o próximo passo de maior impacto."
+  },
+  "top_leverage": {
+    "metric_key": "jawline_definition_score",
+    "short_action": "Retração cervical guiada",
+    "why_it_matters": "projeta presença antes mesmo de você falar — estrutura que transmite autoridade",
+    "time_to_result": "semanas",
+    "tier": 1,
+    "deviation_score": 0.8,
+    "confidence_score": 0.74
+  },
+  "top3_actions_v2": [
+    {
+      "rank": 1,
+      "metric_key": "skin_spf_protocol",
+      "short_action": "SPF 30+ diariamente + hidratante noturno",
+      "why_it_matters": "SPF diário é o hábito de maior retorno para uniformidade de tom — efeito visual em semanas, custo mínimo.",
+      "time_to_result": "semanas",
+      "tier": 0
+    },
+    {
+      "rank": 2,
+      "metric_key": "jawline_definition_score",
+      "short_action": "Retração cervical guiada",
+      "why_it_matters": "projeta presença antes mesmo de você falar — estrutura que transmite autoridade",
+      "time_to_result": "semanas",
+      "tier": 1
+    }
+  ],
+  "debug_top_3_actions": [
+    {
+      "rank": 1,
+      "action": "SPF 30+ diariamente + hidratante noturno",
+      "detail": "SPF diário é o hábito de maior retorno para uniformidade de tom — efeito visual em semanas, custo mínimo.",
+      "tier": 0,
+      "metric_key": "skin_spf_protocol"
+    },
+    {
+      "rank": 2,
+      "action": "Retração cervical guiada",
+      "detail": "projeta presença antes mesmo de você falar — estrutura que transmite autoridade",
+      "tier": 1,
+      "metric_key": "jawline_definition_score"
+    }
   ],
   "debug_top_3_actions_px": [
     {
@@ -205,55 +245,6 @@
       "detail": "O queixo desviado da linha central é um dos fatores que mais reduz a percepção de simetria. Praticar posicionamento frontal neutro aumenta o impacto visual imediatamente."
     }
   ],
-  "first_impression": {
-    "headline": "Face detectada com qualidade suficiente para análise completa. O que está pesando mais: irregularidade de tom de pele visível.",
-    "tags": [
-      "pele irregular"
-    ],
-    "main_risk": "Irregularidade de tom de pele visível — isso afeta diretamente a percepção de cuidado",
-    "positive_signal": "Face detectada com qualidade suficiente para análise completa"
-  },
-  "visual_status": {
-    "dominance_score": 6.91,
-    "attractiveness_score": 5.39,
-    "freshness_score": 2.45,
-    "narrative": "Presença e estrutura são seus pontos fortes. Recuperar a aparência de energia visual é o próximo passo de maior impacto."
-  },
-  "top_leverage": {
-    "metric_key": "jawline_definition_score",
-    "short_action": "Chin tucks + retração cervical",
-    "why_it_matters": "define a estrutura facial — o que mais transmite força e saúde",
-    "time_to_result": "semanas",
-    "tier": 1,
-    "deviation_score": 0.8,
-    "confidence_score": 0.74
-  },
-  "top3_actions_v2": [
-    {
-      "rank": 1,
-      "metric_key": "intercanthal_to_eyewidth_ratio",
-      "short_action": "Reposicionar foto",
-      "why_it_matters": "elimina distorção que prejudica a primeira impressão na foto",
-      "time_to_result": "imediato",
-      "tier": 0
-    },
-    {
-      "rank": 2,
-      "metric_key": "jawline_definition_score",
-      "short_action": "Chin tucks + retração cervical",
-      "why_it_matters": "define a estrutura facial — o que mais transmite força e saúde",
-      "time_to_result": "semanas",
-      "tier": 1
-    },
-    {
-      "rank": 3,
-      "metric_key": "thirds_std_dev",
-      "short_action": "Postura cefálica neutra",
-      "why_it_matters": "harmoniza os três terços faciais — base da percepção de equilíbrio",
-      "time_to_result": "imediato",
-      "tier": 0
-    }
-  ],
   "evolution_path": {
     "mutable_metrics": [
       "overall_asymmetry_score_pct_ipd",
@@ -266,8 +257,14 @@
     ],
     "phase_1": {
       "label": "Esta semana (0–7 dias)",
-      "focus": "Ajustes imediatos de foto, expressão, iluminação e postura",
+      "focus": "Foco em Assimetria global — ajustes de postura, expressão e registro fotográfico",
       "actions": [
+        {
+          "titulo": "SPF 30+ diariamente + hidratante noturno",
+          "descricao": "Aplicar SPF 30+ toda manhã; hidratante noturno antes de dormir.",
+          "frequencia": "diário",
+          "metric_label": "Protocolo SPF + hidratação"
+        },
         {
           "titulo": "Mastigação bilateral consciente",
           "descricao": "Alterne deliberadamente o lado da mastigação a cada refeição.",
@@ -279,12 +276,6 @@
           "descricao": "Evite head-tilt habitual; alinhe orelha sobre ombro em frente ao espelho 2× ao dia.",
           "frequencia": "diário",
           "metric_label": "Assimetria global"
-        },
-        {
-          "titulo": "Sono adequado e hidratação",
-          "descricao": "Reduz edema periorbital que pode disfarçar tilt.",
-          "frequencia": "7–9 h/dia",
-          "metric_label": "Canthal tilt médio"
         }
       ],
       "target_metric": "Assimetria global",
@@ -295,7 +286,7 @@
     },
     "phase_2": {
       "label": "Próximos 30 dias",
-      "focus": "Hábitos consistentes: skincare, exercício, mastigação bilateral",
+      "focus": "Hábitos diários focados em Largura mandibular (% IPD)",
       "actions": [
         {
           "titulo": "Mastigação resistida (gum/jawliner)",
@@ -304,8 +295,8 @@
           "metric_label": "Largura mandibular (% IPD)"
         },
         {
-          "titulo": "Chin tucks + retração cervical",
-          "descricao": "3×15 reps diário; reduz papada postural.",
+          "titulo": "Retração cervical guiada",
+          "descricao": "3×15 reps diário; redução de papada postural e definição do perfil.",
           "frequencia": "diário",
           "metric_label": "Definição da linha mandibular"
         }
@@ -326,20 +317,23 @@
       "requires_professional": false,
       "confidence_score": 0.0,
       "confidence_label": "desafiador"
-    }
+    },
+    "skin_alert": true
   },
   "next_step": {
     "profile": "alto",
-    "message": "Sua base visual já está forte. O próximo passo é manter consistência e refinar o que mais gera presença.",
-    "action": "Reanalisar em 30 dias para confirmar evolução",
-    "cta_text": "Quero acompanhar minha evolução",
-    "cta_type": "assinatura",
-    "urgency_hook": "Comece hoje por: Mastigação bilateral consciente."
+    "message": "Seu ativo visual já está acima da média. O próximo passo é ver o antes/depois e refinar.",
+    "action": "Visualizar simulação antes/depois + reanálise em 30 dias",
+    "cta_text": "Ver minha simulação antes/depois",
+    "cta_type": "simulacao",
+    "urgency_hook": "Você já tem a base. A simulação mostra exatamente o que muda."
   },
   "simulation_paths": {
     "symmetrized": "resultado_mvp/depois_symmetrized.jpg",
     "ideal_proportions": "resultado_mvp/depois_ideal_proportions.jpg",
     "comparison_grid": "resultado_mvp/depois_comparison_grid.jpg"
   },
-  "simulation_error": null
+  "simulation_error": null,
+  "benchmark_message": "Você já está acima da média — e os ajustes certos ampliam ainda mais o impacto.",
+  "score_context": "Resultado entre os 20% melhores que analisamos."
 }
