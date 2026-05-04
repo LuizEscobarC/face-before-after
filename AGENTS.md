@@ -15,3 +15,11 @@ Este arquivo documenta agentes e skills disponíveis no projeto.
 | prompt-initializer | **MANDATORY** high-fidelity context orchestrator: creates .prompt.md file for ANY task arriving in chat. Executes 6-l... |
 | session-save | Salva o contexto comprimido da sessão atual em .claude/local/window-context/current.md para injeção automática na pró... |
 <!-- skills-index-end -->
+
+
+```
+**Para deploys futuros, use:**
+```bash
+just frontend-deploy
+```
+(Roda `npm run build` + rebuild imagem + restart em um só comando)

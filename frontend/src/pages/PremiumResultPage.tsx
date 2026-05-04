@@ -213,10 +213,10 @@ export function PremiumResultPage() {
             {result.capture_confidence !== undefined && (
               <div style={{ marginTop: 12 }}>
                 <div style={{ fontSize: 12, color: "var(--muted)", marginBottom: 4 }}>
-                  Confiança de captura: <strong style={{ color: "var(--text)" }}>{result.capture_confidence.toFixed(0)}%</strong>
+                  Confiança de captura: <strong style={{ color: "var(--text)" }}>{(result.capture_confidence * 100).toFixed(0)}%</strong>
                 </div>
                 <div className="bar-track" style={{ height: 6 }}>
-                  <div className="bar-fill" style={{ width: `${result.capture_confidence}%`, background: result.capture_confidence > 60 ? "#22d3ee" : "#f59e0b" }} />
+                  <div className="bar-fill" style={{ width: `${result.capture_confidence * 100}%`, background: result.capture_confidence > 0.6 ? "#22d3ee" : "#f59e0b" }} />
                 </div>
               </div>
             )}
@@ -312,7 +312,7 @@ export function PremiumResultPage() {
               ["Olhos — nível", "eye_level_difference_pct_ipd"],
               ["Olhos — eixo horizontal", "eye_horizontal_asymmetry_pct_ipd"],
               ["Nariz — desvio", "nose_deviation_pct_ipd"],
-              ["Boca — desvio", "mouth_deviation_pct_ipd"],
+              ["Boca — desvio", "mouth_center_deviation_pct_ipd"],
               ["Queixo — desvio", "chin_deviation_pct_ipd"],
             ] as [string, string][]).map(([label, key]) => {
               const val = result.measurements?.[key];

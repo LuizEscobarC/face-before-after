@@ -210,6 +210,12 @@ clean-all: clean
 docker-build:
     docker-compose build
 
+# Deploy completo do frontend: build Vite → rebuild imagem → restart container
+frontend-deploy:
+    cd frontend && npm run build
+    docker compose build frontend
+    docker compose up -d frontend
+
 # Sobe os serviços Docker (desenvolvimento local)
 docker-up:
     docker-compose up -d
