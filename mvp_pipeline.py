@@ -1081,6 +1081,7 @@ def run(image_path: str, output_dir: str, mode: str = "premium") -> dict:
     }
     capture_confidence = compute_capture_confidence(photo_quality_metrics)
     capture_recommendations = build_capture_recommendations(photo_quality_metrics)
+    rec_plan = rec.recommend(measurements) if analysis_mode == "premium" else []
 
     # 3. Calcular score e insights
     score = asymmetry_to_score(measurements['overall_asymmetry_score_pct_ipd'])
@@ -1260,6 +1261,7 @@ def run(image_path: str, output_dir: str, mode: str = "premium") -> dict:
         'simulation_paths': simulation_outputs,
         'simulation_error': simulation_error,
         'premium_metrics_catalog': premium_metrics_catalog,
+        'recommendations': rec_plan,
         'benchmark_message': score_context_data['benchmark_message'],
         'score_context': score_context_data['score_context'],
     }

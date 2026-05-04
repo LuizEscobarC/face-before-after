@@ -415,5 +415,80 @@ def main():
         print(f'Relatório salvo em: {args.output}')
 
 
+def compare_json(report_before: dict, report_after: dict) -> dict:
+    """Compara dois relatórios JSON e retorna delta estruturado."""
+    score_before = int(report_before.get("score", 0))
+    score_after  = int(report_after.get("score", 0))
+
+    tier_before = report_before.get("tier", "—")
+    tier_after  = report_after.get("tier", "—")
+
+    # Extrair measurements de forma compatível com payloads antigos e novos
+    m_before = report_before.get("measurements", report_before)
+    m_after  = report_after.get("measurements", report_after)
+
+    COMPARE_KEYS: dict[str, str] = {
+        "overall_asymmetry_score_pct_ipd":  "Assimetria geral",
+        "eye_level_difference_pct_ipd":     "Nível dos olhos",
+        "eye_horizontal_asymmetry_pct_ipd": "Eixo horizontal dos olhos",
+        "nose_deviation_pct_ipd":           "Desvio nasal",
+        "mouth_deviation_pct_ipd":          "Desvio labial",
+        "chin_deviation_pct_ipd":           "Desvio do queixo",
+        "fwhr":                             "Largura-altura facial",
+        "canthal_tilt_mean_deg":            "Inclinação canthal",
+        "lower_third_ratio":                "Terço inferior",
+        "jawline_definition_score":         "Definição mandibular",
+        "marquardt_deviation_pct_ipd":      "Desvio Máscara Áurea",
+        "under_eye_darkness_left":          "Olheira esquerda",
+        "under_eye_darkness_right":         "Olheira direita",
+    }
+
+    # Para estas métricas, valor maior = melhor
+    HIGHER_IS_BETTER = {"jawline_definition_score", "canthal_tilt_mean_deg"}
+
+    metrics = []
+    for key, label in COMPARE_KEYS.items():
+        v_before = m_before.get(key)
+        v_after  = m_after.get(key)
+        if v_before is None or v_after is None:
+            continue
+        try:
+            vb = float(v_before)
+            va = float(v_after)
+        except (TypeError, ValueError):
+            continue
+        if key in HIGHER_IS_BETTER:
+            delta = va - vb   # positivo = cresceu = melhorou
+        else:
+            delta = vb - va   # positivo = caiu = melhorou (menos assimetria)
+        metrics.append({
+            "key":      key,
+            "label":    label,
+            "before":   round(vb, 3),
+            "after":    round(va, 3),
+            "delta":    round(delta, 3),
+            "improved": delta > 0,
+        })
+
+    improved = [m for m in metrics if m["improved"]]
+    worsened = [m for m in metrics if not m["improved"] and m["delta"] != 0]
+
+    top_improvements = sorted(improved, key=lambda x: abs(x["delta"]), reverse=True)[:3]
+    top_regressions  = sorted(worsened, key=lambda x: abs(x["delta"]), reverse=True)[:3]
+
+    return {
+        "score_before":     score_before,
+        "score_after":      score_after,
+        "score_delta":      score_after - score_before,
+        "tier_before":      tier_before,
+        "tier_after":       tier_after,
+        "metrics":          metrics,
+        "improved_count":   len(improved),
+        "worsened_count":   len(worsened),
+        "top_improvements": top_improvements,
+        "top_regressions":  top_regressions,
+    }
+
+
 if __name__ == '__main__':
     main()

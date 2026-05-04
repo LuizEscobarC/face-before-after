@@ -1,10 +1,13 @@
+import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import type { AnalysisResult, PremiumMetricCategory } from "../types";
+import { fetchGlossary } from "../api";
+import type { AnalysisResult, GlossaryTerm, PremiumMetricCategory } from "../types";
 
 type LocationState = { result?: AnalysisResult };
 
 const RANK_EMOJI = ["🥇", "🥈", "🥉"];
 const PHASE_ICON = ["⚡", "🎯", "🏅"];
+const TIER_LABEL: Record<number, string> = { 0: "Grátis", 1: "Essential", 2: "Premium" };
 
 function severityClass(severity: string): string {
   const key = severity.toLowerCase();
@@ -120,6 +123,13 @@ export function PremiumResultPage() {
   const location = useLocation();
   const result = (location.state as LocationState | null)?.result;
 
+  const [glossary, setGlossary] = useState<Record<string, GlossaryTerm>>({});
+  useEffect(() => {
+    fetchGlossary()
+      .then(setGlossary)
+      .catch(() => {/* silenciar se indisponível */});
+  }, []);
+
   if (!result) {
     return (
       <div className="page" style={{ paddingTop: 60 }}>
@@ -200,6 +210,16 @@ export function PremiumResultPage() {
             <p style={{ marginTop: 10, color: "var(--muted)", fontSize: 12, fontStyle: "italic" }}>
               Uma foto em melhores condições pode mudar completamente as recomendações.
             </p>
+            {result.capture_confidence !== undefined && (
+              <div style={{ marginTop: 12 }}>
+                <div style={{ fontSize: 12, color: "var(--muted)", marginBottom: 4 }}>
+                  Confiança de captura: <strong style={{ color: "var(--text)" }}>{result.capture_confidence.toFixed(0)}%</strong>
+                </div>
+                <div className="bar-track" style={{ height: 6 }}>
+                  <div className="bar-fill" style={{ width: `${result.capture_confidence}%`, background: result.capture_confidence > 60 ? "#22d3ee" : "#f59e0b" }} />
+                </div>
+              </div>
+            )}
           </section>
         )}
 
@@ -212,6 +232,18 @@ export function PremiumResultPage() {
             <div className="headline-text">{result.first_impression?.headline || "—"}</div>
             {result.first_impression?.positive_signal && (
               <div className="positive-signal">✅ {result.first_impression.positive_signal}</div>
+            )}
+            {result.first_impression?.tags && result.first_impression.tags.length > 0 && (
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 10 }}>
+                {result.first_impression.tags.map((tag) => (
+                  <span key={tag} className="badge-pill" style={{ fontSize: 12 }}>{tag}</span>
+                ))}
+              </div>
+            )}
+            {result.first_impression?.main_risk && (
+              <div style={{ marginTop: 10, padding: "10px 14px", background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.25)", borderRadius: 10, color: "#fca5a5", fontSize: 13 }}>
+                ⚠️ {result.first_impression.main_risk}
+              </div>
             )}
           </div>
 
@@ -271,6 +303,57 @@ export function PremiumResultPage() {
           </section>
         )}
 
+        {/* Assimetria Regional */}
+        {result.measurements && (
+          <section className="section">
+            <h2 className="section-title">⚖️ Assimetria Regional</h2>
+            <p className="section-sub">Valores normalizados em % da distância interpupilar (IPD).</p>
+            {([
+              ["Olhos — nível", "eye_level_difference_pct_ipd"],
+              ["Olhos — eixo horizontal", "eye_horizontal_asymmetry_pct_ipd"],
+              ["Nariz — desvio", "nose_deviation_pct_ipd"],
+              ["Boca — desvio", "mouth_deviation_pct_ipd"],
+              ["Queixo — desvio", "chin_deviation_pct_ipd"],
+            ] as [string, string][]).map(([label, key]) => {
+              const val = result.measurements?.[key];
+              if (val == null) return null;
+              const num = Number(val);
+              const pct = Math.min((num / 8) * 100, 100);
+              return (
+                <div key={key} className="bar-row">
+                  <div className="bar-label">{label}</div>
+                  <div className="bar-track">
+                    <div className="bar-fill" style={{ width: `${pct}%`, background: num < 2 ? "#22d3ee" : num < 4 ? "#a78bfa" : "#f87171" }} />
+                  </div>
+                  <div className="bar-val">{num.toFixed(1)}%</div>
+                </div>
+              );
+            })}
+          </section>
+        )}
+
+        {/* Perfil Facial Detalhado */}
+        {result.measurements && (
+          <section className="section">
+            <h2 className="section-title">🔬 Perfil Facial Detalhado</h2>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 12, marginTop: 12 }}>
+              {[
+                ["Formato facial", result.measurements["face_shape"]],
+                ["Olheiras (esq)", result.measurements["under_eye_darkness_left"]?.toString()],
+                ["Olheiras (dir)", result.measurements["under_eye_darkness_right"]?.toString()],
+                ["Uniformidade pele", result.measurements["skin_uniformity_score"]?.toString()],
+                ["Desvio Máscara Áurea", result.measurements["marquardt_deviation_pct_ipd"] != null ? `${Number(result.measurements["marquardt_deviation_pct_ipd"]).toFixed(1)}%` : null],
+                ["Inclinação Canthal", result.measurements["canthal_tilt_mean_deg"] != null ? `${Number(result.measurements["canthal_tilt_mean_deg"]).toFixed(1)}°` : null],
+              ].filter(([, v]) => v != null && v !== "").map(([label, value]) => (
+                <div key={label as string} style={{ background: "var(--surface2)", borderRadius: 10, padding: "10px 14px", border: "1px solid var(--border)" }}>
+                  <div style={{ fontSize: 11, color: "var(--muted)", marginBottom: 4 }}>{label as string}</div>
+                  <div style={{ fontSize: 15, color: "var(--text)", fontWeight: 600 }}>{value as string}</div>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
         {/* Top 3 ações */}
         {result.top3_actions_v2 && result.top3_actions_v2.length > 0 ? (
           <section className="section">
@@ -280,7 +363,14 @@ export function PremiumResultPage() {
               <div key={item.rank} className="action-card">
                 <div className="action-rank">{RANK_EMOJI[item.rank - 1] ?? item.rank}</div>
                 <div className="action-body">
-                  <div className="action-title">{item.short_action}</div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                    <div className="action-title">{item.short_action}</div>
+                    {item.tier !== undefined && (
+                      <span className="badge-pill" style={{ fontSize: 11, background: "rgba(34,211,238,0.12)", border: "1px solid rgba(34,211,238,0.3)", color: "#22d3ee" }}>
+                        {TIER_LABEL[item.tier] ?? `Tier ${item.tier}`}
+                      </span>
+                    )}
+                  </div>
                   <div className="action-why">{item.why_it_matters}</div>
                   <div className="action-time">⏱ Resultado: {item.time_to_result}</div>
                 </div>
@@ -308,6 +398,19 @@ export function PremiumResultPage() {
           <section className="section">
             <h2 className="section-title">🗺 Caminho de Evolução</h2>
             <p className="section-sub">Plano em 3 fases progressivas.</p>
+
+            {result.evolution_path?.skin_alert && (
+              <div style={{ marginBottom: 14, padding: "10px 14px", background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.25)", borderRadius: 10, color: "#fca5a5", fontSize: 13 }}>
+                🔴 Alerta de pele detectado — considere avaliação dermatológica antes de iniciar protocolos.
+              </div>
+            )}
+
+            {result.evolution_path?.mutable_metrics && result.evolution_path.mutable_metrics.length > 0 && (
+              <div style={{ marginBottom: 14, padding: "10px 14px", background: "rgba(99,102,241,0.1)", border: "1px solid rgba(99,102,241,0.25)", borderRadius: 10, fontSize: 13, color: "#a5b4fc" }}>
+                🔧 <strong>{result.evolution_path.mutable_metrics.length}</strong> métricas com potencial de melhora identificadas.
+              </div>
+            )}
+
             {phases.map((phase, i) =>
               phase ? (
                 <div key={i} className="phase-card">
@@ -317,13 +420,29 @@ export function PremiumResultPage() {
                       <div className="phase-label">{phase.label || `Fase ${i + 1}`}</div>
                       <div className="phase-focus">{phase.focus || "—"}</div>
                     </div>
+                    {phase.requires_professional && (
+                      <span className="badge-pill" style={{ marginLeft: "auto", fontSize: 11, background: "rgba(239,68,68,0.12)", border: "1px solid rgba(239,68,68,0.3)", color: "#fca5a5" }}>
+                        👨‍⚕️ Profissional
+                      </span>
+                    )}
                   </div>
+                  {phase.confidence_score !== undefined && (
+                    <div style={{ marginBottom: 8 }}>
+                      <div style={{ fontSize: 11, color: "var(--muted)", marginBottom: 3 }}>
+                        Confiança do plano: {phase.confidence_score.toFixed(0)}%
+                      </div>
+                      <div className="bar-track" style={{ height: 4 }}>
+                        <div className="bar-fill" style={{ width: `${phase.confidence_score}%` }} />
+                      </div>
+                    </div>
+                  )}
                   {phase.actions && phase.actions.length > 0 && (
                     <ul className="phase-actions">
                       {phase.actions.map((a, j) => (
                         <li key={j}>
                           {a.titulo}
-                          {a.frequencia && <span className="phase-freq"> ({a.frequencia})</span>}
+                          {a.metric_label && <span style={{ marginLeft: 6, fontSize: 11, color: "var(--accent2)", fontStyle: "italic" }}>({a.metric_label})</span>}
+                          {a.frequencia && <span className="phase-freq"> — {a.frequencia}</span>}
                         </li>
                       ))}
                     </ul>
@@ -347,6 +466,60 @@ export function PremiumResultPage() {
             <p className="section-sub">Todas as métricas calculadas para este rosto, organizadas por categoria.</p>
             {result.premium_metrics_catalog.map((category) => (
               <MetricsCategory key={category.slug} category={category} />
+            ))}
+          </section>
+        )}
+
+        {/* Plano de Ação Detalhado */}
+        {result.recommendations && result.recommendations.filter(r => !r.severity.toLowerCase().includes("excel")).length > 0 && (
+          <section className="section">
+            <h2 className="section-title">📋 Plano de Ação Detalhado</h2>
+            <p className="section-sub">Recomendações específicas ordenadas por impacto, baseadas nas métricas críticas.</p>
+            {result.recommendations
+              .filter(r => !r.severity.toLowerCase().includes("excel"))
+              .map((rec) => (
+                <details key={rec.metric_key} style={{ marginBottom: 12, background: "var(--surface2)", border: "1px solid var(--border)", borderRadius: 12, padding: "12px 16px" }}>
+                  <summary style={{ cursor: "pointer", display: "flex", alignItems: "center", gap: 10, listStyle: "none" }}>
+                    <span className={severityClass(rec.severity)}>{rec.severity}</span>
+                    <span style={{ fontWeight: 600, color: "var(--text)" }}>{rec.metric_label}</span>
+                    <span style={{ fontSize: 12, color: "var(--muted)", marginLeft: "auto" }}>Ideal: {rec.ideal}</span>
+                  </summary>
+                  <div style={{ marginTop: 10 }}>
+                    <p style={{ fontSize: 13, color: "var(--muted)", margin: "0 0 8px" }}>{rec.why_matters}</p>
+                    <ul style={{ margin: 0, paddingLeft: 16, display: "grid", gap: 6 }}>
+                      {rec.actions.map((a, i) => (
+                        <li key={i} style={{ fontSize: 13, color: "var(--text)" }}>
+                          <strong>{a.titulo}</strong> — {a.descricao}
+                          {a.frequencia && <span style={{ color: "var(--muted)", marginLeft: 6 }}>({a.frequencia})</span>}
+                          {a.fonte && (
+                            <a href={a.fonte.url} target="_blank" rel="noopener noreferrer" style={{ marginLeft: 8, fontSize: 11, color: "var(--accent2)" }}>
+                              📖 {a.fonte.titulo}
+                            </a>
+                          )}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </details>
+              ))}
+          </section>
+        )}
+
+        {/* Glossário */}
+        {Object.keys(glossary).length > 0 && (
+          <section className="section">
+            <h2 className="section-title">📖 Glossário</h2>
+            <p className="section-sub">Significado de cada métrica utilizada na análise.</p>
+            {Object.entries(glossary).map(([key, term]) => (
+              <details key={key} style={{ marginBottom: 8, background: "var(--surface2)", border: "1px solid var(--border)", borderRadius: 10, padding: "10px 14px" }}>
+                <summary style={{ cursor: "pointer", fontWeight: 600, color: "var(--text)", listStyle: "none" }}>
+                  {term.termo} {term.unidade && <span style={{ fontSize: 11, color: "var(--muted)", fontWeight: 400 }}>({term.unidade})</span>}
+                </summary>
+                <div style={{ marginTop: 8, fontSize: 13, color: "var(--muted)", lineHeight: 1.6 }}>
+                  <p style={{ margin: "0 0 4px" }}>{term.descricao}</p>
+                  {term.faixas && <p style={{ margin: 0 }}><strong style={{ color: "var(--text)" }}>Faixas:</strong> {term.faixas}</p>}
+                </div>
+              </details>
             ))}
           </section>
         )}

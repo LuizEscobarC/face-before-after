@@ -1,6 +1,7 @@
 import { Navigate, Route, Routes } from "react-router-dom";
 
 import { CapturePage } from "./pages/CapturePage";
+import { CompareResultPage } from "./pages/CompareResultPage";
 import { FreeResultPage } from "./pages/FreeResultPage";
 import { PremiumResultPage } from "./pages/PremiumResultPage";
 
@@ -10,6 +11,7 @@ export default function App() {
       <Route path="/" element={<CapturePage />} />
       <Route path="/resultado/free" element={<FreeResultPage />} />
       <Route path="/resultado/premium" element={<PremiumResultPage />} />
+      <Route path="/resultado/compare" element={<CompareResultPage />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

@@ -1,4 +1,4 @@
-export type AnalyzeMode = "free" | "premium";
+export type AnalyzeMode = "free" | "premium" | "compare";
 
 export type CaptureGuidelines = {
   title: string;
@@ -24,6 +24,8 @@ export type EvolutionPhase = {
   label?: string;
   focus?: string;
   confidence_label?: string;
+  confidence_score?: number;
+  requires_professional?: boolean;
   reanalysis_date?: string;
   reanalysis_label?: string;
   actions?: Array<{
@@ -32,6 +34,59 @@ export type EvolutionPhase = {
     frequencia: string;
     metric_label?: string;
   }>;
+};
+
+export type RecommendationAction = {
+  tipo: string;
+  titulo: string;
+  descricao: string;
+  frequencia: string;
+  fonte?: { titulo: string; url: string };
+};
+
+export type MetricRecommendation = {
+  metric_key: string;
+  metric_label: string;
+  severity: string;
+  value: unknown;
+  ideal: string;
+  what_is: string;
+  how_measured: string;
+  why_matters: string;
+  actions: RecommendationAction[];
+  references: { titulo: string; url: string }[];
+};
+
+export type GlossaryTerm = {
+  termo: string;
+  unidade: string;
+  descricao: string;
+  como_medido: string;
+  faixas: string;
+  problemas_comuns: string[];
+  referencias: { titulo: string; url: string }[];
+};
+
+export type CompareMetric = {
+  key: string;
+  label: string;
+  before: number;
+  after: number;
+  delta: number;
+  improved: boolean;
+};
+
+export type CompareResult = {
+  score_before: number;
+  score_after: number;
+  score_delta: number;
+  tier_before: string;
+  tier_after: string;
+  metrics: CompareMetric[];
+  improved_count: number;
+  worsened_count: number;
+  top_improvements: CompareMetric[];
+  top_regressions: CompareMetric[];
 };
 
 export type PremiumMetric = {
@@ -65,6 +120,7 @@ export type AnalysisResult = {
     headline?: string;
     positive_signal?: string;
     main_risk?: string;
+    tags?: string[];
   };
   top_leverage?: TopLeverage;
   visual_status?: VisualStatus;
@@ -73,11 +129,15 @@ export type AnalysisResult = {
     short_action: string;
     why_it_matters: string;
     time_to_result: string;
+    tier?: number;
+    metric_key?: string;
   }>;
   evolution_path?: {
     phase_1?: EvolutionPhase;
     phase_2?: EvolutionPhase;
     phase_3?: EvolutionPhase;
+    skin_alert?: boolean;
+    mutable_metrics?: string[];
   };
   auto_crop?: {
     applied?: boolean;
@@ -94,4 +154,7 @@ export type AnalysisResult = {
     comparison_grid?: string;
   } | null;
   simulation_error?: string | null;
+  capture_confidence?: number;
+  measurements?: Record<string, number | string | boolean | null>;
+  recommendations?: MetricRecommendation[];
 };

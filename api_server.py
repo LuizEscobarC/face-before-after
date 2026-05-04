@@ -16,8 +16,11 @@ from pathlib import Path
 from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
+from pydantic import BaseModel
 
 import mvp_pipeline as pipeline
+import glossary as gl
+import compare_report as cr
 
 try:
     from minio_client import MinIOStorage
@@ -175,6 +178,48 @@ def get_simulation_image(run_id: str, sim_type: str) -> FileResponse:
     if not matches:
         raise HTTPException(status_code=404, detail=f"Imagem de simulação '{sim_type}' não encontrada.")
     return FileResponse(matches[0], media_type="image/jpeg")
+
+
+@app.get("/api/glossary")
+def get_glossary() -> dict:
+    """Retorna o glossário completo de termos da análise facial."""
+    return gl.GLOSSARY
+
+
+class CompareRequest(BaseModel):
+    run_id_before: str
+    run_id_after: str
+
+
+@app.post("/api/compare")
+def compare_runs(req: CompareRequest) -> dict:
+    """Compara dois run_ids retornando delta estruturado de métricas."""
+    import re
+    import json
+    import glob as _glob
+
+    def _validate_run_id(rid: str) -> str:
+        if not re.match(r'^[a-f0-9]{12}$', rid):
+            raise HTTPException(status_code=400, detail=f"run_id inválido: {rid}")
+        return rid
+
+    rid_before = _validate_run_id(req.run_id_before)
+    rid_after = _validate_run_id(req.run_id_after)
+
+    base = Path(os.environ.get("RESULTADO_API_DIR", Path(__file__).parent / "resultado_api"))
+
+    def _load_json(rid: str) -> dict:
+        pattern = str(base / rid / "*_mvp_report.json")
+        matches = _glob.glob(pattern)
+        if not matches:
+            raise HTTPException(status_code=404, detail=f"Resultado não encontrado: {rid}")
+        with open(matches[0], encoding="utf-8") as f:
+            return json.load(f)
+
+    report_before = _load_json(rid_before)
+    report_after = _load_json(rid_after)
+
+    return cr.compare_json(report_before, report_after)
 
 
 if __name__ == "__main__":

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-import { analyzePhoto, fetchCaptureGuidelines } from "../api";
+import { analyzePhoto, compareRuns, fetchCaptureGuidelines } from "../api";
 import type { AnalyzeMode, CaptureGuidelines } from "../types";
 
 const fallbackGuidelines: CaptureGuidelines = {
@@ -26,6 +26,8 @@ export function CapturePage() {
 
   const [mode, setMode] = useState<AnalyzeMode>("free");
   const [file, setFile] = useState<File | null>(null);
+  const [fileBefore, setFileBefore] = useState<File | null>(null);
+  const [fileAfter, setFileAfter] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string>("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -141,7 +143,31 @@ export function CapturePage() {
     );
   };
 
-  const submit = async () => {
+  const submit = async () => {    if (mode === "compare") {
+      if (!fileBefore || !fileAfter) {
+        setError("Escolha as fotos ANTES e DEPOIS para comparar.");
+        return;
+      }
+      setBusy(true);
+      setError("");
+      try {
+        const [resBefore, resAfter] = await Promise.all([
+          analyzePhoto("premium", fileBefore),
+          analyzePhoto("premium", fileAfter),
+        ]);
+        const runBefore = resBefore.run_id;
+        const runAfter  = resAfter.run_id;
+        if (!runBefore || !runAfter) throw new Error("run_id n\u00e3o retornado pela API.");
+        const compareResult = await compareRuns(runBefore, runAfter);
+        navigate("/resultado/compare", { state: { compareResult, resBefore, resAfter } });
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Erro inesperado na compara\u00e7\u00e3o.";
+        setError(message);
+      } finally {
+        setBusy(false);
+      }
+      return;
+    }
     if (!file) {
       setError("Escolha uma foto ou capture pela câmera antes de continuar.");
       return;
@@ -188,6 +214,13 @@ export function CapturePage() {
             onClick={() => setMode("premium")}
           >
             Premium
+          </button>
+          <button
+            type="button"
+            className={`mode-btn ${mode === "compare" ? "is-active" : ""}`}
+            onClick={() => setMode("compare")}
+          >
+            Antes/Depois
           </button>
         </div>
       </section>
@@ -255,8 +288,39 @@ export function CapturePage() {
 
           {error && <p className="error-text">{error}</p>}
 
+          {mode === "compare" ? (
+            <div style={{ display: "grid", gap: 12 }}>
+              <div>
+                <label className="field-label" htmlFor="upload-before">Foto ANTES (PNG/JPG)</label>
+                <input
+                  id="upload-before"
+                  className="file-input"
+                  type="file"
+                  accept="image/png,image/jpeg"
+                  onChange={(e) => setFileBefore(e.target.files?.[0] ?? null)}
+                />
+                {fileBefore && <p style={{ fontSize: 12, color: "var(--muted)", marginTop: 4 }}>✅ {fileBefore.name}</p>}
+              </div>
+              <div>
+                <label className="field-label" htmlFor="upload-after">Foto DEPOIS (PNG/JPG)</label>
+                <input
+                  id="upload-after"
+                  className="file-input"
+                  type="file"
+                  accept="image/png,image/jpeg"
+                  onChange={(e) => setFileAfter(e.target.files?.[0] ?? null)}
+                />
+                {fileAfter && <p style={{ fontSize: 12, color: "var(--muted)", marginTop: 4 }}>✅ {fileAfter.name}</p>}
+              </div>
+            </div>
+          ) : null}
+
           <button type="button" className="btn btn-primary" onClick={submit} disabled={busy}>
-            {busy ? "Analisando..." : `Gerar resultado ${mode === "premium" ? "Premium" : "Free"}`}
+            {busy
+              ? "Analisando..."
+              : mode === "compare"
+                ? "Comparar Antes/Depois"
+                : `Gerar resultado ${mode === "premium" ? "Premium" : "Free"}`}
           </button>
         </article>
 
