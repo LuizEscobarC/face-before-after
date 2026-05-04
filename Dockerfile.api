@@ -1,38 +1,8 @@
-# Dockerfile for API (FastAPI)
+# Dockerfile for API — uses Python 3.12 with pre-built venv from host
 # syntax=docker/dockerfile:1
 
-# Build stage
-FROM python:3.12-slim AS builder
+FROM python:3.12-slim
 
-# Set environment variables
-ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1 \
-    PIP_NO_CACHE_DIR=1 \
-    PIP_DISABLE_PIP_VERSION_CHECK=1
-
-# Install system dependencies for OpenCV and compilation
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    build-essential \
-    libglib2.0-0 \
-    libsm6 \
-    libxext6 \
-    libxrender1 \
-    libgomp1 \
-    && rm -rf /var/lib/apt/lists/*
-
-# Create virtual environment
-RUN python -m venv /opt/venv
-ENV PATH="/opt/venv/bin:$PATH"
-
-# Copy requirements and install Python dependencies
-COPY requirements-api.txt .
-RUN pip install --upgrade pip && \
-    pip install -r requirements-api.txt
-
-# Runtime stage
-FROM python:3.12-slim AS runtime
-
-# Install runtime dependencies for OpenCV and healthcheck
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libglib2.0-0 \
     libsm6 \
@@ -42,29 +12,25 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Set environment variables
 ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1 \
-    PATH="/opt/venv/bin:$PATH"
+    PYTHONUNBUFFERED=1
 
-# Set working directory
 WORKDIR /app
 
-# Copy virtual environment from builder stage
-COPY --from=builder /opt/venv /opt/venv
+# Copy pre-built venv from host
+COPY .venv /app/.venv
 
 # Copy application code
-COPY api_server.py mvp_pipeline.py face.py face_asymmetry.py face_metrics.py impression_layer.py recommendations.py top_leverage.py visual_status.py glossary.py simulate_before_after.py compare_report.py evolution_path.py build_html_report.py minio_client.py shape_predictor_68_face_landmarks.dat .
+COPY api_server.py mvp_pipeline.py face.py face_asymmetry.py face_metrics.py \
+     impression_layer.py recommendations.py top_leverage.py visual_status.py \
+     glossary.py simulate_before_after.py compare_report.py evolution_path.py \
+     build_html_report.py minio_client.py shape_predictor_68_face_landmarks.dat ./
 
-# Create output directories with full permissions
 RUN mkdir -p /app/resultado_api /app/bkp && chmod -R 777 /app
 
-# Expose port
 EXPOSE 8000
 
-# Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=5 \
     CMD curl -f http://localhost:8000/docs || exit 1
 
-# Run the application
-CMD ["uvicorn", "api_server:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["/app/.venv/bin/python", "-m", "uvicorn", "api_server:app", "--host", "0.0.0.0", "--port", "8000"]

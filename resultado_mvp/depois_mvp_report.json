@@ -2,7 +2,7 @@
   "analysis_mode": "premium",
   "access_tier": "paid-one-shot",
   "input_file": "depois.jpg",
-  "generated_at": "2026-05-03T22:50:52.996619",
+  "generated_at": "2026-05-04T00:45:14.269520",
   "auto_crop": {
     "applied": true,
     "reason": "face-far-auto-cropped",
@@ -303,7 +303,7 @@
         }
       ],
       "target_metric": "Assimetria global",
-      "reanalysis_date": "2026-05-10",
+      "reanalysis_date": "2026-05-11",
       "reanalysis_label": "em 7 dias",
       "confidence_score": 0.325,
       "confidence_label": "possível"
@@ -326,7 +326,7 @@
         }
       ],
       "target_metric": "Largura mandibular (% IPD)",
-      "reanalysis_date": "2026-06-02",
+      "reanalysis_date": "2026-06-03",
       "reanalysis_label": "em 30 dias",
       "confidence_score": 0.23,
       "confidence_label": "desafiador"
@@ -343,7 +343,7 @@
         }
       ],
       "target_metric": "Desvio bilateral global (Marquardt)",
-      "reanalysis_date": "2026-08-01",
+      "reanalysis_date": "2026-08-02",
       "reanalysis_label": "em 90 dias",
       "requires_professional": true,
       "confidence_score": 0.169,

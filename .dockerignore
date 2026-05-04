@@ -10,7 +10,7 @@ __pycache__
 .Python
 env
 venv
-.venv
+# .venv is INCLUDED for API build (copied into image)
 pip-log.txt
 pip-delete-this-directory.txt
 .tox

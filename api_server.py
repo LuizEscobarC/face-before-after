@@ -87,7 +87,7 @@ def _run_analysis(upload: UploadFile, mode: str) -> dict:
     _validate_upload(upload, raw)
 
     run_id = uuid.uuid4().hex[:12]
-    out_dir = Path("/app/resultado_api") / run_id
+    out_dir = Path(os.environ.get("RESULTADO_API_DIR", Path(__file__).parent / "resultado_api")) / run_id
     out_dir.mkdir(parents=True, exist_ok=True)
 
     safe_name = Path(upload.filename or "upload.jpg").name
@@ -146,7 +146,7 @@ def analyze_premium(photo: UploadFile = File(...)) -> dict:
 
 @app.get("/api/result/{run_id}/annotated")
 def get_annotated_image(run_id: str) -> FileResponse:
-    run_dir = Path("/app/resultado_api") / run_id
+    run_dir = Path(os.environ.get("RESULTADO_API_DIR", Path(__file__).parent / "resultado_api")) / run_id
     if not run_dir.exists():
         raise HTTPException(status_code=404, detail="Resultado não encontrado.")
     matches = list(run_dir.glob("*_mvp_annotated.jpg"))
