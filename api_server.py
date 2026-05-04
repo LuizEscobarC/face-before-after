@@ -157,6 +157,26 @@ def get_annotated_image(run_id: str) -> FileResponse:
     return FileResponse(matches[0], media_type="image/jpeg")
 
 
+_SIM_PATTERNS: dict[str, str] = {
+    "symmetrized": "*_symmetrized.jpg",
+    "ideal_proportions": "*_ideal_proportions.jpg",
+    "comparison_grid": "*_comparison_grid.jpg",
+}
+
+
+@app.get("/api/result/{run_id}/simulation/{sim_type}")
+def get_simulation_image(run_id: str, sim_type: str) -> FileResponse:
+    if sim_type not in _SIM_PATTERNS:
+        raise HTTPException(status_code=400, detail="Tipo de simulação inválido. Use: symmetrized, ideal_proportions, comparison_grid.")
+    run_dir = Path(os.environ.get("RESULTADO_API_DIR", Path(__file__).parent / "resultado_api")) / run_id
+    if not run_dir.exists():
+        raise HTTPException(status_code=404, detail="Resultado não encontrado.")
+    matches = list(run_dir.glob(_SIM_PATTERNS[sim_type]))
+    if not matches:
+        raise HTTPException(status_code=404, detail=f"Imagem de simulação '{sim_type}' não encontrada.")
+    return FileResponse(matches[0], media_type="image/jpeg")
+
+
 if __name__ == "__main__":
     import uvicorn
 

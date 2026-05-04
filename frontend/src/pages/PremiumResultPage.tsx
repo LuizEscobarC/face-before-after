@@ -135,6 +135,8 @@ export function PremiumResultPage() {
   }
 
   const annotatedUrl = result.run_id ? `/api/result/${result.run_id}/annotated` : null;
+  const simBase = result.run_id ? `/api/result/${result.run_id}/simulation` : null;
+  const hasSimulation = simBase && result.simulation_paths && !result.simulation_error;
   const hasWarnings = (result.photo_warnings?.length ?? 0) > 0;
   const hasRecs = (result.capture_recommendations?.length ?? 0) > 0;
   const phases = [
@@ -220,6 +222,40 @@ export function PremiumResultPage() {
             </div>
           )}
         </section>
+
+        {/* Simulação Visual */}
+        {hasSimulation && (
+          <section className="section">
+            <h2 className="section-title">🪞 Simulação Visual</h2>
+            <p className="section-sub">Projeções geradas a partir dos landmarks detectados — sem IA generativa.</p>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 16, marginTop: 12 }}>
+              {result.simulation_paths?.symmetrized && (
+                <div style={{ background: "var(--surface2)", borderRadius: 12, overflow: "hidden", border: "1px solid var(--border)" }}>
+                  <img src={`${simBase}/symmetrized`} alt="Simetria simulada" style={{ width: "100%", display: "block" }} />
+                  <div style={{ padding: "10px 12px", fontSize: 13, color: "var(--muted)" }}>Simetria simulada</div>
+                </div>
+              )}
+              {result.simulation_paths?.ideal_proportions && (
+                <div style={{ background: "var(--surface2)", borderRadius: 12, overflow: "hidden", border: "1px solid var(--border)" }}>
+                  <img src={`${simBase}/ideal_proportions`} alt="Proporções ideais" style={{ width: "100%", display: "block" }} />
+                  <div style={{ padding: "10px 12px", fontSize: 13, color: "var(--muted)" }}>Proporções ideais</div>
+                </div>
+              )}
+              {result.simulation_paths?.comparison_grid && (
+                <div style={{ background: "var(--surface2)", borderRadius: 12, overflow: "hidden", border: "1px solid var(--border)", gridColumn: "1 / -1" }}>
+                  <img src={`${simBase}/comparison_grid`} alt="Comparativo" style={{ width: "100%", display: "block" }} />
+                  <div style={{ padding: "10px 12px", fontSize: 13, color: "var(--muted)" }}>Comparativo — original · simetrizado · proporções ideais</div>
+                </div>
+              )}
+            </div>
+          </section>
+        )}
+        {result.simulation_error && (
+          <section className="section" style={{ borderColor: "rgba(251,191,36,0.3)", background: "rgba(251,191,36,0.05)" }}>
+            <h2 className="section-title">🪞 Simulação Visual</h2>
+            <p style={{ color: "var(--muted)", fontSize: 13 }}>Simulação não disponível para esta foto: {result.simulation_error}</p>
+          </section>
+        )}
 
         {/* Percepção visual */}
         {result.visual_status && (

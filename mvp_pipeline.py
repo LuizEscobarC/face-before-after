@@ -108,7 +108,7 @@ SCORE_TIERS = [
 ]
 
 # Score máximo de assimetria esperado para calibrar o inverso (em px, empiricamente)
-MAX_ASYMMETRY_REFERENCE = 12.0
+MAX_ASYMMETRY_REFERENCE = 15.0  # % IPD — referência: > 15% = assimetria severa
 
 _LABEL_OVERRIDES = {
     "overall_asymmetry_score": "Score global de assimetria",
@@ -462,9 +462,9 @@ def build_premium_metrics_catalog(
 # CÁLCULOS DE SCORE E INSIGHTS
 # ============================================================================
 
-def asymmetry_to_score(overall_px: float) -> int:
-    """Converte score de assimetria (px, menor = melhor) para score 0–100 (maior = melhor)."""
-    clamped = min(overall_px, MAX_ASYMMETRY_REFERENCE)
+def asymmetry_to_score(overall_pct_ipd: float) -> int:
+    """Converte assimetria (% IPD, menor = melhor) para score 0–100 (maior = melhor)."""
+    clamped = min(overall_pct_ipd, MAX_ASYMMETRY_REFERENCE)
     score = int(round((1.0 - clamped / MAX_ASYMMETRY_REFERENCE) * 100))
     return max(0, min(100, score))
 
@@ -1083,7 +1083,7 @@ def run(image_path: str, output_dir: str, mode: str = "premium") -> dict:
     capture_recommendations = build_capture_recommendations(photo_quality_metrics)
 
     # 3. Calcular score e insights
-    score = asymmetry_to_score(measurements['overall_asymmetry_score'])
+    score = asymmetry_to_score(measurements['overall_asymmetry_score_pct_ipd'])
     tier_label, tier_description = get_score_tier(score)
     score_context_data = _get_score_context(score, tier_label)
     debug_top_insights = get_top_insights(measurements, top_n=3)

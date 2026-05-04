@@ -88,4 +88,10 @@ export type AnalysisResult = {
   capture_recommendations?: Array<{ area: string; tip: string }>;
   annotated_image_path?: string;
   rotation_correction_degrees?: number;
+  simulation_paths?: {
+    symmetrized?: string;
+    ideal_proportions?: string;
+    comparison_grid?: string;
+  } | null;
+  simulation_error?: string | null;
 };
