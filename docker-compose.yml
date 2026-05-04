@@ -39,7 +39,7 @@ services:
       minio:
         condition: service_started
     volumes:
-      - ./resultado_analise:/app/resultado_analise
+      - ./resultado_api:/app/resultado_api
       - ./bkp:/app/bkp
     networks:
       - face-analysis

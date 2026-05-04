@@ -37,8 +37,8 @@ services:
       - MINIO_BUCKET_NAME=${MINIO_BUCKET_NAME:-face-analysis}
       - MINIO_USE_SSL=${MINIO_USE_SSL:-false}
     volumes:
-      - ./resultado_analise:/app/resultado_analise:ro
-      - ./bkp:/app/bkp:ro
+      - ./resultado_api:/app/resultado_api
+      - ./bkp:/app/bkp
     networks:
       - face-analysis
     depends_on:
