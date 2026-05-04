@@ -17,6 +17,7 @@ from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 
 import mvp_pipeline as pipeline
+from minio_client import MinIOStorage
 
 ALLOWED_EXTENSIONS = {".png", ".jpg", ".jpeg"}
 MAX_UPLOAD_BYTES = 15 * 1024 * 1024
@@ -44,6 +45,13 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Inicializar MinIO
+minio_storage = MinIOStorage()
+try:
+    minio_storage.ensure_bucket()
+except Exception as e:
+    print(f"⚠️ Aviso: MinIO não disponível ainda: {e}")
 
 
 def _validate_upload(upload: UploadFile, raw: bytes) -> None:
@@ -84,6 +92,15 @@ def _run_analysis(upload: UploadFile, mode: str) -> dict:
         raise HTTPException(status_code=400, detail=f"Falha na análise: {exc}") from exc
     except Exception as exc:  # pragma: no cover - segurança de borda
         raise HTTPException(status_code=500, detail=f"Erro interno: {exc}") from exc
+
+    # Salvar foto original no MinIO
+    try:
+        minio_path = f"uploads/{run_id}/{safe_name}"
+        minio_storage.upload_file(raw, minio_path)
+        result["photo_url"] = f"minio://{minio_path}"
+    except Exception as e:
+        print(f"⚠️ Aviso: Não consegui salvar no MinIO: {e}")
+        result["photo_url"] = None
 
     result["run_id"] = run_id
     result["output_dir"] = str(out_dir)

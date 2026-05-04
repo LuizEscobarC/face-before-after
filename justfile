@@ -201,3 +201,66 @@ clean:
 clean-all: clean
     rm -rf {{out_mvp}} __pycache__ .pytest_cache
     find . -name "*.pyc" -delete
+
+##############################
+# DOCKER
+#############################
+
+# Build das imagens Docker
+docker-build:
+    docker-compose build
+
+# Sobe os serviços Docker (desenvolvimento local)
+docker-up:
+    docker-compose up -d
+
+# Sobe os serviços Docker (produção)
+docker-prod-up:
+    docker-compose -f docker-compose.prod.yml up -d
+
+# Para os serviços Docker
+docker-down:
+    docker-compose down
+
+# Para os serviços Docker (produção)
+docker-prod-down:
+    docker-compose -f docker-compose.prod.yml down
+
+# Mostra logs dos serviços (desenvolvimento)
+docker-logs:
+    docker-compose logs -f
+
+# Mostra logs dos serviços (produção)
+docker-prod-logs:
+    docker-compose -f docker-compose.prod.yml logs -f
+
+# Reinicia os serviços (desenvolvimento)
+docker-restart:
+    docker-compose restart
+
+# Reinicia os serviços (produção)
+docker-prod-restart:
+    docker-compose -f docker-compose.prod.yml restart
+
+# Remove imagens e volumes (desenvolvimento)
+docker-clean:
+    docker-compose down --volumes --rmi all
+
+# Remove imagens e volumes (produção)
+docker-prod-clean:
+    docker-compose -f docker-compose.prod.yml down --volumes --rmi all
+
+# Status dos serviços (desenvolvimento)
+docker-status:
+    docker-compose ps
+
+# Status dos serviços (produção)
+docker-prod-status:
+    docker-compose -f docker-compose.prod.yml ps
+
+# Abre frontend no navegador (assumindo Linux)
+docker-open:
+    xdg-open http://localhost:9016 2>/dev/null || echo "Abra http://localhost:9016 no navegador"
+
+# Alias para up (desenvolvimento)
+up: docker-up

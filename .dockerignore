@@ -1,0 +1,72 @@
+# Git
+.git
+.gitignore
+
+# Python
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.Python
+env
+venv
+.venv
+pip-log.txt
+pip-delete-this-directory.txt
+.tox
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.log
+.git
+.mypy_cache
+.pytest_cache
+.hypothesis
+
+# Node.js
+node_modules
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.npm
+.yarn-integrity
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Project specific
+tests/
+*.md
+Makefile
+justfile
+*.txt
+!requirements-api.txt
+bkp/
+resultado_analise/
+prompts/
+*.ipynb
+*.py
+!api_server.py
+!mvp_pipeline.py
+!face.py
+!face_asymmetry.py
+!face_metrics.py
+!impression_layer.py
+!recommendations.py
+!top_leverage.py
+!visual_status.py
+!glossary.py
+!simulate_before_after.py
+!compare_report.py
+!evolution_path.py
+!build_html_report.py
