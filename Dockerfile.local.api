@@ -1,0 +1,51 @@
+# Dockerfile for API — install all dependencies fresh in Python 3.12
+# syntax=docker/dockerfile:1.4
+
+FROM python:3.12-slim
+
+RUN echo 'Acquire::http::Proxy "DIRECT";' > /etc/apt/apt.conf.d/99no-proxy && \
+    echo 'Acquire::https::Proxy "DIRECT";' >> /etc/apt/apt.conf.d/99no-proxy && \
+    apt-get update && apt-get install -y --no-install-recommends \
+    libglib2.0-0 \
+    libsm6 \
+    libxext6 \
+    libxrender1 \
+    libgomp1 \
+    curl \
+    cmake \
+    g++ \
+    build-essential \
+    libopenblas-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1
+
+WORKDIR /app
+
+# Copy requirements first for layer caching
+COPY requirements-api.txt ./
+
+# Install all dependencies to /app/site-packages (matches start_api.py sys.path)
+# Use BuildKit inline cache for faster rebuilds
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip install --cache-dir=/root/.cache/pip --target=/app/site-packages \
+    -r requirements-api.txt
+
+# Copy application code
+COPY api_server.py mvp_pipeline.py face.py face_asymmetry.py face_metrics.py \
+     impression_layer.py recommendations.py top_leverage.py visual_status.py \
+     glossary.py simulate_before_after.py compare_report.py evolution_path.py \
+     build_html_report.py minio_client.py start_api.py entrypoint.sh \
+     shape_predictor_68_face_landmarks.dat ./
+
+RUN chmod +x /app/entrypoint.sh
+
+RUN mkdir -p /app/resultado_api /app/bkp && chmod -R 777 /app
+
+EXPOSE 8000
+
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=5 \
+    CMD curl -f http://localhost:8000/docs || exit 1
+
+ENTRYPOINT ["/app/entrypoint.sh"]
