@@ -71,3 +71,8 @@ prompts/
 !evolution_path.py
 !build_html_report.py
 !minio_client.py
+!start_api.py
+
+# Include venv for API
+!.venv/bin/python3.10
+!.venv/lib/python3.10/site-packages
