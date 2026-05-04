@@ -1,5 +1,5 @@
 # Dockerfile for API — install all dependencies fresh in Python 3.12
-# syntax=docker/dockerfile:1
+# syntax=docker/dockerfile:1.4
 
 FROM python:3.12-slim
 
@@ -27,7 +27,9 @@ WORKDIR /app
 COPY requirements-api.txt ./
 
 # Install all dependencies to /app/site-packages (matches start_api.py sys.path)
-RUN pip install --no-cache-dir --target=/app/site-packages \
+# Use BuildKit inline cache for faster rebuilds
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip install --cache-dir=/root/.cache/pip --target=/app/site-packages \
     -r requirements-api.txt
 
 # Copy application code

@@ -206,9 +206,9 @@ clean-all: clean
 # DOCKER
 #############################
 
-# Build das imagens Docker
+# Build das imagens Docker (com BuildKit para melhor cache)
 docker-build:
-    docker-compose build
+    DOCKER_BUILDKIT=1 COMPOSE_DOCKER_CLI_BUILD=1 docker-compose build
 
 # Deploy completo do frontend: build Vite → rebuild imagem → restart container
 frontend-deploy:

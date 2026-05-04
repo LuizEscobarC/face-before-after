@@ -8,6 +8,7 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    timeout-minutes: 60
 
     steps:
       - name: Deploy via SSH
@@ -16,9 +17,12 @@ jobs:
           host: 178.105.53.118
           username: root
           key: ${{ secrets.SSH_KEY }}
+          timeout: 600s
+          command_timeout: 300s
           script: |
             export PATH="/root/bin:$PATH"
             cd /root/app/face-before-after
             git pull origin main
-            just docker-build
+            # Build with BuildKit for better caching
+            DOCKER_BUILDKIT=1 just docker-build
             just docker-up
