@@ -18,7 +18,7 @@ jobs:
           key: ${{ secrets.SSH_KEY }}
           script: |
             export PATH="/root/bin:$PATH"
-            cd /root/app
+            cd /root/app/face-before-after
             git pull origin main
-            /root/bin/just docker-build
-            /root/bin/just docker-up
+            just docker-build
+            just docker-up
