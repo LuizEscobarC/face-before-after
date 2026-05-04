@@ -1,0 +1,35 @@
+# Dockerfile for React Frontend — multi-stage build (no local npm required)
+# syntax=docker/dockerfile:1
+
+# Stage 1: Build React app
+FROM node:20-alpine AS builder
+
+WORKDIR /build
+
+# Copy package files first for layer caching
+COPY frontend/package.json frontend/package-lock.json* ./
+
+# Install dependencies
+RUN npm ci --silent
+
+# Copy frontend source
+COPY frontend/ ./
+
+# Build for production
+RUN npm run build
+
+# Stage 2: Serve with nginx
+FROM nginx:alpine AS runtime
+
+# Copy custom nginx configuration
+COPY nginx.conf /etc/nginx/nginx.conf
+
+# Copy built dist from builder stage
+COPY --from=builder /build/dist /usr/share/nginx/html
+
+EXPOSE 80
+
+HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
+    CMD wget --no-verbose --tries=1 --spider http://localhost/ || exit 1
+
+CMD ["nginx", "-g", "daemon off;"]
