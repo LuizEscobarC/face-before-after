@@ -15,6 +15,7 @@ from pathlib import Path
 
 from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 
 import mvp_pipeline as pipeline
 
@@ -141,6 +142,19 @@ def analyze_free(photo: UploadFile = File(...)) -> dict:
 @app.post("/api/analyze/premium")
 def analyze_premium(photo: UploadFile = File(...)) -> dict:
     return _run_analysis(photo, mode="premium")
+
+
+@app.get("/api/result/{run_id}/annotated")
+def get_annotated_image(run_id: str) -> FileResponse:
+    run_dir = Path("/app/resultado_api") / run_id
+    if not run_dir.exists():
+        raise HTTPException(status_code=404, detail="Resultado não encontrado.")
+    matches = list(run_dir.glob("*_mvp_annotated.jpg"))
+    if not matches:
+        matches = list(run_dir.glob("*_annotated.jpg"))
+    if not matches:
+        raise HTTPException(status_code=404, detail="Imagem anotada não encontrada.")
+    return FileResponse(matches[0], media_type="image/jpeg")
 
 
 if __name__ == "__main__":

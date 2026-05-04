@@ -24,6 +24,14 @@ export type EvolutionPhase = {
   label?: string;
   focus?: string;
   confidence_label?: string;
+  reanalysis_date?: string;
+  reanalysis_label?: string;
+  actions?: Array<{
+    titulo: string;
+    descricao: string;
+    frequencia: string;
+    metric_label?: string;
+  }>;
 };
 
 export type PremiumMetric = {
@@ -47,6 +55,7 @@ export type AnalysisResult = {
   analysis_mode: "teaser" | "premium";
   access_tier: string;
   input_file: string;
+  run_id?: string;
   score: number;
   tier: string;
   tier_description: string;
@@ -54,6 +63,8 @@ export type AnalysisResult = {
   score_context?: string;
   first_impression?: {
     headline?: string;
+    positive_signal?: string;
+    main_risk?: string;
   };
   top_leverage?: TopLeverage;
   visual_status?: VisualStatus;
@@ -73,4 +84,8 @@ export type AnalysisResult = {
     reason?: string;
   };
   premium_metrics_catalog?: PremiumMetricCategory[];
+  photo_warnings?: string[];
+  capture_recommendations?: Array<{ area: string; tip: string }>;
+  annotated_image_path?: string;
+  rotation_correction_degrees?: number;
 };
