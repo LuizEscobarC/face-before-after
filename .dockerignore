@@ -70,3 +70,4 @@ prompts/
 !compare_report.py
 !evolution_path.py
 !build_html_report.py
+!minio_client.py
