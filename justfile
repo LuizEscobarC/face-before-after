@@ -1,6 +1,7 @@
 python   := ".venv/bin/python"
 pip      := ".venv/bin/pip"
 pytest   := ".venv/bin/pytest"
+npm      := "npm"
 
 img_antes  := `if [ -f antes.png ]; then echo antes.png; elif [ -f antes.jpg ]; then echo antes.jpg; elif [ -f antes.jpeg ]; then echo antes.jpeg; else echo antes.png; fi`
 img_depois := `if [ -f depois.png ]; then echo depois.png; elif [ -f depois.jpg ]; then echo depois.jpg; elif [ -f depois.jpeg ]; then echo depois.jpeg; else echo depois.png; fi`
@@ -120,6 +121,30 @@ mvp-free-web foto:
     @echo "✓ Pronto"
 
 # ──────────────────────────────────────────────
+# API + FRONTEND REACT
+# ──────────────────────────────────────────────
+
+# Instala dependências da API HTTP
+api-install:
+    {{pip}} install -r requirements-api.txt
+
+# Sobe API local em http://localhost:8000
+api-dev:
+    {{python}} -m uvicorn api_server:app --reload --host 0.0.0.0 --port 8000
+
+# Instala dependências do frontend React
+react-install:
+    cd frontend && {{npm}} install
+
+# Sobe frontend React em http://localhost:5173
+react-dev:
+    cd frontend && {{npm}} run dev
+
+# Build de produção do frontend
+react-build:
+    cd frontend && {{npm}} run build
+
+# ──────────────────────────────────────────────
 # TESTES
 # ──────────────────────────────────────────────
 
@@ -161,7 +186,7 @@ lint:
         face_asymmetry.py face_metrics.py face.py \
         impression_layer.py visual_status.py top_leverage.py \
         recommendations.py evolution_path.py mvp_pipeline.py \
-        simulate_before_after.py compare_report.py build_html_report.py build_mvp_html.py
+        simulate_before_after.py compare_report.py build_html_report.py build_mvp_html.py api_server.py
     @echo "✓ Sintaxe OK"
 
 # Mostra saída MVP resumida (score + ações)
