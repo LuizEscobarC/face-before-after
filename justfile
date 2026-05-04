@@ -81,6 +81,20 @@ mvp-depois:
 mvp-foto foto:
     {{python}} mvp_pipeline.py {{foto}}
 
+# Gera HTML premium para foto DEPOIS (padrão)
+mvp-web: mvp-depois
+    @echo "Gerando HTML visual MVP..."
+    {{python}} build_mvp_html.py {{out_mvp}}/depois_mvp_report.json -o relatorio_mvp.html
+    @echo "✓ Abra relatorio_mvp.html no navegador"
+
+# Gera HTML premium para uma foto específica: just mvp-web-foto minha_foto.png
+mvp-web-foto foto:
+    @echo "MVP analisando {{foto}}..."
+    {{python}} mvp_pipeline.py {{foto}}
+    @echo "Gerando HTML visual MVP para {{foto}}..."
+    {{python}} build_mvp_html.py {{out_mvp}}/$(basename {{foto}} .png)_mvp_report.json -o $(basename {{foto}} .png)_relatorio.html
+    @echo "✓ Pronto"
+
 # ──────────────────────────────────────────────
 # TESTES
 # ──────────────────────────────────────────────
