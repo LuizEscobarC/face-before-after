@@ -1,205 +1,227 @@
 {
-  "input_file": "depois.png",
-  "generated_at": "2026-05-03T22:25:21.622641",
-  "rotation_correction_degrees": -0.62,
-  "score": 87,
-  "tier": "Muito boa",
-  "tier_description": "Você já tem uma base forte. Pequenos ajustes aumentam ainda mais sua presença.",
-  "capture_confidence": 0.707,
+  "analysis_mode": "premium",
+  "access_tier": "paid-one-shot",
+  "input_file": "depois.jpg",
+  "generated_at": "2026-05-03T22:50:52.996619",
+  "auto_crop": {
+    "applied": true,
+    "reason": "face-far-auto-cropped",
+    "eye_ratio_before": 0.088,
+    "eye_ratio_after": 0.33,
+    "target_ratio": "3:4",
+    "crop_bbox": [
+      1185,
+      1594,
+      1996,
+      2675
+    ]
+  },
+  "rotation_correction_degrees": 0.64,
+  "score": 0,
+  "tier": "Baixa",
+  "tier_description": "Há potencial real a ser desbloqueado. O ajuste principal faz grande diferença.",
+  "capture_confidence": 0.458,
   "main_insight": {
-    "metric_key": "jawline_definition_score",
-    "short_name": "Retração cervical guiada",
-    "detail": "projeta presença antes mesmo de você falar — estrutura que transmite autoridade"
+    "metric_key": "overall_asymmetry_score_pct_ipd",
+    "short_name": "Mastigação bilateral consciente",
+    "detail": "muda como você aparece em fotos — o que as pessoas veem antes de te conhecer"
   },
   "measurements": {
     "eye_level_difference_px": 0.0,
-    "eye_horizontal_asymmetry_px": 0.08,
-    "nose_deviation_px": 0.18,
-    "nose_wings_asymmetry_px": 0.77,
-    "chin_deviation_px": 1.59,
-    "mouth_center_deviation_px": 0.73,
-    "mouth_corners_asymmetry_px": 3.72,
-    "jawline_mean_asymmetry_px": 6.03,
-    "jawline_max_asymmetry_px": 7.87,
-    "overall_asymmetry_score": 1.52,
-    "ipd_px": 93.01,
+    "eye_horizontal_asymmetry_px": 5.1,
+    "nose_deviation_px": 30.31,
+    "nose_wings_asymmetry_px": 25.9,
+    "chin_deviation_px": 3.38,
+    "mouth_center_deviation_px": 8.92,
+    "mouth_corners_asymmetry_px": 6.42,
+    "jawline_mean_asymmetry_px": 22.86,
+    "jawline_max_asymmetry_px": 36.49,
+    "overall_asymmetry_score": 12.61,
+    "ipd_px": 268.52,
     "eye_level_difference_pct_ipd": 0.0,
-    "eye_horizontal_asymmetry_pct_ipd": 0.091,
-    "nose_deviation_pct_ipd": 0.192,
-    "nose_wings_asymmetry_pct_ipd": 0.823,
-    "chin_deviation_pct_ipd": 1.706,
-    "mouth_center_deviation_pct_ipd": 0.781,
-    "mouth_corners_asymmetry_pct_ipd": 4.002,
-    "jawline_mean_asymmetry_pct_ipd": 6.479,
-    "jawline_max_asymmetry_pct_ipd": 8.464,
-    "overall_asymmetry_score_pct_ipd": 1.632,
-    "thirds_upper_ratio": 0.211,
-    "thirds_middle_ratio": 0.363,
-    "thirds_lower_ratio": 0.426,
-    "thirds_std_dev": 0.09,
-    "fifths_std_dev": 0.027,
-    "lower_third_ratio": 0.54,
-    "fwhr": 1.763,
-    "bizygomatic_px": 208.022,
-    "bigonial_px": 176.011,
-    "jaw_width_pct_ipd": 189.249,
-    "bizygomatic_to_bigonial_ratio": 1.182,
-    "gonial_angle_left_deg": 155.875,
-    "gonial_angle_right_deg": 155.428,
-    "gonial_angle_mean_deg": 155.651,
-    "chin_projection_pct_ipd": 48.382,
-    "jawline_definition_score": 8.738,
-    "canthal_tilt_left_deg": -0.853,
-    "canthal_tilt_right_deg": 0.853,
-    "canthal_tilt_mean_deg": -0.0,
-    "eye_aspect_ratio_left": 0.308,
-    "eye_aspect_ratio_right": 0.283,
-    "eye_aspect_ratio_mean": 0.295,
-    "intercanthal_to_eyewidth_ratio": 1.359,
-    "brow_to_eyelid_left_pct_ipd": 24.727,
-    "brow_to_eyelid_right_pct_ipd": 25.283,
-    "brow_to_eyelid_mean_pct_ipd": 25.005,
-    "brow_tilt_left_deg": -0.169,
-    "brow_tilt_right_deg": 0.191,
-    "nasal_to_mouth_width_ratio": 0.472,
-    "alar_intercanthal_alignment_pct": 35.849,
-    "nasal_length_pct_face_height": 36.363,
-    "alar_width_pct_ipd": 36.557,
-    "mouth_to_ipd_ratio": 0.774,
-    "upper_lower_lip_ratio": 0.724,
-    "philtrum_length_pct_ipd": 29.029,
-    "upper_lip_thickness_pct_ipd": 16.254,
-    "lower_lip_thickness_pct_ipd": 22.451,
-    "face_height_to_width_ratio": 0.952,
-    "zygomatic_to_gonial_ratio": 1.182,
+    "eye_horizontal_asymmetry_pct_ipd": 1.9,
+    "nose_deviation_pct_ipd": 11.289,
+    "nose_wings_asymmetry_pct_ipd": 9.645,
+    "chin_deviation_pct_ipd": 1.259,
+    "mouth_center_deviation_pct_ipd": 3.321,
+    "mouth_corners_asymmetry_pct_ipd": 2.392,
+    "jawline_mean_asymmetry_pct_ipd": 8.512,
+    "jawline_max_asymmetry_pct_ipd": 13.591,
+    "overall_asymmetry_score_pct_ipd": 4.694,
+    "thirds_upper_ratio": 0.224,
+    "thirds_middle_ratio": 0.39,
+    "thirds_lower_ratio": 0.386,
+    "thirds_std_dev": 0.078,
+    "fifths_std_dev": 0.031,
+    "lower_third_ratio": 0.497,
+    "fwhr": 1.654,
+    "bizygomatic_px": 612.295,
+    "bigonial_px": 500.576,
+    "jaw_width_pct_ipd": 186.423,
+    "bizygomatic_to_bigonial_ratio": 1.223,
+    "gonial_angle_left_deg": 156.706,
+    "gonial_angle_right_deg": 154.169,
+    "gonial_angle_mean_deg": 155.437,
+    "chin_projection_pct_ipd": 62.909,
+    "jawline_definition_score": 7.073,
+    "canthal_tilt_left_deg": 6.884,
+    "canthal_tilt_right_deg": 4.916,
+    "canthal_tilt_mean_deg": 5.9,
+    "eye_aspect_ratio_left": 0.38,
+    "eye_aspect_ratio_right": 0.388,
+    "eye_aspect_ratio_mean": 0.384,
+    "intercanthal_to_eyewidth_ratio": 1.484,
+    "brow_to_eyelid_left_pct_ipd": 13.154,
+    "brow_to_eyelid_right_pct_ipd": 14.186,
+    "brow_to_eyelid_mean_pct_ipd": 13.67,
+    "brow_tilt_left_deg": -10.15,
+    "brow_tilt_right_deg": -9.204,
+    "nasal_to_mouth_width_ratio": 0.544,
+    "alar_intercanthal_alignment_pct": 23.208,
+    "nasal_length_pct_face_height": 39.548,
+    "alar_width_pct_ipd": 45.473,
+    "mouth_to_ipd_ratio": 0.836,
+    "upper_lower_lip_ratio": 0.811,
+    "philtrum_length_pct_ipd": 26.03,
+    "upper_lip_thickness_pct_ipd": 10.683,
+    "lower_lip_thickness_pct_ipd": 13.167,
+    "face_height_to_width_ratio": 0.975,
+    "zygomatic_to_gonial_ratio": 1.223,
     "face_shape_label": "redondo",
-    "marquardt_deviation_px": 3.794,
-    "marquardt_deviation_pct_ipd": 4.079,
-    "skin_uniformity_std_lab_left": 21.362,
-    "skin_uniformity_std_lab_right": 21.321,
-    "skin_uniformity_std_lab_forehead": 53.416,
-    "skin_lighting_delta_e_lr": 1.516,
-    "under_eye_darkness_left": 0.136,
-    "under_eye_darkness_right": 0.161,
-    "head_pose_yaw_deg": -0.478,
-    "head_pose_pitch_deg": -16.187,
-    "head_pose_roll_deg": 0.342,
+    "marquardt_deviation_px": 19.963,
+    "marquardt_deviation_pct_ipd": 7.435,
+    "skin_uniformity_std_lab_left": 15.528,
+    "skin_uniformity_std_lab_right": 20.91,
+    "skin_uniformity_std_lab_forehead": 8.117,
+    "skin_lighting_delta_e_lr": 4.031,
+    "under_eye_darkness_left": 0.061,
+    "under_eye_darkness_right": 0.062,
+    "head_pose_yaw_deg": 14.989,
+    "head_pose_pitch_deg": -0.584,
+    "head_pose_roll_deg": -1.397,
     "frontal_ok": false,
-    "focal_distortion_ratio": 0.163,
+    "focal_distortion_ratio": 0.199,
     "focal_distortion_warning": false,
-    "lighting_asymmetry_delta_e": 1.516,
-    "face_pixel_width": 224,
-    "sharpness_laplacian_var": 540.0,
+    "lighting_asymmetry_delta_e": 4.031,
+    "face_pixel_width": 667,
+    "sharpness_laplacian_var": 12.414,
     "warnings": [
-      "Pose facial fora do limite frontal (|yaw|=0.5°, |pitch|=16.2°). Métricas podem estar enviesadas."
+      "Pose facial fora do limite frontal (|yaw|=15.0°, |pitch|=0.6°). Métricas podem estar enviesadas.",
+      "Foto pouco nítida (variância do laplaciano=12)."
     ]
   },
   "measurements_blocks": {
     "advanced": {
-      "thirds_upper_ratio": 0.211,
-      "thirds_middle_ratio": 0.363,
-      "thirds_lower_ratio": 0.426,
-      "thirds_std_dev": 0.09,
-      "fifths_std_dev": 0.027,
-      "lower_third_ratio": 0.54,
-      "fwhr": 1.763,
-      "bizygomatic_px": 208.022,
-      "bigonial_px": 176.011,
-      "jaw_width_pct_ipd": 189.249,
-      "bizygomatic_to_bigonial_ratio": 1.182,
-      "gonial_angle_left_deg": 155.875,
-      "gonial_angle_right_deg": 155.428,
-      "gonial_angle_mean_deg": 155.651,
-      "chin_projection_pct_ipd": 48.382,
-      "jawline_definition_score": 8.738,
-      "canthal_tilt_left_deg": -0.853,
-      "canthal_tilt_right_deg": 0.853,
-      "canthal_tilt_mean_deg": -0.0,
-      "eye_aspect_ratio_left": 0.308,
-      "eye_aspect_ratio_right": 0.283,
-      "eye_aspect_ratio_mean": 0.295,
-      "intercanthal_to_eyewidth_ratio": 1.359,
-      "brow_to_eyelid_left_pct_ipd": 24.727,
-      "brow_to_eyelid_right_pct_ipd": 25.283,
-      "brow_to_eyelid_mean_pct_ipd": 25.005,
-      "brow_tilt_left_deg": -0.169,
-      "brow_tilt_right_deg": 0.191,
-      "nasal_to_mouth_width_ratio": 0.472,
-      "alar_intercanthal_alignment_pct": 35.849,
-      "nasal_length_pct_face_height": 36.363,
-      "alar_width_pct_ipd": 36.557,
-      "mouth_to_ipd_ratio": 0.774,
-      "upper_lower_lip_ratio": 0.724,
-      "philtrum_length_pct_ipd": 29.029,
-      "upper_lip_thickness_pct_ipd": 16.254,
-      "lower_lip_thickness_pct_ipd": 22.451,
-      "face_height_to_width_ratio": 0.952,
-      "zygomatic_to_gonial_ratio": 1.182,
+      "thirds_upper_ratio": 0.224,
+      "thirds_middle_ratio": 0.39,
+      "thirds_lower_ratio": 0.386,
+      "thirds_std_dev": 0.078,
+      "fifths_std_dev": 0.031,
+      "lower_third_ratio": 0.497,
+      "fwhr": 1.654,
+      "bizygomatic_px": 612.295,
+      "bigonial_px": 500.576,
+      "jaw_width_pct_ipd": 186.423,
+      "bizygomatic_to_bigonial_ratio": 1.223,
+      "gonial_angle_left_deg": 156.706,
+      "gonial_angle_right_deg": 154.169,
+      "gonial_angle_mean_deg": 155.437,
+      "chin_projection_pct_ipd": 62.909,
+      "jawline_definition_score": 7.073,
+      "canthal_tilt_left_deg": 6.884,
+      "canthal_tilt_right_deg": 4.916,
+      "canthal_tilt_mean_deg": 5.9,
+      "eye_aspect_ratio_left": 0.38,
+      "eye_aspect_ratio_right": 0.388,
+      "eye_aspect_ratio_mean": 0.384,
+      "intercanthal_to_eyewidth_ratio": 1.484,
+      "brow_to_eyelid_left_pct_ipd": 13.154,
+      "brow_to_eyelid_right_pct_ipd": 14.186,
+      "brow_to_eyelid_mean_pct_ipd": 13.67,
+      "brow_tilt_left_deg": -10.15,
+      "brow_tilt_right_deg": -9.204,
+      "nasal_to_mouth_width_ratio": 0.544,
+      "alar_intercanthal_alignment_pct": 23.208,
+      "nasal_length_pct_face_height": 39.548,
+      "alar_width_pct_ipd": 45.473,
+      "mouth_to_ipd_ratio": 0.836,
+      "upper_lower_lip_ratio": 0.811,
+      "philtrum_length_pct_ipd": 26.03,
+      "upper_lip_thickness_pct_ipd": 10.683,
+      "lower_lip_thickness_pct_ipd": 13.167,
+      "face_height_to_width_ratio": 0.975,
+      "zygomatic_to_gonial_ratio": 1.223,
       "face_shape_label": "redondo",
-      "marquardt_deviation_px": 3.794,
-      "marquardt_deviation_pct_ipd": 4.079
+      "marquardt_deviation_px": 19.963,
+      "marquardt_deviation_pct_ipd": 7.435
     },
     "photo_quality": {
-      "head_pose_yaw_deg": -0.478,
-      "head_pose_pitch_deg": -16.187,
-      "head_pose_roll_deg": 0.342,
+      "head_pose_yaw_deg": 14.989,
+      "head_pose_pitch_deg": -0.584,
+      "head_pose_roll_deg": -1.397,
       "frontal_ok": false,
-      "focal_distortion_ratio": 0.163,
+      "focal_distortion_ratio": 0.199,
       "focal_distortion_warning": false,
-      "lighting_asymmetry_delta_e": 1.516,
-      "face_pixel_width": 224,
-      "sharpness_laplacian_var": 540.0,
+      "lighting_asymmetry_delta_e": 4.031,
+      "face_pixel_width": 667,
+      "sharpness_laplacian_var": 12.414,
       "warnings": [
-        "Pose facial fora do limite frontal (|yaw|=0.5°, |pitch|=16.2°). Métricas podem estar enviesadas."
+        "Pose facial fora do limite frontal (|yaw|=15.0°, |pitch|=0.6°). Métricas podem estar enviesadas.",
+        "Foto pouco nítida (variância do laplaciano=12)."
       ]
     },
     "skin": {
-      "skin_uniformity_std_lab_left": 21.362,
-      "skin_uniformity_std_lab_right": 21.321,
-      "skin_uniformity_std_lab_forehead": 53.416,
-      "skin_lighting_delta_e_lr": 1.516,
-      "under_eye_darkness_left": 0.136,
-      "under_eye_darkness_right": 0.161
+      "skin_uniformity_std_lab_left": 15.528,
+      "skin_uniformity_std_lab_right": 20.91,
+      "skin_uniformity_std_lab_forehead": 8.117,
+      "skin_lighting_delta_e_lr": 4.031,
+      "under_eye_darkness_left": 0.061,
+      "under_eye_darkness_right": 0.062
     }
   },
   "photo_warnings": [
-    "Pose facial fora do limite frontal (|yaw|=0.5°, |pitch|=16.2°). Métricas podem estar enviesadas."
+    "Pose facial fora do limite frontal (|yaw|=15.0°, |pitch|=0.6°). Métricas podem estar enviesadas.",
+    "Foto pouco nítida (variância do laplaciano=12)."
   ],
   "capture_recommendations": [
     {
       "area": "enquadramento",
-      "tip": "Incline levemente a cabeça para cima — o ângulo vertical atual (16°) reduz a precisão da análise e da simulação."
+      "tip": "Gire levemente a cabeça para a esquerda até ficar frontal — o desvio lateral (15°) distorce as medidas de simetria."
+    },
+    {
+      "area": "nitidez",
+      "tip": "Apoie o celular ou segure firme ao tirar a foto — a imagem está com movimento ou foco insuficiente, o que reduz a precisão da análise."
     }
   ],
   "first_impression": {
-    "headline": "Equilíbrio facial consistente. Ponto a refinar: irregularidade de tom de pele visível.",
+    "headline": "Olhar jovial e energético. Ponto a refinar: assimetria facial no nível perceptível.",
     "tags": [
-      "pele irregular"
+      "assimetria visível"
     ],
-    "main_risk": "Irregularidade de tom de pele visível — isso afeta diretamente a percepção de cuidado",
-    "positive_signal": "Equilíbrio facial consistente — nenhum ponto de atenção dominante"
+    "main_risk": "Assimetria facial no nível perceptível — é o fator com maior peso na percepção atual",
+    "positive_signal": "Olhar jovial e energético — ângulo do olhar favorável aumenta atratividade percebida"
   },
   "visual_status": {
-    "dominance_score": 6.91,
-    "attractiveness_score": 5.39,
-    "freshness_score": 4.23,
-    "narrative": "Presença e estrutura são seus pontos fortes. Recuperar a aparência de energia visual é o próximo passo de maior impacto."
+    "dominance_score": 6.36,
+    "attractiveness_score": 5.25,
+    "freshness_score": 7.33,
+    "narrative": "Aparência saudável e descansada. Trabalhar simetria e proporções amplia o impacto."
   },
   "top_leverage": {
-    "metric_key": "jawline_definition_score",
-    "short_action": "Retração cervical guiada",
-    "why_it_matters": "projeta presença antes mesmo de você falar — estrutura que transmite autoridade",
+    "metric_key": "overall_asymmetry_score_pct_ipd",
+    "short_action": "Mastigação bilateral consciente",
+    "why_it_matters": "muda como você aparece em fotos — o que as pessoas veem antes de te conhecer",
     "time_to_result": "semanas",
-    "tier": 1,
-    "deviation_score": 0.8,
-    "confidence_score": 0.74
+    "tier": 0,
+    "deviation_score": 0.9,
+    "confidence_score": 0.613
   },
   "top3_actions_v2": [
     {
       "rank": 1,
-      "metric_key": "skin_spf_protocol",
-      "short_action": "SPF 30+ diariamente + hidratante noturno",
-      "why_it_matters": "SPF diário é o hábito de maior retorno para uniformidade de tom — efeito visual em semanas, custo mínimo.",
+      "metric_key": "overall_asymmetry_score_pct_ipd",
+      "short_action": "Mastigação bilateral consciente",
+      "why_it_matters": "muda como você aparece em fotos — o que as pessoas veem antes de te conhecer",
       "time_to_result": "semanas",
       "tier": 0
     },
@@ -215,10 +237,10 @@
   "debug_top_3_actions": [
     {
       "rank": 1,
-      "action": "SPF 30+ diariamente + hidratante noturno",
-      "detail": "SPF diário é o hábito de maior retorno para uniformidade de tom — efeito visual em semanas, custo mínimo.",
+      "action": "Mastigação bilateral consciente",
+      "detail": "muda como você aparece em fotos — o que as pessoas veem antes de te conhecer",
       "tier": 0,
-      "metric_key": "skin_spf_protocol"
+      "metric_key": "overall_asymmetry_score_pct_ipd"
     },
     {
       "rank": 2,
@@ -231,40 +253,36 @@
   "debug_top_3_actions_px": [
     {
       "rank": 1,
+      "action": "Alinhamento da postura ao tirar fotos",
+      "detail": "O desvio da ponta do nariz é amplificado por inclinação da cabeça. Fotografar com o queixo ligeiramente para baixo e a câmera na altura dos olhos reduz esse efeito visivelmente."
+    },
+    {
+      "rank": 2,
       "action": "Ângulo facial na foto",
       "detail": "A assimetria da mandíbula é visualmente reduzida quando o ângulo da câmera é frontal e levemente acima do queixo. Evitar ângulos laterais em fotos de perfil."
     },
     {
-      "rank": 2,
-      "action": "Sorriso e expressão equilibrada",
-      "detail": "Os cantos da boca em alturas diferentes reduzem a percepção de simetria. Um sorriso leve, consciente e equilibrado é a mudança mais rápida de implementar."
-    },
-    {
       "rank": 3,
-      "action": "Posicionamento do queixo na foto",
-      "detail": "O queixo desviado da linha central é um dos fatores que mais reduz a percepção de simetria. Praticar posicionamento frontal neutro aumenta o impacto visual imediatamente."
+      "action": "Iluminação frontal e simétrica",
+      "detail": "A assimetria das asas do nariz é amplificada por iluminação lateral. Luz frontal difusa, como luz natural de frente, minimiza esse efeito visualmente."
     }
   ],
   "evolution_path": {
     "mutable_metrics": [
       "overall_asymmetry_score_pct_ipd",
-      "canthal_tilt_mean_deg",
+      "fwhr",
+      "lower_third_ratio",
       "mouth_to_ipd_ratio",
       "thirds_std_dev",
       "marquardt_deviation_pct_ipd",
       "jaw_width_pct_ipd",
-      "jawline_definition_score"
+      "jawline_definition_score",
+      "upper_lower_lip_ratio"
     ],
     "phase_1": {
       "label": "Esta semana (0–7 dias)",
       "focus": "Foco em Assimetria global — ajustes de postura, expressão e registro fotográfico",
       "actions": [
-        {
-          "titulo": "SPF 30+ diariamente + hidratante noturno",
-          "descricao": "Aplicar SPF 30+ toda manhã; hidratante noturno antes de dormir.",
-          "frequencia": "diário",
-          "metric_label": "Protocolo SPF + hidratação"
-        },
         {
           "titulo": "Mastigação bilateral consciente",
           "descricao": "Alterne deliberadamente o lado da mastigação a cada refeição.",
@@ -276,13 +294,19 @@
           "descricao": "Evite head-tilt habitual; alinhe orelha sobre ombro em frente ao espelho 2× ao dia.",
           "frequencia": "diário",
           "metric_label": "Assimetria global"
+        },
+        {
+          "titulo": "Mastigar goma sem açúcar bilateralmente",
+          "descricao": "Hipertrofia leve do masseter aumenta percepção de largura.",
+          "frequencia": "15 min/dia",
+          "metric_label": "fWHR (largura/altura sup.)"
         }
       ],
       "target_metric": "Assimetria global",
       "reanalysis_date": "2026-05-10",
       "reanalysis_label": "em 7 dias",
-      "confidence_score": 0.529,
-      "confidence_label": "provável"
+      "confidence_score": 0.325,
+      "confidence_label": "possível"
     },
     "phase_2": {
       "label": "Próximos 30 dias",
@@ -304,29 +328,36 @@
       "target_metric": "Largura mandibular (% IPD)",
       "reanalysis_date": "2026-06-02",
       "reanalysis_label": "em 30 dias",
-      "confidence_score": 0.355,
-      "confidence_label": "possível"
+      "confidence_score": 0.23,
+      "confidence_label": "desafiador"
     },
     "phase_3": {
       "label": "3 meses",
       "focus": "Avaliação profissional acessível (se indicado) + consolidação",
-      "actions": [],
-      "target_metric": "Métricas gerais",
+      "actions": [
+        {
+          "titulo": "Fisioterapia orofacial",
+          "descricao": "Avaliação para padrões assimétricos de tônus muscular.",
+          "frequencia": "1×",
+          "metric_label": "Desvio bilateral global (Marquardt)"
+        }
+      ],
+      "target_metric": "Desvio bilateral global (Marquardt)",
       "reanalysis_date": "2026-08-01",
       "reanalysis_label": "em 90 dias",
-      "requires_professional": false,
-      "confidence_score": 0.0,
+      "requires_professional": true,
+      "confidence_score": 0.169,
       "confidence_label": "desafiador"
     },
-    "skin_alert": true
+    "skin_alert": false
   },
   "next_step": {
-    "profile": "alto",
-    "message": "Seu ativo visual já está acima da média. O próximo passo é ver o antes/depois e refinar.",
-    "action": "Visualizar simulação antes/depois + reanálise em 30 dias",
-    "cta_text": "Ver minha simulação antes/depois",
-    "cta_type": "simulacao",
-    "urgency_hook": "Você já tem a base. A simulação mostra exatamente o que muda."
+    "profile": "baixo",
+    "message": "Existe potencial real. O ajuste principal é acessível e começa hoje.",
+    "action": "Análise completa com acompanhamento de 3 meses e checkpoints",
+    "cta_text": "Quero entender meus 3 pontos de melhoria",
+    "cta_type": "detalhamento",
+    "urgency_hook": "Você pode começar com ‘Mastigação bilateral consciente’ ainda hoje."
   },
   "simulation_paths": {
     "symmetrized": "resultado_mvp/depois_symmetrized.jpg",
@@ -334,6 +365,981 @@
     "comparison_grid": "resultado_mvp/depois_comparison_grid.jpg"
   },
   "simulation_error": null,
-  "benchmark_message": "Você já está acima da média — e os ajustes certos ampliam ainda mais o impacto.",
-  "score_context": "Resultado entre os 20% melhores que analisamos."
+  "premium_metrics_catalog": [
+    {
+      "slug": "asymmetry",
+      "title": "Assimetria e Simetria",
+      "count": 21,
+      "metrics": [
+        {
+          "key": "chin_deviation_pct_ipd",
+          "label": "Chin deviation pct ipd",
+          "value": 1.259,
+          "display_value": "1.259",
+          "unit": "%",
+          "ideal": "",
+          "severity": "informativa",
+          "metric_class": "mutável",
+          "source_block": "asymmetry"
+        },
+        {
+          "key": "chin_deviation_px",
+          "label": "Chin deviation px",
+          "value": 3.38,
+          "display_value": "3.38",
+          "unit": "px",
+          "ideal": "",
+          "severity": "informativa",
+          "metric_class": "mutável",
+          "source_block": "asymmetry"
+        },
+        {
+          "key": "eye_horizontal_asymmetry_pct_ipd",
+          "label": "Eye horizontal asymmetry pct ipd",
+          "value": 1.9,
+          "display_value": "1.9",
+          "unit": "%",
+          "ideal": "",
+          "severity": "informativa",
+          "metric_class": "mutável",
+          "source_block": "asymmetry"
+        },
+        {
+          "key": "eye_horizontal_asymmetry_px",
+          "label": "Eye horizontal asymmetry px",
+          "value": 5.1,
+          "display_value": "5.1",
+          "unit": "px",
+          "ideal": "",
+          "severity": "informativa",
+          "metric_class": "mutável",
+          "source_block": "asymmetry"
+        },
+        {
+          "key": "eye_level_difference_pct_ipd",
+          "label": "Eye level difference pct ipd",
+          "value": 0.0,
+          "display_value": "0",
+          "unit": "%",
+          "ideal": "",
+          "severity": "informativa",
+          "metric_class": "mutável",
+          "source_block": "asymmetry"
+        },
+        {
+          "key": "eye_level_difference_px",
+          "label": "Eye level difference px",
+          "value": 0.0,
+          "display_value": "0",
+          "unit": "px",
+          "ideal": "",
+          "severity": "informativa",
+          "metric_class": "mutável",
+          "source_block": "asymmetry"
+        },
+        {
+          "key": "ipd_px",
+          "label": "Ipd px",
+          "value": 268.52,
+          "display_value": "268.52",
+          "unit": "px",
+          "ideal": "",
+          "severity": "informativa",
+          "metric_class": "mutável",
+          "source_block": "asymmetry"
+        },
+        {
+          "key": "jawline_max_asymmetry_pct_ipd",
+          "label": "Jawline max asymmetry pct ipd",
+          "value": 13.591,
+          "display_value": "13.591",
+          "unit": "%",
+          "ideal": "",
+          "severity": "informativa",
+          "metric_class": "mutável",
+          "source_block": "asymmetry"
+        },
+        {
+          "key": "jawline_max_asymmetry_px",
+          "label": "Jawline max asymmetry px",
+          "value": 36.49,
+          "display_value": "36.49",
+          "unit": "px",
+          "ideal": "",
+          "severity": "informativa",
+          "metric_class": "mutável",
+          "source_block": "asymmetry"
+        },
+        {
+          "key": "jawline_mean_asymmetry_pct_ipd",
+          "label": "Jawline mean asymmetry pct ipd",
+          "value": 8.512,
+          "display_value": "8.512",
+          "unit": "%",
+          "ideal": "",
+          "severity": "informativa",
+          "metric_class": "mutável",
+          "source_block": "asymmetry"
+        },
+        {
+          "key": "jawline_mean_asymmetry_px",
+          "label": "Jawline mean asymmetry px",
+          "value": 22.86,
+          "display_value": "22.86",
+          "unit": "px",
+          "ideal": "",
+          "severity": "informativa",
+          "metric_class": "mutável",
+          "source_block": "asymmetry"
+        },
+        {
+          "key": "mouth_center_deviation_pct_ipd",
+          "label": "Mouth center deviation pct ipd",
+          "value": 3.321,
+          "display_value": "3.321",
+          "unit": "%",
+          "ideal": "",
+          "severity": "informativa",
+          "metric_class": "mutável",
+          "source_block": "asymmetry"
+        },
+        {
+          "key": "mouth_center_deviation_px",
+          "label": "Mouth center deviation px",
+          "value": 8.92,
+          "display_value": "8.92",
+          "unit": "px",
+          "ideal": "",
+          "severity": "informativa",
+          "metric_class": "mutável",
+          "source_block": "asymmetry"
+        },
+        {
+          "key": "mouth_corners_asymmetry_pct_ipd",
+          "label": "Mouth corners asymmetry pct ipd",
+          "value": 2.392,
+          "display_value": "2.392",
+          "unit": "%",
+          "ideal": "",
+          "severity": "informativa",
+          "metric_class": "mutável",
+          "source_block": "asymmetry"
+        },
+        {
+          "key": "mouth_corners_asymmetry_px",
+          "label": "Mouth corners asymmetry px",
+          "value": 6.42,
+          "display_value": "6.42",
+          "unit": "px",
+          "ideal": "",
+          "severity": "informativa",
+          "metric_class": "mutável",
+          "source_block": "asymmetry"
+        },
+        {
+          "key": "nose_deviation_pct_ipd",
+          "label": "Nose deviation pct ipd",
+          "value": 11.289,
+          "display_value": "11.289",
+          "unit": "%",
+          "ideal": "",
+          "severity": "informativa",
+          "metric_class": "mutável",
+          "source_block": "asymmetry"
+        },
+        {
+          "key": "nose_deviation_px",
+          "label": "Nose deviation px",
+          "value": 30.31,
+          "display_value": "30.31",
+          "unit": "px",
+          "ideal": "",
+          "severity": "informativa",
+          "metric_class": "mutável",
+          "source_block": "asymmetry"
+        },
+        {
+          "key": "nose_wings_asymmetry_pct_ipd",
+          "label": "Nose wings asymmetry pct ipd",
+          "value": 9.645,
+          "display_value": "9.645",
+          "unit": "%",
+          "ideal": "",
+          "severity": "informativa",
+          "metric_class": "mutável",
+          "source_block": "asymmetry"
+        },
+        {
+          "key": "nose_wings_asymmetry_px",
+          "label": "Nose wings asymmetry px",
+          "value": 25.9,
+          "display_value": "25.9",
+          "unit": "px",
+          "ideal": "",
+          "severity": "informativa",
+          "metric_class": "mutável",
+          "source_block": "asymmetry"
+        },
+        {
+          "key": "overall_asymmetry_score_pct_ipd",
+          "label": "Score global (% IPD)",
+          "value": 4.694,
+          "display_value": "4.694",
+          "unit": "%",
+          "ideal": "0 ± 1",
+          "severity": "severa",
+          "metric_class": "mutável",
+          "source_block": "asymmetry"
+        },
+        {
+          "key": "overall_asymmetry_score",
+          "label": "Score global de assimetria",
+          "value": 12.61,
+          "display_value": "12.61",
+          "unit": "",
+          "ideal": "",
+          "severity": "informativa",
+          "metric_class": "mutável",
+          "source_block": "asymmetry"
+        }
+      ]
+    },
+    {
+      "slug": "advanced",
+      "title": "Proporções e Estrutura",
+      "count": 42,
+      "metrics": [
+        {
+          "key": "alar_intercanthal_alignment_pct",
+          "label": "Alar intercanthal alignment pct",
+          "value": 23.208,
+          "display_value": "23.208",
+          "unit": "%",
+          "ideal": "",
+          "severity": "informativa",
+          "metric_class": "mutável",
+          "source_block": "advanced"
+        },
+        {
+          "key": "alar_width_pct_ipd",
+          "label": "Alar width pct ipd",
+          "value": 45.473,
+          "display_value": "45.473",
+          "unit": "%",
+          "ideal": "",
+          "severity": "informativa",
+          "metric_class": "mutável",
+          "source_block": "advanced"
+        },
+        {
+          "key": "bigonial_px",
+          "label": "Bigonial px",
+          "value": 500.576,
+          "display_value": "500.576",
+          "unit": "px",
+          "ideal": "",
+          "severity": "informativa",
+          "metric_class": "estrutural",
+          "source_block": "advanced"
+        },
+        {
+          "key": "bizygomatic_px",
+          "label": "Bizygomatic px",
+          "value": 612.295,
+          "display_value": "612.295",
+          "unit": "px",
+          "ideal": "",
+          "severity": "informativa",
+          "metric_class": "estrutural",
+          "source_block": "advanced"
+        },
+        {
+          "key": "bizygomatic_to_bigonial_ratio",
+          "label": "Bizygomatic to bigonial ratio",
+          "value": 1.223,
+          "display_value": "1.223",
+          "unit": "razão",
+          "ideal": "1.3 ± 0.15",
+          "severity": "excelente",
+          "metric_class": "estrutural",
+          "source_block": "advanced"
+        },
+        {
+          "key": "brow_tilt_left_deg",
+          "label": "Brow tilt left deg",
+          "value": -10.15,
+          "display_value": "-10.15",
+          "unit": "°",
+          "ideal": "",
+          "severity": "informativa",
+          "metric_class": "mutável",
+          "source_block": "advanced"
+        },
+        {
+          "key": "brow_tilt_right_deg",
+          "label": "Brow tilt right deg",
+          "value": -9.204,
+          "display_value": "-9.204",
+          "unit": "°",
+          "ideal": "",
+          "severity": "informativa",
+          "metric_class": "mutável",
+          "source_block": "advanced"
+        },
+        {
+          "key": "brow_to_eyelid_left_pct_ipd",
+          "label": "Brow to eyelid left pct ipd",
+          "value": 13.154,
+          "display_value": "13.154",
+          "unit": "%",
+          "ideal": "",
+          "severity": "informativa",
+          "metric_class": "mutável",
+          "source_block": "advanced"
+        },
+        {
+          "key": "brow_to_eyelid_mean_pct_ipd",
+          "label": "Brow to eyelid mean pct ipd",
+          "value": 13.67,
+          "display_value": "13.67",
+          "unit": "%",
+          "ideal": "",
+          "severity": "informativa",
+          "metric_class": "mutável",
+          "source_block": "advanced"
+        },
+        {
+          "key": "brow_to_eyelid_right_pct_ipd",
+          "label": "Brow to eyelid right pct ipd",
+          "value": 14.186,
+          "display_value": "14.186",
+          "unit": "%",
+          "ideal": "",
+          "severity": "informativa",
+          "metric_class": "mutável",
+          "source_block": "advanced"
+        },
+        {
+          "key": "canthal_tilt_left_deg",
+          "label": "Canthal tilt left deg",
+          "value": 6.884,
+          "display_value": "6.884",
+          "unit": "°",
+          "ideal": "",
+          "severity": "informativa",
+          "metric_class": "mutável",
+          "source_block": "advanced"
+        },
+        {
+          "key": "canthal_tilt_mean_deg",
+          "label": "Canthal tilt médio",
+          "value": 5.9,
+          "display_value": "5.9",
+          "unit": "°",
+          "ideal": "5 ± 3",
+          "severity": "excelente",
+          "metric_class": "mutável",
+          "source_block": "advanced"
+        },
+        {
+          "key": "canthal_tilt_right_deg",
+          "label": "Canthal tilt right deg",
+          "value": 4.916,
+          "display_value": "4.916",
+          "unit": "°",
+          "ideal": "",
+          "severity": "informativa",
+          "metric_class": "mutável",
+          "source_block": "advanced"
+        },
+        {
+          "key": "chin_projection_pct_ipd",
+          "label": "Chin projection pct ipd",
+          "value": 62.909,
+          "display_value": "62.909",
+          "unit": "%",
+          "ideal": "",
+          "severity": "informativa",
+          "metric_class": "mutável",
+          "source_block": "advanced"
+        },
+        {
+          "key": "jawline_definition_score",
+          "label": "Definição da linha mandibular",
+          "value": 7.073,
+          "display_value": "7.073",
+          "unit": "",
+          "ideal": "0.65 ± 0.2",
+          "severity": "severa",
+          "metric_class": "mutável",
+          "source_block": "advanced"
+        },
+        {
+          "key": "eye_aspect_ratio_left",
+          "label": "Eye aspect ratio left",
+          "value": 0.38,
+          "display_value": "0.38",
+          "unit": "",
+          "ideal": "",
+          "severity": "informativa",
+          "metric_class": "mutável",
+          "source_block": "advanced"
+        },
+        {
+          "key": "eye_aspect_ratio_mean",
+          "label": "Eye aspect ratio mean",
+          "value": 0.384,
+          "display_value": "0.384",
+          "unit": "",
+          "ideal": "0.3 ± 0.04",
+          "severity": "moderada",
+          "metric_class": "mutável",
+          "source_block": "advanced"
+        },
+        {
+          "key": "eye_aspect_ratio_right",
+          "label": "Eye aspect ratio right",
+          "value": 0.388,
+          "display_value": "0.388",
+          "unit": "",
+          "ideal": "",
+          "severity": "informativa",
+          "metric_class": "mutável",
+          "source_block": "advanced"
+        },
+        {
+          "key": "face_height_to_width_ratio",
+          "label": "Face height to width ratio",
+          "value": 0.975,
+          "display_value": "0.975",
+          "unit": "razão",
+          "ideal": "",
+          "severity": "informativa",
+          "metric_class": "mutável",
+          "source_block": "advanced"
+        },
+        {
+          "key": "fifths_std_dev",
+          "label": "Fifths std dev",
+          "value": 0.031,
+          "display_value": "0.031",
+          "unit": "",
+          "ideal": "0 ± 0.03",
+          "severity": "leve",
+          "metric_class": "mutável",
+          "source_block": "advanced"
+        },
+        {
+          "key": "face_shape_label",
+          "label": "Formato facial",
+          "value": "redondo",
+          "display_value": "redondo",
+          "unit": "",
+          "ideal": "",
+          "severity": "informativa",
+          "metric_class": "estrutural",
+          "source_block": "advanced"
+        },
+        {
+          "key": "gonial_angle_left_deg",
+          "label": "Gonial angle left deg",
+          "value": 156.706,
+          "display_value": "156.706",
+          "unit": "°",
+          "ideal": "",
+          "severity": "informativa",
+          "metric_class": "estrutural",
+          "source_block": "advanced"
+        },
+        {
+          "key": "gonial_angle_mean_deg",
+          "label": "Gonial angle mean deg",
+          "value": 155.437,
+          "display_value": "155.437",
+          "unit": "°",
+          "ideal": "",
+          "severity": "informativa",
+          "metric_class": "estrutural",
+          "source_block": "advanced"
+        },
+        {
+          "key": "gonial_angle_right_deg",
+          "label": "Gonial angle right deg",
+          "value": 154.169,
+          "display_value": "154.169",
+          "unit": "°",
+          "ideal": "",
+          "severity": "informativa",
+          "metric_class": "estrutural",
+          "source_block": "advanced"
+        },
+        {
+          "key": "intercanthal_to_eyewidth_ratio",
+          "label": "Intercanthal to eyewidth ratio",
+          "value": 1.484,
+          "display_value": "1.484",
+          "unit": "razão",
+          "ideal": "1 ± 0.1",
+          "severity": "severa",
+          "metric_class": "mutável",
+          "source_block": "advanced"
+        },
+        {
+          "key": "jaw_width_pct_ipd",
+          "label": "Jaw width pct ipd",
+          "value": 186.423,
+          "display_value": "186.423",
+          "unit": "%",
+          "ideal": "155 ± 20",
+          "severity": "leve",
+          "metric_class": "estrutural",
+          "source_block": "advanced"
+        },
+        {
+          "key": "lower_lip_thickness_pct_ipd",
+          "label": "Lower lip thickness pct ipd",
+          "value": 13.167,
+          "display_value": "13.167",
+          "unit": "%",
+          "ideal": "",
+          "severity": "informativa",
+          "metric_class": "mutável",
+          "source_block": "advanced"
+        },
+        {
+          "key": "lower_third_ratio",
+          "label": "Lower third ratio",
+          "value": 0.497,
+          "display_value": "0.497",
+          "unit": "razão",
+          "ideal": "0.56 ± 0.05",
+          "severity": "leve",
+          "metric_class": "mutável",
+          "source_block": "advanced"
+        },
+        {
+          "key": "marquardt_deviation_pct_ipd",
+          "label": "Marquardt deviation pct ipd",
+          "value": 7.435,
+          "display_value": "7.435",
+          "unit": "%",
+          "ideal": "0 ± 3",
+          "severity": "moderada",
+          "metric_class": "mutável",
+          "source_block": "advanced"
+        },
+        {
+          "key": "marquardt_deviation_px",
+          "label": "Marquardt deviation px",
+          "value": 19.963,
+          "display_value": "19.963",
+          "unit": "px",
+          "ideal": "",
+          "severity": "informativa",
+          "metric_class": "mutável",
+          "source_block": "advanced"
+        },
+        {
+          "key": "mouth_to_ipd_ratio",
+          "label": "Mouth to ipd ratio",
+          "value": 0.836,
+          "display_value": "0.836",
+          "unit": "razão",
+          "ideal": "1.5 ± 0.2",
+          "severity": "acentuada",
+          "metric_class": "mutável",
+          "source_block": "advanced"
+        },
+        {
+          "key": "nasal_length_pct_face_height",
+          "label": "Nasal length pct face height",
+          "value": 39.548,
+          "display_value": "39.548",
+          "unit": "%",
+          "ideal": "",
+          "severity": "informativa",
+          "metric_class": "mutável",
+          "source_block": "advanced"
+        },
+        {
+          "key": "nasal_to_mouth_width_ratio",
+          "label": "Nasal to mouth width ratio",
+          "value": 0.544,
+          "display_value": "0.544",
+          "unit": "razão",
+          "ideal": "0.7 ± 0.1",
+          "severity": "leve",
+          "metric_class": "mutável",
+          "source_block": "advanced"
+        },
+        {
+          "key": "philtrum_length_pct_ipd",
+          "label": "Philtrum length pct ipd",
+          "value": 26.03,
+          "display_value": "26.03",
+          "unit": "%",
+          "ideal": "26 ± 4",
+          "severity": "excelente",
+          "metric_class": "mutável",
+          "source_block": "advanced"
+        },
+        {
+          "key": "thirds_lower_ratio",
+          "label": "Thirds lower ratio",
+          "value": 0.386,
+          "display_value": "0.386",
+          "unit": "razão",
+          "ideal": "",
+          "severity": "informativa",
+          "metric_class": "mutável",
+          "source_block": "advanced"
+        },
+        {
+          "key": "thirds_middle_ratio",
+          "label": "Thirds middle ratio",
+          "value": 0.39,
+          "display_value": "0.39",
+          "unit": "razão",
+          "ideal": "",
+          "severity": "informativa",
+          "metric_class": "mutável",
+          "source_block": "advanced"
+        },
+        {
+          "key": "thirds_std_dev",
+          "label": "Thirds std dev",
+          "value": 0.078,
+          "display_value": "0.078",
+          "unit": "",
+          "ideal": "0 ± 0.03",
+          "severity": "moderada",
+          "metric_class": "mutável",
+          "source_block": "advanced"
+        },
+        {
+          "key": "thirds_upper_ratio",
+          "label": "Thirds upper ratio",
+          "value": 0.224,
+          "display_value": "0.224",
+          "unit": "razão",
+          "ideal": "",
+          "severity": "informativa",
+          "metric_class": "mutável",
+          "source_block": "advanced"
+        },
+        {
+          "key": "upper_lip_thickness_pct_ipd",
+          "label": "Upper lip thickness pct ipd",
+          "value": 10.683,
+          "display_value": "10.683",
+          "unit": "%",
+          "ideal": "",
+          "severity": "informativa",
+          "metric_class": "mutável",
+          "source_block": "advanced"
+        },
+        {
+          "key": "upper_lower_lip_ratio",
+          "label": "Upper lower lip ratio",
+          "value": 0.811,
+          "display_value": "0.811",
+          "unit": "razão",
+          "ideal": "0.65 ± 0.15",
+          "severity": "leve",
+          "metric_class": "mutável",
+          "source_block": "advanced"
+        },
+        {
+          "key": "zygomatic_to_gonial_ratio",
+          "label": "Zygomatic to gonial ratio",
+          "value": 1.223,
+          "display_value": "1.223",
+          "unit": "razão",
+          "ideal": "",
+          "severity": "informativa",
+          "metric_class": "estrutural",
+          "source_block": "advanced"
+        },
+        {
+          "key": "fwhr",
+          "label": "fWHR",
+          "value": 1.654,
+          "display_value": "1.654",
+          "unit": "",
+          "ideal": "1.85 ± 0.1",
+          "severity": "leve",
+          "metric_class": "estrutural",
+          "source_block": "advanced"
+        }
+      ]
+    },
+    {
+      "slug": "skin",
+      "title": "Pele e Olheiras",
+      "count": 6,
+      "metrics": [
+        {
+          "key": "under_eye_darkness_right",
+          "label": "Olheira (direita)",
+          "value": 0.062,
+          "display_value": "0.062",
+          "unit": "",
+          "ideal": "0 ± 0.05",
+          "severity": "leve",
+          "metric_class": "mutável",
+          "source_block": "skin"
+        },
+        {
+          "key": "under_eye_darkness_left",
+          "label": "Olheira (esquerda)",
+          "value": 0.061,
+          "display_value": "0.061",
+          "unit": "",
+          "ideal": "0 ± 0.05",
+          "severity": "leve",
+          "metric_class": "mutável",
+          "source_block": "skin"
+        },
+        {
+          "key": "skin_lighting_delta_e_lr",
+          "label": "Skin lighting delta e lr",
+          "value": 4.031,
+          "display_value": "4.031",
+          "unit": "",
+          "ideal": "",
+          "severity": "informativa",
+          "metric_class": "mutável",
+          "source_block": "skin"
+        },
+        {
+          "key": "skin_uniformity_std_lab_forehead",
+          "label": "Skin uniformity std lab forehead",
+          "value": 8.117,
+          "display_value": "8.117",
+          "unit": "",
+          "ideal": "",
+          "severity": "informativa",
+          "metric_class": "mutável",
+          "source_block": "skin"
+        },
+        {
+          "key": "skin_uniformity_std_lab_right",
+          "label": "Uniformidade da pele (direita)",
+          "value": 20.91,
+          "display_value": "20.91",
+          "unit": "",
+          "ideal": "0 ± 10",
+          "severity": "moderada",
+          "metric_class": "mutável",
+          "source_block": "skin"
+        },
+        {
+          "key": "skin_uniformity_std_lab_left",
+          "label": "Uniformidade da pele (esquerda)",
+          "value": 15.528,
+          "display_value": "15.528",
+          "unit": "",
+          "ideal": "0 ± 10",
+          "severity": "leve",
+          "metric_class": "mutável",
+          "source_block": "skin"
+        }
+      ]
+    },
+    {
+      "slug": "capture",
+      "title": "Qualidade da Captura",
+      "count": 10,
+      "metrics": [
+        {
+          "key": "lighting_asymmetry_delta_e",
+          "label": "Assimetria de iluminação (ΔE)",
+          "value": 4.031,
+          "display_value": "4.031",
+          "unit": "",
+          "ideal": "",
+          "severity": "informativa",
+          "metric_class": "captura",
+          "source_block": "photo_quality"
+        },
+        {
+          "key": "frontal_ok",
+          "label": "Captura frontal dentro do limite",
+          "value": false,
+          "display_value": "não",
+          "unit": "boolean",
+          "ideal": "",
+          "severity": "informativa",
+          "metric_class": "captura",
+          "source_block": "photo_quality"
+        },
+        {
+          "key": "face_pixel_width",
+          "label": "Face pixel width",
+          "value": 667,
+          "display_value": "667",
+          "unit": "",
+          "ideal": "",
+          "severity": "informativa",
+          "metric_class": "captura",
+          "source_block": "photo_quality"
+        },
+        {
+          "key": "focal_distortion_ratio",
+          "label": "Focal distortion ratio",
+          "value": 0.199,
+          "display_value": "0.199",
+          "unit": "razão",
+          "ideal": "",
+          "severity": "informativa",
+          "metric_class": "captura",
+          "source_block": "photo_quality"
+        },
+        {
+          "key": "focal_distortion_warning",
+          "label": "Focal distortion warning",
+          "value": false,
+          "display_value": "não",
+          "unit": "boolean",
+          "ideal": "",
+          "severity": "informativa",
+          "metric_class": "captura",
+          "source_block": "photo_quality"
+        },
+        {
+          "key": "head_pose_pitch_deg",
+          "label": "Head pose pitch deg",
+          "value": -0.584,
+          "display_value": "-0.584",
+          "unit": "°",
+          "ideal": "",
+          "severity": "informativa",
+          "metric_class": "captura",
+          "source_block": "photo_quality"
+        },
+        {
+          "key": "head_pose_roll_deg",
+          "label": "Head pose roll deg",
+          "value": -1.397,
+          "display_value": "-1.397",
+          "unit": "°",
+          "ideal": "",
+          "severity": "informativa",
+          "metric_class": "captura",
+          "source_block": "photo_quality"
+        },
+        {
+          "key": "head_pose_yaw_deg",
+          "label": "Head pose yaw deg",
+          "value": 14.989,
+          "display_value": "14.989",
+          "unit": "°",
+          "ideal": "",
+          "severity": "informativa",
+          "metric_class": "captura",
+          "source_block": "photo_quality"
+        },
+        {
+          "key": "sharpness_laplacian_var",
+          "label": "Sharpness laplacian var",
+          "value": 12.414,
+          "display_value": "12.414",
+          "unit": "",
+          "ideal": "",
+          "severity": "informativa",
+          "metric_class": "captura",
+          "source_block": "photo_quality"
+        },
+        {
+          "key": "warnings",
+          "label": "Warnings",
+          "value": [
+            "Pose facial fora do limite frontal (|yaw|=15.0°, |pitch|=0.6°). Métricas podem estar enviesadas.",
+            "Foto pouco nítida (variância do laplaciano=12)."
+          ],
+          "display_value": "['Pose facial fora do limite frontal (|yaw|=15.0°, |pitch|=0.6°). Métricas podem estar enviesadas.', 'Foto pouco nítida (variância do laplaciano=12).']",
+          "unit": "",
+          "ideal": "",
+          "severity": "informativa",
+          "metric_class": "captura",
+          "source_block": "photo_quality"
+        }
+      ]
+    },
+    {
+      "slug": "derived",
+      "title": "Percepção e Produto",
+      "count": 6,
+      "metrics": [
+        {
+          "key": "attractiveness_score",
+          "label": "Atratividade percebida",
+          "value": 5.25,
+          "display_value": "5.25",
+          "unit": "0-10",
+          "ideal": "",
+          "severity": "informativa",
+          "metric_class": "derivada",
+          "source_block": "derived"
+        },
+        {
+          "key": "capture_confidence",
+          "label": "Confiança da captura",
+          "value": 0.458,
+          "display_value": "0.458",
+          "unit": "0-1",
+          "ideal": "",
+          "severity": "informativa",
+          "metric_class": "derivada",
+          "source_block": "derived"
+        },
+        {
+          "key": "top_leverage_confidence",
+          "label": "Confiança da principal alavanca",
+          "value": 0.613,
+          "display_value": "0.613",
+          "unit": "0-1",
+          "ideal": "",
+          "severity": "informativa",
+          "metric_class": "derivada",
+          "source_block": "derived"
+        },
+        {
+          "key": "dominance_score",
+          "label": "Dominância percebida",
+          "value": 6.36,
+          "display_value": "6.36",
+          "unit": "0-10",
+          "ideal": "",
+          "severity": "informativa",
+          "metric_class": "derivada",
+          "source_block": "derived"
+        },
+        {
+          "key": "score",
+          "label": "Score final",
+          "value": 0,
+          "display_value": "0",
+          "unit": "0-100",
+          "ideal": "",
+          "severity": "informativa",
+          "metric_class": "derivada",
+          "source_block": "derived"
+        },
+        {
+          "key": "freshness_score",
+          "label": "Vitalidade percebida",
+          "value": 7.33,
+          "display_value": "7.33",
+          "unit": "0-10",
+          "ideal": "",
+          "severity": "informativa",
+          "metric_class": "derivada",
+          "source_block": "derived"
+        }
+      ]
+    }
+  ],
+  "benchmark_message": "O diagnóstico revelou oportunidades concretas — cada ponto tem ação clara.",
+  "score_context": "Análise com múltiplos pontos de melhoria — situação comum e reversível."
 }

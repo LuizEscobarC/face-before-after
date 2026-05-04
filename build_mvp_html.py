@@ -10,6 +10,7 @@ Uso:
 
 import argparse
 import base64
+import html
 import json
 import os
 import sys
@@ -67,6 +68,9 @@ def _phase_icon(phase_key: str) -> str:
 # ──────────────────────────────────────────────────────────────
 
 def build_html(data: dict) -> str:
+    analysis_mode = data.get("analysis_mode", "premium")
+    is_premium = analysis_mode == "premium"
+
     score = data.get("score", 0)
     tier = data.get("tier", "")
     tier_desc = data.get("tier_description", "")
@@ -76,6 +80,8 @@ def build_html(data: dict) -> str:
     fi = data.get("first_impression", {})
     headline = fi.get("headline", "")
     positive_signal = fi.get("positive_signal", "")
+    top_leverage = data.get("top_leverage", {})
+    premium_metrics_catalog = data.get("premium_metrics_catalog", [])
 
     vs = data.get("visual_status", {})
     dominance = vs.get("dominance_score", 0)
@@ -98,28 +104,34 @@ def build_html(data: dict) -> str:
     ns_msg = ns.get("message", "")
 
     # Simulações
-    sim = data.get("simulation_paths", {})
+    sim = data.get("simulation_paths") or {}
     sim_sym = _img_b64(sim.get("symmetrized"))
     sim_ideal = _img_b64(sim.get("ideal_proportions"))
     sim_grid = _img_b64(sim.get("comparison_grid"))
 
     # Foto anotada MVP
-    annotated_path = data.get("input_file", "")
+    annotated_path = data.get("annotated_image_path", "")
     if annotated_path:
-        stem = Path(annotated_path).stem
+      annotated_b64 = _img_b64(annotated_path)
+    else:
+      input_path = data.get("input_file", "")
+      if input_path:
+        stem = Path(input_path).stem
         ann_path = f"resultado_mvp/{stem}_mvp_annotated.jpg"
         annotated_b64 = _img_b64(ann_path)
-    else:
+      else:
         annotated_b64 = None
 
     score_col = _score_color(score)
 
     # Métricas de percepção (barras 0–10)
-    perception_metrics = [
+    perception_metrics = []
+    if is_premium:
+      perception_metrics = [
         ("Dominância", dominance),
         ("Atratividade", attractiveness),
         ("Vitalidade", freshness),
-    ]
+      ]
 
     # ── Score arc SVG (semicírculo) ──────────────────────────
     # range 0–100, arco de 180°
@@ -249,6 +261,135 @@ def build_html(data: dict) -> str:
           <img src="{annotated_b64}" alt="Análise facial" class="annotated-img"/>
           <p class="annotated-caption">Mapa de métricas detectadas</p>
         </div>"""
+
+    def _render_metrics_catalog(catalog):
+        if not catalog:
+            return ""
+
+        sev_class = {
+            "excelente": "sev-excelente",
+            "leve": "sev-leve",
+            "moderada": "sev-moderada",
+            "acentuada": "sev-acentuada",
+            "severa": "sev-severa",
+            "informativa": "sev-info",
+        }
+
+        groups = []
+        for idx, category in enumerate(catalog):
+            rows = []
+            for metric in category.get("metrics", []):
+                severity = str(metric.get("severity", "informativa"))
+                severity_css = sev_class.get(severity, "sev-info")
+                label = html.escape(str(metric.get("label", "")))
+                value = html.escape(str(metric.get("display_value", "—")))
+                unit = html.escape(str(metric.get("unit", "")))
+                ideal = html.escape(str(metric.get("ideal", "")))
+                metric_class = html.escape(str(metric.get("metric_class", "")))
+                rows.append(
+                    f"<tr>"
+                    f"<td>{label}</td>"
+                    f"<td>{value}</td>"
+                    f"<td>{unit or '—'}</td>"
+                    f"<td>{ideal or '—'}</td>"
+                    f"<td><span class='sev-pill {severity_css}'>{html.escape(severity)}</span></td>"
+                    f"<td>{metric_class}</td>"
+                    f"</tr>"
+                )
+
+            count = int(category.get("count", len(rows)))
+            title = html.escape(str(category.get("title", "Categoria")))
+            open_attr = " open" if idx == 0 else ""
+            groups.append(
+                f"<details class='metric-group'{open_attr}>"
+                f"<summary>{title} <span class='metric-count'>{count} métricas</span></summary>"
+                f"<div class='metric-table-wrap'>"
+                f"<table class='metric-table'>"
+                f"<thead><tr><th>Métrica</th><th>Valor</th><th>Unidade</th><th>Ideal</th><th>Severidade</th><th>Classe</th></tr></thead>"
+                f"<tbody>{''.join(rows)}</tbody>"
+                f"</table>"
+                f"</div>"
+                f"</details>"
+            )
+
+        return (
+            "<section class='section'>"
+            "<h2 class='section-title'>📚 Métricas Completas (Premium)</h2>"
+            "<p class='section-sub'>Todas as métricas calculadas para este rosto, organizadas por categoria.</p>"
+            f"{''.join(groups)}"
+            "</section>"
+        )
+
+    first_impression_section = f"""
+    <section class="section">
+      <h2 class="section-title">👁 Primeira Impressão</h2>
+      <p class="section-sub">O que a percepção externa capta nos primeiros segundos.</p>
+
+      <div class="headline-box">
+        <div class="headline-text">{headline}</div>
+        {f'<div class="positive-signal">✅ {positive_signal}</div>' if positive_signal and positive_signal not in headline else ''}
+      </div>
+
+      {annotated_section}
+    </section>"""
+
+    teaser_leverage_section = ""
+    perception_section = ""
+    actions_section = ""
+    evolution_section = ""
+    teaser_unlock_section = ""
+    metrics_catalog_section = ""
+
+    if is_premium:
+        perception_section = f"""
+        <section class="section">
+          <h2 class="section-title">📈 Percepção Visual</h2>
+          <p class="section-sub">Métricas de impacto percebido (escala 0–10).</p>
+          {bars_html}
+          {f'<p class="narrative">"{narrative}"</p>' if narrative else ''}
+        </section>"""
+
+        actions_section = f"""
+        <section class="section">
+          <h2 class="section-title">✨ Seus Refinamentos de Alto Impacto</h2>
+          <p class="section-sub">Ações ordenadas por impacto × facilidade de execução.</p>
+          <div class="actions-header">3 refinamentos identificados</div>
+          {actions_html if actions_html else '<p style="color:var(--muted);font-size:14px">Nenhuma ação disponível.</p>'}
+        </section>"""
+
+        evolution_section = f"""
+        <section class="section">
+          <h2 class="section-title">🗺 Caminho de Evolução</h2>
+          <p class="section-sub">Plano em fases, do mais imediato ao mais estrutural.</p>
+          {phases_html}
+        </section>"""
+        metrics_catalog_section = _render_metrics_catalog(premium_metrics_catalog)
+    else:
+        sim_section = ""
+        teaser_leverage_section = f"""
+        <section class="section">
+          <h2 class="section-title">🎯 Sua Maior Alavanca Agora</h2>
+          <p class="section-sub">Seu relatório gratuito mostra o primeiro passo com maior retorno visual.</p>
+          <div class="action-card">
+            <div class="action-rank">🔥</div>
+            <div class="action-body">
+              <div class="action-title">{top_leverage.get('short_action', 'Melhorar captura e postura')}</div>
+              <div class="action-why">{top_leverage.get('why_it_matters', 'A versão premium mostra o mapa completo de métricas e prioridades personalizadas.')}</div>
+              {f'<div class="action-time">⏱ Resultado: {top_leverage.get("time_to_result")}</div>' if top_leverage.get('time_to_result') else ''}
+            </div>
+          </div>
+        </section>"""
+
+        teaser_unlock_section = """
+        <section class="section">
+          <h2 class="section-title">🔒 O Que Você Desbloqueia no Premium</h2>
+          <ul class="unlock-list">
+            <li>Todas as métricas avançadas por categoria</li>
+            <li>Simulação visual completa (simetria e proporções)</li>
+            <li>Top 3 refinamentos priorizados por impacto</li>
+            <li>Plano em 3 fases com checkpoints de evolução</li>
+          </ul>
+        </section>"""
 
     # ──────────────────────────────────────────────────────────
     # CSS + HTML final
@@ -491,6 +632,84 @@ def build_html(data: dict) -> str:
     padding:8px 10px;
   }}
 
+  /* ── Teaser unlock ─────────────────────────────────── */
+  .unlock-list{{
+    list-style:none;
+    display:grid;
+    gap:10px;
+    font-size:14px;
+    color:var(--muted);
+  }}
+  .unlock-list li{{
+    padding:10px 12px;
+    border:1px solid var(--border);
+    border-radius:10px;
+    background:var(--surface2);
+  }}
+
+  /* ── Catálogo de métricas ─────────────────────────── */
+  .metric-group{{
+    margin-bottom:10px;
+    border:1px solid var(--border);
+    border-radius:10px;
+    background:var(--surface2);
+    overflow:hidden;
+  }}
+  .metric-group summary{{
+    list-style:none;
+    cursor:pointer;
+    font-size:13px;
+    font-weight:700;
+    padding:12px 14px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+  }}
+  .metric-group summary::-webkit-details-marker{{display:none}}
+  .metric-count{{
+    color:var(--muted);
+    font-size:11px;
+    font-weight:600;
+  }}
+  .metric-table-wrap{{
+    overflow:auto;
+    border-top:1px solid var(--border);
+  }}
+  .metric-table{{
+    width:100%;
+    border-collapse:collapse;
+    min-width:720px;
+    font-size:12px;
+  }}
+  .metric-table th,
+  .metric-table td{{
+    text-align:left;
+    padding:8px 10px;
+    border-bottom:1px solid rgba(255,255,255,0.05);
+    vertical-align:top;
+  }}
+  .metric-table th{{
+    color:#cbd5e1;
+    font-size:11px;
+    text-transform:uppercase;
+    letter-spacing:.03em;
+  }}
+  .sev-pill{{
+    display:inline-block;
+    padding:3px 8px;
+    border-radius:999px;
+    font-size:10px;
+    font-weight:700;
+    text-transform:uppercase;
+    letter-spacing:.03em;
+  }}
+  .sev-excelente{{background:rgba(16,185,129,.2); color:#6ee7b7; border:1px solid rgba(16,185,129,.35)}}
+  .sev-leve{{background:rgba(34,211,238,.2); color:#67e8f9; border:1px solid rgba(34,211,238,.35)}}
+  .sev-moderada{{background:rgba(168,85,247,.2); color:#d8b4fe; border:1px solid rgba(168,85,247,.35)}}
+  .sev-acentuada{{background:rgba(249,115,22,.2); color:#fdba74; border:1px solid rgba(249,115,22,.35)}}
+  .sev-severa{{background:rgba(239,68,68,.2); color:#fda4af; border:1px solid rgba(239,68,68,.35)}}
+  .sev-info{{background:rgba(148,163,184,.2); color:#cbd5e1; border:1px solid rgba(148,163,184,.35)}}
+
   /* ── CTA section ────────────────────────────────────── */
   .cta-section{{
     background:linear-gradient(135deg,#1a0a2e 0%,#0f1a2e 100%);
@@ -568,44 +787,14 @@ def build_html(data: dict) -> str:
     </div>
   </div>
 
-  <!-- Primeira impressão -->
-  <section class="section">
-    <h2 class="section-title">👁 Primeira Impressão</h2>
-    <p class="section-sub">O que a percepção externa capta nos primeiros segundos.</p>
-
-    <div class="headline-box">
-      <div class="headline-text">{headline}</div>
-      {f'<div class="positive-signal">✅ {positive_signal}</div>' if positive_signal and positive_signal not in headline else ''}
-    </div>
-
-    {annotated_section}
-  </section>
-
-  <!-- Percepção visual -->
-  <section class="section">
-    <h2 class="section-title">📈 Percepção Visual</h2>
-    <p class="section-sub">Métricas de impacto percebido (escala 0–10).</p>
-    {bars_html}
-    {f'<p class="narrative">"{narrative}"</p>' if narrative else ''}
-  </section>
-
-  <!-- 3 Refinamentos -->
-  <section class="section">
-    <h2 class="section-title">✨ Seus Refinamentos de Alto Impacto</h2>
-    <p class="section-sub">Ações ordenadas por impacto × facilidade de execução.</p>
-    <div class="actions-header">3 refinamentos identificados</div>
-    {actions_html if actions_html else '<p style="color:var(--muted);font-size:14px">Nenhuma ação disponível.</p>'}
-  </section>
-
-  <!-- Simulação -->
+  {first_impression_section}
+  {teaser_leverage_section}
+  {perception_section}
+  {actions_section}
   {sim_section}
-
-  <!-- Caminho de evolução -->
-  <section class="section">
-    <h2 class="section-title">🗺 Caminho de Evolução</h2>
-    <p class="section-sub">Plano em fases, do mais imediato ao mais estrutural.</p>
-    {phases_html}
-  </section>
+  {evolution_section}
+  {metrics_catalog_section}
+  {teaser_unlock_section}
 
   <!-- CTA -->
   <div class="cta-section">

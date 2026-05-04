@@ -32,21 +32,33 @@ def pipeline_result(tmp_path_factory):
     return pipeline.run(_IMAGE_PATH, output_dir)
 
 
+@pytest.fixture(scope="module")
+def pipeline_result_teaser(tmp_path_factory):
+    """Roda o pipeline em modo teaser para validar gating de produto."""
+    if not os.path.exists(_IMAGE_PATH):
+        pytest.skip(f"Imagem de teste não encontrada: {_IMAGE_PATH}")
+    output_dir = str(tmp_path_factory.mktemp("mvp_out_teaser"))
+    return pipeline.run(_IMAGE_PATH, output_dir, mode="teaser")
+
+
 # ---------------------------------------------------------------------------
 # Estrutura de alto nível
 # ---------------------------------------------------------------------------
 
 class TestPipelineTopLevelKeys:
     REQUIRED_KEYS = [
+        "analysis_mode", "access_tier",
         "input_file", "generated_at", "rotation_correction_degrees",
         "score", "tier", "tier_description",
         "capture_confidence",
+        "auto_crop",
         "first_impression", "visual_status",
         "top_leverage", "top3_actions_v2",
         "evolution_path", "next_step",
         "measurements", "measurements_blocks",
         "photo_warnings", "capture_recommendations",
         "simulation_paths", "simulation_error",
+        "premium_metrics_catalog",
     ]
 
     def test_all_top_level_keys_present(self, pipeline_result):
@@ -64,6 +76,21 @@ class TestPipelineTopLevelKeys:
     def test_generated_at_is_string(self, pipeline_result):
         assert isinstance(pipeline_result["generated_at"], str)
         assert len(pipeline_result["generated_at"]) > 0
+
+    def test_mode_defaults_to_premium(self, pipeline_result):
+        assert pipeline_result["analysis_mode"] == "premium"
+        assert pipeline_result["access_tier"] == "paid-one-shot"
+
+    def test_premium_catalog_is_non_empty(self, pipeline_result):
+        catalog = pipeline_result["premium_metrics_catalog"]
+        assert isinstance(catalog, list)
+        assert len(catalog) >= 1
+
+    def test_auto_crop_has_expected_shape(self, pipeline_result):
+        auto_crop = pipeline_result["auto_crop"]
+        assert isinstance(auto_crop, dict)
+        assert "applied" in auto_crop
+        assert isinstance(auto_crop["applied"], bool)
 
 
 # ---------------------------------------------------------------------------
@@ -288,3 +315,24 @@ class TestMeasurementsUnified:
         mb = pipeline_result["measurements_blocks"]
         for key in ("advanced", "photo_quality", "skin"):
             assert key in mb, f"measurements_blocks faltando: {key}"
+
+
+# ---------------------------------------------------------------------------
+# Teaser vs Premium
+# ---------------------------------------------------------------------------
+
+class TestTeaserMode:
+    def test_teaser_mode_flags(self, pipeline_result_teaser):
+        assert pipeline_result_teaser["analysis_mode"] == "teaser"
+        assert pipeline_result_teaser["access_tier"] == "free-teaser"
+
+    def test_teaser_hides_premium_sections(self, pipeline_result_teaser):
+        assert pipeline_result_teaser["top3_actions_v2"] == []
+        assert pipeline_result_teaser["evolution_path"] == {}
+        assert pipeline_result_teaser["simulation_paths"] is None
+        assert pipeline_result_teaser["premium_metrics_catalog"] == []
+
+    def test_teaser_keeps_core_value(self, pipeline_result_teaser):
+        assert pipeline_result_teaser["score"] >= 0
+        assert pipeline_result_teaser["first_impression"]["headline"]
+        assert pipeline_result_teaser["top_leverage"].get("short_action")

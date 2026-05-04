@@ -2,8 +2,8 @@ python   := ".venv/bin/python"
 pip      := ".venv/bin/pip"
 pytest   := ".venv/bin/pytest"
 
-img_antes  := "antes.png"
-img_depois := "depois.png"
+img_antes  := `if [ -f antes.png ]; then echo antes.png; elif [ -f antes.jpg ]; then echo antes.jpg; elif [ -f antes.jpeg ]; then echo antes.jpeg; else echo antes.png; fi`
+img_depois := `if [ -f depois.png ]; then echo depois.png; elif [ -f depois.jpg ]; then echo depois.jpg; elif [ -f depois.jpeg ]; then echo depois.jpeg; else echo depois.png; fi`
 
 out_antes  := "resultado_analise_antes"
 out_depois := "resultado_analise_depois"
@@ -70,29 +70,53 @@ mvp: mvp-antes mvp-depois
 # Roda MVP na foto ANTES
 mvp-antes:
     @echo "MVP analisando ANTES..."
-    {{python}} mvp_pipeline.py {{img_antes}}
+    {{python}} mvp_pipeline.py {{img_antes}} --mode premium
 
 # Roda MVP na foto DEPOIS
 mvp-depois:
     @echo "MVP analisando DEPOIS..."
-    {{python}} mvp_pipeline.py {{img_depois}}
+    {{python}} mvp_pipeline.py {{img_depois}} --mode premium
 
-# Roda MVP em uma foto específica: just mvp-foto minha_foto.png
+# Roda MVP premium em uma foto específica: just mvp-premium minha_foto.png
+mvp-premium foto:
+    {{python}} mvp_pipeline.py {{foto}} --mode premium
+
+# Roda MVP gratuito (teaser) em uma foto específica: just mvp-free minha_foto.png
+mvp-free foto:
+    {{python}} mvp_pipeline.py {{foto}} --mode teaser
+
+# Alias legado (premium): just mvp-foto minha_foto.png
 mvp-foto foto:
-    {{python}} mvp_pipeline.py {{foto}}
+    @just mvp-premium {{foto}}
 
-# Gera HTML premium para foto DEPOIS (padrão)
+# Gera HTML premium para foto DEPOIS (padrão, alias legado)
 mvp-web: mvp-depois
     @echo "Gerando HTML visual MVP..."
-    {{python}} build_mvp_html.py {{out_mvp}}/depois_mvp_report.json -o relatorio_mvp.html
+    {{python}} build_mvp_html.py {{out_mvp}}/$(basename {{img_depois}} | sed 's/\.[^.]*$//')_mvp_report.json -o relatorio_mvp.html
     @echo "✓ Abra relatorio_mvp.html no navegador"
 
-# Gera HTML premium para uma foto específica: just mvp-web-foto minha_foto.png
+# Gera HTML premium para uma foto específica: just mvp-web-foto minha_foto.png (alias legado)
 mvp-web-foto foto:
-    @echo "MVP analisando {{foto}}..."
-    {{python}} mvp_pipeline.py {{foto}}
+    @echo "MVP premium analisando {{foto}}..."
+    {{python}} mvp_pipeline.py {{foto}} --mode premium
     @echo "Gerando HTML visual MVP para {{foto}}..."
-    {{python}} build_mvp_html.py {{out_mvp}}/$(basename {{foto}} .png)_mvp_report.json -o $(basename {{foto}} .png)_relatorio.html
+    {{python}} build_mvp_html.py {{out_mvp}}/$(basename {{foto}} | sed 's/\.[^.]*$//')_mvp_report.json -o $(basename {{foto}} | sed 's/\.[^.]*$//')_relatorio.html
+    @echo "✓ Pronto"
+
+# Gera HTML premium (pay-per-report) para uma foto específica
+mvp-premium-web foto:
+    @echo "MVP premium analisando {{foto}}..."
+    {{python}} mvp_pipeline.py {{foto}} --mode premium
+    @echo "Gerando HTML premium para {{foto}}..."
+    {{python}} build_mvp_html.py {{out_mvp}}/$(basename {{foto}} | sed 's/\.[^.]*$//')_mvp_report.json -o $(basename {{foto}} | sed 's/\.[^.]*$//')_premium_relatorio.html
+    @echo "✓ Pronto"
+
+# Gera HTML teaser gratuito para uma foto específica
+mvp-free-web foto:
+    @echo "MVP teaser analisando {{foto}}..."
+    {{python}} mvp_pipeline.py {{foto}} --mode teaser
+    @echo "Gerando HTML teaser para {{foto}}..."
+    {{python}} build_mvp_html.py {{out_mvp}}/$(basename {{foto}} | sed 's/\.[^.]*$//')_mvp_report.json -o $(basename {{foto}} | sed 's/\.[^.]*$//')_teaser_relatorio.html
     @echo "✓ Pronto"
 
 # ──────────────────────────────────────────────
@@ -137,7 +161,7 @@ lint:
         face_asymmetry.py face_metrics.py face.py \
         impression_layer.py visual_status.py top_leverage.py \
         recommendations.py evolution_path.py mvp_pipeline.py \
-        simulate_before_after.py compare_report.py build_html_report.py
+        simulate_before_after.py compare_report.py build_html_report.py build_mvp_html.py
     @echo "✓ Sintaxe OK"
 
 # Mostra saída MVP resumida (score + ações)

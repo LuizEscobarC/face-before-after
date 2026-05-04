@@ -1,12 +1,11 @@
 
 ════════════════════════════════════════════════════════════
   ANÁLISE DE PRESENÇA VISUAL FACIAL
-  03/05/2026 22:50
+  03/05/2026 22:38
 ════════════════════════════════════════════════════════════
 
-  📸 Foto analisada : depois.jpg
-  🔄 Correção de rotação aplicada : 0.6°
-  ✂️ Enquadramento 3x4 automático : aplicado
+  📸 Foto analisada : IMG_2093.JPG
+  🔄 Correção de rotação aplicada : 0.5°
 
 ────────────────────────────────────────────────────────────
   SCORE DE SIMETRIA FACIAL
@@ -19,7 +18,7 @@
 
   O diagnóstico revelou oportunidades concretas — cada ponto tem ação clara.
 
-  🔍 Assimetria medida: 4.7% do IPD (elevada) — limiar invisível a olho nu é < 2%
+  🔍 Assimetria medida: 4.8% do IPD (elevada) — limiar invisível a olho nu é < 2%
 
 ────────────────────────────────────────────────────────────
   💬 DIAGNOSTICO DA PRIMEIRA IMPRESSAO
@@ -30,8 +29,8 @@
 ────────────────────────────────────────────────────────────
   📈 LEITURA DE STATUS VISUAL
 ────────────────────────────────────────────────────────────
-  Dominancia    : 6.4/10
-  Atratividade  : 5.2/10
+  Dominancia    : 6.3/10
+  Atratividade  : 4.7/10
   Cuidado/Frescor: 7.3/10
 
   Aparência saudável e descansada. Trabalhar simetria e proporções amplia o impacto.
@@ -47,7 +46,7 @@
 ────────────────────────────────────────────────────────────
   ⚠️  ANTES DE AGIR, MELHORE A CAPTURA:
 ────────────────────────────────────────────────────────────
-  [ENQUADRAMENTO] Gire levemente a cabeça para a esquerda até ficar frontal — o desvio lateral (15°) distorce as medidas de simetria.
+  [ENQUADRAMENTO] Gire levemente a cabeça para a esquerda até ficar frontal — o desvio lateral (31°) distorce as medidas de simetria.
 
   [NITIDEZ] Apoie o celular ou segure firme ao tirar a foto — a imagem está com movimento ou foco insuficiente, o que reduz a precisão da análise.
 
@@ -76,25 +75,14 @@
 ────────────────────────────────────────────────────────────
   📸 VISUALIZACOES GERADAS
 ────────────────────────────────────────────────────────────
-  → depois_symmetrized.jpg
+  → IMG_2093_symmetrized.jpg
      Como você ficaria com a assimetria zerada
 
-  → depois_ideal_proportions.jpg
+  → IMG_2093_ideal_proportions.jpg
      Proporções ideais sobrepostas — referência dos ajustes possíveis
 
-  → depois_comparison_grid.jpg
+  → IMG_2093_comparison_grid.jpg
      Grade comparativa: atual vs. projeção lado a lado
-
-────────────────────────────────────────────────────────────
-  📚 CATALOGO PREMIUM DE METRICAS
-────────────────────────────────────────────────────────────
-  Assimetria e Simetria: 21 métricas
-  Proporções e Estrutura: 42 métricas
-  Pele e Olheiras: 6 métricas
-  Qualidade da Captura: 10 métricas
-  Percepção e Produto: 6 métricas
-
-  (Veja o HTML premium para detalhes completos de cada métrica)
 
 ────────────────────────────────────────────────────────────
   ➜ PROXIMO PASSO

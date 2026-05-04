@@ -1,0 +1,354 @@
+{
+  "input_file": "foto-viny.jpg",
+  "generated_at": "2026-05-03T22:39:40.978937",
+  "rotation_correction_degrees": 0.46,
+  "score": 0,
+  "tier": "Baixa",
+  "tier_description": "Há potencial real a ser desbloqueado. O ajuste principal faz grande diferença.",
+  "capture_confidence": 0.458,
+  "main_insight": {
+    "metric_key": "overall_asymmetry_score_pct_ipd",
+    "short_name": "Mastigação bilateral consciente",
+    "detail": "muda como você aparece em fotos — o que as pessoas veem antes de te conhecer"
+  },
+  "measurements": {
+    "eye_level_difference_px": 0.0,
+    "eye_horizontal_asymmetry_px": 4.42,
+    "nose_deviation_px": 30.76,
+    "nose_wings_asymmetry_px": 28.89,
+    "chin_deviation_px": 1.9,
+    "mouth_center_deviation_px": 12.73,
+    "mouth_corners_asymmetry_px": 4.73,
+    "jawline_mean_asymmetry_px": 22.45,
+    "jawline_max_asymmetry_px": 34.75,
+    "overall_asymmetry_score": 12.78,
+    "ipd_px": 267.51,
+    "eye_level_difference_pct_ipd": 0.0,
+    "eye_horizontal_asymmetry_pct_ipd": 1.653,
+    "nose_deviation_pct_ipd": 11.499,
+    "nose_wings_asymmetry_pct_ipd": 10.798,
+    "chin_deviation_pct_ipd": 0.709,
+    "mouth_center_deviation_pct_ipd": 4.757,
+    "mouth_corners_asymmetry_pct_ipd": 1.769,
+    "jawline_mean_asymmetry_pct_ipd": 8.392,
+    "jawline_max_asymmetry_pct_ipd": 12.991,
+    "overall_asymmetry_score_pct_ipd": 4.779,
+    "thirds_upper_ratio": 0.224,
+    "thirds_middle_ratio": 0.387,
+    "thirds_lower_ratio": 0.389,
+    "thirds_std_dev": 0.077,
+    "fifths_std_dev": 0.033,
+    "lower_third_ratio": 0.501,
+    "fwhr": 1.653,
+    "bizygomatic_px": 609.266,
+    "bigonial_px": 502.398,
+    "jaw_width_pct_ipd": 187.806,
+    "bizygomatic_to_bigonial_ratio": 1.213,
+    "gonial_angle_left_deg": 155.485,
+    "gonial_angle_right_deg": 153.326,
+    "gonial_angle_mean_deg": 154.406,
+    "chin_projection_pct_ipd": 62.025,
+    "jawline_definition_score": 7.356,
+    "canthal_tilt_left_deg": 4.482,
+    "canthal_tilt_right_deg": 4.78,
+    "canthal_tilt_mean_deg": 4.631,
+    "eye_aspect_ratio_left": 0.355,
+    "eye_aspect_ratio_right": 0.368,
+    "eye_aspect_ratio_mean": 0.361,
+    "intercanthal_to_eyewidth_ratio": 1.519,
+    "brow_to_eyelid_left_pct_ipd": 13.716,
+    "brow_to_eyelid_right_pct_ipd": 14.436,
+    "brow_to_eyelid_mean_pct_ipd": 14.076,
+    "brow_tilt_left_deg": -11.101,
+    "brow_tilt_right_deg": -10.075,
+    "nasal_to_mouth_width_ratio": 0.544,
+    "alar_intercanthal_alignment_pct": 23.687,
+    "nasal_length_pct_face_height": 39.375,
+    "alar_width_pct_ipd": 45.644,
+    "mouth_to_ipd_ratio": 0.838,
+    "upper_lower_lip_ratio": 0.794,
+    "philtrum_length_pct_ipd": 26.893,
+    "upper_lip_thickness_pct_ipd": 10.756,
+    "lower_lip_thickness_pct_ipd": 13.554,
+    "face_height_to_width_ratio": 0.976,
+    "zygomatic_to_gonial_ratio": 1.213,
+    "face_shape_label": "redondo",
+    "marquardt_deviation_px": 20.347,
+    "marquardt_deviation_pct_ipd": 7.606,
+    "skin_uniformity_std_lab_left": 15.071,
+    "skin_uniformity_std_lab_right": 20.881,
+    "skin_uniformity_std_lab_forehead": 8.265,
+    "skin_lighting_delta_e_lr": 4.112,
+    "under_eye_darkness_left": 0.062,
+    "under_eye_darkness_right": 0.067,
+    "head_pose_yaw_deg": 31.001,
+    "head_pose_pitch_deg": 2.029,
+    "head_pose_roll_deg": -1.508,
+    "frontal_ok": false,
+    "focal_distortion_ratio": 0.2,
+    "focal_distortion_warning": false,
+    "lighting_asymmetry_delta_e": 4.112,
+    "face_pixel_width": 667,
+    "sharpness_laplacian_var": 12.303,
+    "warnings": [
+      "Pose facial fora do limite frontal (|yaw|=31.0°, |pitch|=2.0°). Métricas podem estar enviesadas.",
+      "Foto pouco nítida (variância do laplaciano=12)."
+    ]
+  },
+  "measurements_blocks": {
+    "advanced": {
+      "thirds_upper_ratio": 0.224,
+      "thirds_middle_ratio": 0.387,
+      "thirds_lower_ratio": 0.389,
+      "thirds_std_dev": 0.077,
+      "fifths_std_dev": 0.033,
+      "lower_third_ratio": 0.501,
+      "fwhr": 1.653,
+      "bizygomatic_px": 609.266,
+      "bigonial_px": 502.398,
+      "jaw_width_pct_ipd": 187.806,
+      "bizygomatic_to_bigonial_ratio": 1.213,
+      "gonial_angle_left_deg": 155.485,
+      "gonial_angle_right_deg": 153.326,
+      "gonial_angle_mean_deg": 154.406,
+      "chin_projection_pct_ipd": 62.025,
+      "jawline_definition_score": 7.356,
+      "canthal_tilt_left_deg": 4.482,
+      "canthal_tilt_right_deg": 4.78,
+      "canthal_tilt_mean_deg": 4.631,
+      "eye_aspect_ratio_left": 0.355,
+      "eye_aspect_ratio_right": 0.368,
+      "eye_aspect_ratio_mean": 0.361,
+      "intercanthal_to_eyewidth_ratio": 1.519,
+      "brow_to_eyelid_left_pct_ipd": 13.716,
+      "brow_to_eyelid_right_pct_ipd": 14.436,
+      "brow_to_eyelid_mean_pct_ipd": 14.076,
+      "brow_tilt_left_deg": -11.101,
+      "brow_tilt_right_deg": -10.075,
+      "nasal_to_mouth_width_ratio": 0.544,
+      "alar_intercanthal_alignment_pct": 23.687,
+      "nasal_length_pct_face_height": 39.375,
+      "alar_width_pct_ipd": 45.644,
+      "mouth_to_ipd_ratio": 0.838,
+      "upper_lower_lip_ratio": 0.794,
+      "philtrum_length_pct_ipd": 26.893,
+      "upper_lip_thickness_pct_ipd": 10.756,
+      "lower_lip_thickness_pct_ipd": 13.554,
+      "face_height_to_width_ratio": 0.976,
+      "zygomatic_to_gonial_ratio": 1.213,
+      "face_shape_label": "redondo",
+      "marquardt_deviation_px": 20.347,
+      "marquardt_deviation_pct_ipd": 7.606
+    },
+    "photo_quality": {
+      "head_pose_yaw_deg": 31.001,
+      "head_pose_pitch_deg": 2.029,
+      "head_pose_roll_deg": -1.508,
+      "frontal_ok": false,
+      "focal_distortion_ratio": 0.2,
+      "focal_distortion_warning": false,
+      "lighting_asymmetry_delta_e": 4.112,
+      "face_pixel_width": 667,
+      "sharpness_laplacian_var": 12.303,
+      "warnings": [
+        "Pose facial fora do limite frontal (|yaw|=31.0°, |pitch|=2.0°). Métricas podem estar enviesadas.",
+        "Foto pouco nítida (variância do laplaciano=12)."
+      ]
+    },
+    "skin": {
+      "skin_uniformity_std_lab_left": 15.071,
+      "skin_uniformity_std_lab_right": 20.881,
+      "skin_uniformity_std_lab_forehead": 8.265,
+      "skin_lighting_delta_e_lr": 4.112,
+      "under_eye_darkness_left": 0.062,
+      "under_eye_darkness_right": 0.067
+    }
+  },
+  "photo_warnings": [
+    "Pose facial fora do limite frontal (|yaw|=31.0°, |pitch|=2.0°). Métricas podem estar enviesadas.",
+    "Foto pouco nítida (variância do laplaciano=12)."
+  ],
+  "capture_recommendations": [
+    {
+      "area": "enquadramento",
+      "tip": "Gire levemente a cabeça para a esquerda até ficar frontal — o desvio lateral (31°) distorce as medidas de simetria."
+    },
+    {
+      "area": "nitidez",
+      "tip": "Apoie o celular ou segure firme ao tirar a foto — a imagem está com movimento ou foco insuficiente, o que reduz a precisão da análise."
+    }
+  ],
+  "first_impression": {
+    "headline": "Olhar jovial e energético. Ponto a refinar: assimetria facial no nível perceptível.",
+    "tags": [
+      "assimetria visível"
+    ],
+    "main_risk": "Assimetria facial no nível perceptível — é o fator com maior peso na percepção atual",
+    "positive_signal": "Olhar jovial e energético — ângulo do olhar favorável aumenta atratividade percebida"
+  },
+  "visual_status": {
+    "dominance_score": 6.32,
+    "attractiveness_score": 4.71,
+    "freshness_score": 7.35,
+    "narrative": "Aparência saudável e descansada. Trabalhar simetria e proporções amplia o impacto."
+  },
+  "top_leverage": {
+    "metric_key": "overall_asymmetry_score_pct_ipd",
+    "short_action": "Mastigação bilateral consciente",
+    "why_it_matters": "muda como você aparece em fotos — o que as pessoas veem antes de te conhecer",
+    "time_to_result": "semanas",
+    "tier": 0,
+    "deviation_score": 0.9,
+    "confidence_score": 0.613
+  },
+  "top3_actions_v2": [
+    {
+      "rank": 1,
+      "metric_key": "overall_asymmetry_score_pct_ipd",
+      "short_action": "Mastigação bilateral consciente",
+      "why_it_matters": "muda como você aparece em fotos — o que as pessoas veem antes de te conhecer",
+      "time_to_result": "semanas",
+      "tier": 0
+    },
+    {
+      "rank": 2,
+      "metric_key": "jawline_definition_score",
+      "short_action": "Retração cervical guiada",
+      "why_it_matters": "projeta presença antes mesmo de você falar — estrutura que transmite autoridade",
+      "time_to_result": "semanas",
+      "tier": 1
+    }
+  ],
+  "debug_top_3_actions": [
+    {
+      "rank": 1,
+      "action": "Mastigação bilateral consciente",
+      "detail": "muda como você aparece em fotos — o que as pessoas veem antes de te conhecer",
+      "tier": 0,
+      "metric_key": "overall_asymmetry_score_pct_ipd"
+    },
+    {
+      "rank": 2,
+      "action": "Retração cervical guiada",
+      "detail": "projeta presença antes mesmo de você falar — estrutura que transmite autoridade",
+      "tier": 1,
+      "metric_key": "jawline_definition_score"
+    }
+  ],
+  "debug_top_3_actions_px": [
+    {
+      "rank": 1,
+      "action": "Alinhamento da postura ao tirar fotos",
+      "detail": "O desvio da ponta do nariz é amplificado por inclinação da cabeça. Fotografar com o queixo ligeiramente para baixo e a câmera na altura dos olhos reduz esse efeito visivelmente."
+    },
+    {
+      "rank": 2,
+      "action": "Ângulo facial na foto",
+      "detail": "A assimetria da mandíbula é visualmente reduzida quando o ângulo da câmera é frontal e levemente acima do queixo. Evitar ângulos laterais em fotos de perfil."
+    },
+    {
+      "rank": 3,
+      "action": "Iluminação frontal e simétrica",
+      "detail": "A assimetria das asas do nariz é amplificada por iluminação lateral. Luz frontal difusa, como luz natural de frente, minimiza esse efeito visualmente."
+    }
+  ],
+  "evolution_path": {
+    "mutable_metrics": [
+      "overall_asymmetry_score_pct_ipd",
+      "fwhr",
+      "lower_third_ratio",
+      "mouth_to_ipd_ratio",
+      "thirds_std_dev",
+      "marquardt_deviation_pct_ipd",
+      "jaw_width_pct_ipd",
+      "jawline_definition_score"
+    ],
+    "phase_1": {
+      "label": "Esta semana (0–7 dias)",
+      "focus": "Foco em Assimetria global — ajustes de postura, expressão e registro fotográfico",
+      "actions": [
+        {
+          "titulo": "Mastigação bilateral consciente",
+          "descricao": "Alterne deliberadamente o lado da mastigação a cada refeição.",
+          "frequencia": "todas as refeições",
+          "metric_label": "Assimetria global"
+        },
+        {
+          "titulo": "Postura neutra de cabeça",
+          "descricao": "Evite head-tilt habitual; alinhe orelha sobre ombro em frente ao espelho 2× ao dia.",
+          "frequencia": "diário",
+          "metric_label": "Assimetria global"
+        },
+        {
+          "titulo": "Mastigar goma sem açúcar bilateralmente",
+          "descricao": "Hipertrofia leve do masseter aumenta percepção de largura.",
+          "frequencia": "15 min/dia",
+          "metric_label": "fWHR (largura/altura sup.)"
+        }
+      ],
+      "target_metric": "Assimetria global",
+      "reanalysis_date": "2026-05-10",
+      "reanalysis_label": "em 7 dias",
+      "confidence_score": 0.312,
+      "confidence_label": "possível"
+    },
+    "phase_2": {
+      "label": "Próximos 30 dias",
+      "focus": "Hábitos diários focados em Largura mandibular (% IPD)",
+      "actions": [
+        {
+          "titulo": "Mastigação resistida (gum/jawliner)",
+          "descricao": "Hipertrofia leve do masseter pode aumentar largura percebida.",
+          "frequencia": "10–15 min/dia",
+          "metric_label": "Largura mandibular (% IPD)"
+        },
+        {
+          "titulo": "Retração cervical guiada",
+          "descricao": "3×15 reps diário; redução de papada postural e definição do perfil.",
+          "frequencia": "diário",
+          "metric_label": "Definição da linha mandibular"
+        }
+      ],
+      "target_metric": "Largura mandibular (% IPD)",
+      "reanalysis_date": "2026-06-02",
+      "reanalysis_label": "em 30 dias",
+      "confidence_score": 0.23,
+      "confidence_label": "desafiador"
+    },
+    "phase_3": {
+      "label": "3 meses",
+      "focus": "Avaliação profissional acessível (se indicado) + consolidação",
+      "actions": [
+        {
+          "titulo": "Fisioterapia orofacial",
+          "descricao": "Avaliação para padrões assimétricos de tônus muscular.",
+          "frequencia": "1×",
+          "metric_label": "Desvio bilateral global (Marquardt)"
+        }
+      ],
+      "target_metric": "Desvio bilateral global (Marquardt)",
+      "reanalysis_date": "2026-08-01",
+      "reanalysis_label": "em 90 dias",
+      "requires_professional": true,
+      "confidence_score": 0.169,
+      "confidence_label": "desafiador"
+    },
+    "skin_alert": false
+  },
+  "next_step": {
+    "profile": "baixo",
+    "message": "Existe potencial real. O ajuste principal é acessível e começa hoje.",
+    "action": "Análise completa com acompanhamento de 3 meses e checkpoints",
+    "cta_text": "Quero entender meus 3 pontos de melhoria",
+    "cta_type": "detalhamento",
+    "urgency_hook": "Você pode começar com ‘Mastigação bilateral consciente’ ainda hoje."
+  },
+  "simulation_paths": {
+    "symmetrized": "resultado_mvp/foto-viny_symmetrized.jpg",
+    "ideal_proportions": "resultado_mvp/foto-viny_ideal_proportions.jpg",
+    "comparison_grid": "resultado_mvp/foto-viny_comparison_grid.jpg"
+  },
+  "simulation_error": null,
+  "benchmark_message": "O diagnóstico revelou oportunidades concretas — cada ponto tem ação clara.",
+  "score_context": "Análise com múltiplos pontos de melhoria — situação comum e reversível."
+}
