@@ -23,6 +23,5 @@ jobs:
             export PATH="/root/bin:$PATH"
             cd /root/app/face-before-after
             git pull origin main
-            # Build with BuildKit for better caching
-            DOCKER_BUILDKIT=1 just docker-build
+            just docker-build
             just docker-up
