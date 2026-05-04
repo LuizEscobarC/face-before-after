@@ -56,8 +56,11 @@ COPY --from=builder /opt/venv /opt/venv
 # Copy application code
 COPY api_server.py mvp_pipeline.py face.py face_asymmetry.py face_metrics.py impression_layer.py recommendations.py top_leverage.py visual_status.py glossary.py simulate_before_after.py compare_report.py evolution_path.py build_html_report.py .
 
+# Create output directories
+RUN mkdir -p /app/resultado_api /app/bkp && chmod -R 755 /app
+
 # Change ownership to non-root user
-RUN chown -R appuser:appuser /opt/venv
+RUN chown -R appuser:appuser /opt/venv /app
 
 # Switch to non-root user
 USER appuser
