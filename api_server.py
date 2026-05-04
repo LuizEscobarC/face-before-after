@@ -17,7 +17,12 @@ from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 
 import mvp_pipeline as pipeline
-from minio_client import MinIOStorage
+
+try:
+    from minio_client import MinIOStorage
+    _minio_available = True
+except ImportError:
+    _minio_available = False
 
 ALLOWED_EXTENSIONS = {".png", ".jpg", ".jpeg"}
 MAX_UPLOAD_BYTES = 15 * 1024 * 1024
@@ -46,12 +51,14 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Inicializar MinIO
-minio_storage = MinIOStorage()
-try:
-    minio_storage.ensure_bucket()
-except Exception as e:
-    print(f"⚠️ Aviso: MinIO não disponível ainda: {e}")
+# Inicializar MinIO (opcional)
+minio_storage = None
+if _minio_available:
+    try:
+        minio_storage = MinIOStorage()
+        minio_storage.ensure_bucket()
+    except Exception as e:
+        print(f"⚠️ Aviso: MinIO não disponível ainda: {e}")
 
 
 def _validate_upload(upload: UploadFile, raw: bytes) -> None:
@@ -79,7 +86,7 @@ def _run_analysis(upload: UploadFile, mode: str) -> dict:
     _validate_upload(upload, raw)
 
     run_id = uuid.uuid4().hex[:12]
-    out_dir = Path("resultado_api") / run_id
+    out_dir = Path("/app/resultado_api") / run_id
     out_dir.mkdir(parents=True, exist_ok=True)
 
     safe_name = Path(upload.filename or "upload.jpg").name
@@ -93,14 +100,15 @@ def _run_analysis(upload: UploadFile, mode: str) -> dict:
     except Exception as exc:  # pragma: no cover - segurança de borda
         raise HTTPException(status_code=500, detail=f"Erro interno: {exc}") from exc
 
-    # Salvar foto original no MinIO
-    try:
-        minio_path = f"uploads/{run_id}/{safe_name}"
-        minio_storage.upload_file(raw, minio_path)
-        result["photo_url"] = f"minio://{minio_path}"
-    except Exception as e:
-        print(f"⚠️ Aviso: Não consegui salvar no MinIO: {e}")
-        result["photo_url"] = None
+    # Salvar foto original no MinIO (opcional)
+    result["photo_url"] = None
+    if minio_storage:
+        try:
+            minio_path = f"uploads/{run_id}/{safe_name}"
+            minio_storage.upload_file(raw, minio_path)
+            result["photo_url"] = f"minio://{minio_path}"
+        except Exception as e:
+            print(f"⚠️ Aviso: Não consegui salvar no MinIO: {e}")
 
     result["run_id"] = run_id
     result["output_dir"] = str(out_dir)
