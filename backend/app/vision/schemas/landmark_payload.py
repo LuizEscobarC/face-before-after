@@ -37,6 +37,14 @@ class SubscoreBreakdown(BaseModel):
     expression_score: float
 
 
+class FaceBbox(BaseModel):
+    """Face bounding box in pixels, relative to the image sent to the service."""
+    x: int
+    y: int
+    w: int
+    h: int
+
+
 QualityGrade = Literal["ALTA", "MEDIA", "BAIXA", "REJEITADA"]
 ProcessingMode = Literal["CLIENT_SIDE", "SERVER_FALLBACK"]
 
@@ -58,6 +66,7 @@ class LandmarkPayload(BaseModel):
     sharpness_score: float = 0.0
     lighting_asymmetry: float = 0.0
     subscore_breakdown: SubscoreBreakdown | None = None
+    face_bbox: FaceBbox | None = None  # pixel coords in the received image
 
 
 class LandmarkRequest(BaseModel):

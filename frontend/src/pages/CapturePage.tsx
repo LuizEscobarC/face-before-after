@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import {
   analyzePhoto,
   compareRuns,
+  cropImageToFace,
   fetchCaptureGuidelines,
   validatePhotoQuality,
   type PhotoQualityDecision,
@@ -110,7 +111,11 @@ export function CapturePage() {
     setBusy(true);
     setError("");
     try {
-      const result = await analyzePhoto(mode, file);
+      // Crop to the face bounding box returned by the quality check (+ 30% padding).
+      // If no bbox available (e.g. quality was skipped), fall back to the original file.
+      const fileToAnalyze =
+        quality?.face_bbox ? await cropImageToFace(file, quality.face_bbox) : file;
+      const result = await analyzePhoto(mode, fileToAnalyze);
       navigate(mode === "premium" ? "/resultado/premium" : "/resultado/free", {
         state: { result },
       });

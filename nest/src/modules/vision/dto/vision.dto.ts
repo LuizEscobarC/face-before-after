@@ -35,6 +35,8 @@ export class LandmarkResponseDto {
   @ApiProperty() sharpness_score!: number;
   @ApiProperty() lighting_asymmetry!: number;
   @ApiProperty() subscore_breakdown!: Record<string, number>;
+  @ApiPropertyOptional()
+  face_bbox?: { x: number; y: number; w: number; h: number };
 }
 
 export class QualityContextDto {

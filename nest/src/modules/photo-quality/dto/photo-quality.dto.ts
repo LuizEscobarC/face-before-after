@@ -48,4 +48,7 @@ export class PhotoQualityDecisionDto {
 
   @ApiProperty()
   processing_mode!: string;
+
+  @ApiPropertyOptional()
+  face_bbox?: { x: number; y: number; w: number; h: number };
 }

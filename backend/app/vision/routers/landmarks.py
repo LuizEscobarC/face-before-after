@@ -6,6 +6,7 @@ import uuid
 from fastapi import APIRouter, HTTPException
 
 from app.vision.schemas.landmark_payload import (
+    FaceBbox,
     LandmarkPayload,
     LandmarkRequest,
     PoseAngles,
@@ -63,6 +64,7 @@ def get_landmarks(req: LandmarkRequest) -> LandmarkPayload:
         }
         landmarks_list: list[list[float]] = empty_landmarks
         face_width_ratio = 0.0
+        face_bbox: FaceBbox | None = None
     else:
         face_rect = faces[0]
         landmarks = face_detection.extract_landmarks(image, face_rect)
@@ -70,6 +72,12 @@ def get_landmarks(req: LandmarkRequest) -> LandmarkPayload:
         quality = quality_evaluator.evaluate(image, landmarks, pose, face_count)
         landmarks_list = landmarks.tolist()
         face_width_ratio = float(face_rect.width()) / float(w) if w > 0 else 0.0
+        face_bbox = FaceBbox(
+            x=int(face_rect.left()),
+            y=int(face_rect.top()),
+            w=int(face_rect.width()),
+            h=int(face_rect.height()),
+        )
 
     fingerprint, fingerprint_parts = build_session_fingerprint(
         flags=quality["flags"],
@@ -102,4 +110,5 @@ def get_landmarks(req: LandmarkRequest) -> LandmarkPayload:
         sharpness_score=quality["sharpness_score"],
         lighting_asymmetry=quality["lighting_asymmetry"],
         subscore_breakdown=SubscoreBreakdown(**quality["subscore_breakdown"]),
+        face_bbox=face_bbox,
     )

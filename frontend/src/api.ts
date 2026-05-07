@@ -75,7 +75,47 @@ export type PhotoQualityDecision = {
   lighting_asymmetry: number;
   session_id: string;
   processing_mode: string;
+  face_bbox?: { x: number; y: number; w: number; h: number };
 };
+
+/**
+ * Crop a file to its detected face bounding box (+ padding) using the
+ * same 1280px-resized frame the backend already processed.
+ * Returns a new File ready to pass to analyzePhoto().
+ */
+export async function cropImageToFace(
+  file: File,
+  bbox: { x: number; y: number; w: number; h: number },
+  padding = 0.30,
+): Promise<File> {
+  const resizedDataUrl = await prepareImageBase64(file);
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      const pad = Math.round(Math.max(bbox.w, bbox.h) * padding);
+      const x = Math.max(0, bbox.x - pad);
+      const y = Math.max(0, bbox.y - pad);
+      const w = Math.min(img.naturalWidth - x, bbox.w + 2 * pad);
+      const h = Math.min(img.naturalHeight - y, bbox.h + 2 * pad);
+      const canvas = document.createElement("canvas");
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) { reject(new Error("Canvas não disponível.")); return; }
+      ctx.drawImage(img, x, y, w, h, 0, 0, w, h);
+      canvas.toBlob(
+        (blob) => {
+          if (!blob) { reject(new Error("Crop falhou.")); return; }
+          resolve(new File([blob], file.name, { type: "image/jpeg" }));
+        },
+        "image/jpeg",
+        0.92,
+      );
+    };
+    img.onerror = () => reject(new Error("Falha ao carregar imagem para crop."));
+    img.src = resizedDataUrl;
+  });
+}
 
 export async function validatePhotoQuality(
   file: File,

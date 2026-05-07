@@ -34,6 +34,7 @@ export class PhotoQualityService {
       lighting_asymmetry: landmarkResponse.lighting_asymmetry,
       session_id: landmarkResponse.session_id,
       processing_mode: landmarkResponse.processing_mode,
+      face_bbox: landmarkResponse.face_bbox,
     };
   }
 
