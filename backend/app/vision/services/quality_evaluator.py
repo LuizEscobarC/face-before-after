@@ -38,10 +38,10 @@ def _linear_decay(value: float, ideal: float, fail: float) -> float:
 
 
 def _pose_score(pose: dict[str, float]) -> float:
-    yaw_s = _linear_decay(pose["yaw"], *POSE_LIMITS["yaw"])
-    pitch_s = _linear_decay(pose["pitch"], *POSE_LIMITS["pitch"])
-    roll_s = _linear_decay(pose["roll"], *POSE_LIMITS["roll"])
-    return float(min(yaw_s, pitch_s, roll_s))
+    yaw_score = _linear_decay(pose["yaw"], *POSE_LIMITS["yaw"])
+    pitch_score = _linear_decay(pose["pitch"], *POSE_LIMITS["pitch"])
+    roll_score = _linear_decay(pose["roll"], *POSE_LIMITS["roll"])
+    return float(min(yaw_score, pitch_score, roll_score))
 
 
 def _face_bbox_from_landmarks(landmarks: np.ndarray, image_shape: tuple[int, int]) -> tuple[int, int, int, int]:
@@ -80,29 +80,29 @@ def compute_lighting(image_bgr: np.ndarray, landmarks: np.ndarray) -> tuple[floa
 
     crop = image_bgr[y0:y1, x0:x1]
     lab = cv2.cvtColor(crop, cv2.COLOR_BGR2LAB)
-    l_channel = lab[:, :, 0].astype(np.float32)
+    luminance_channel = lab[:, :, 0].astype(np.float32)
 
-    mean_l = float(np.mean(l_channel))
-    mid = (x1 - x0) // 2
-    left_mean = float(np.mean(l_channel[:, :mid])) if mid > 0 else mean_l
-    right_mean = float(np.mean(l_channel[:, mid:])) if mid > 0 else mean_l
-    asym = abs(left_mean - right_mean)
+    mean_luminance = float(np.mean(luminance_channel))
+    horizontal_midpoint = (x1 - x0) // 2
+    left_luminance = float(np.mean(luminance_channel[:, :horizontal_midpoint])) if horizontal_midpoint > 0 else mean_luminance
+    right_luminance = float(np.mean(luminance_channel[:, horizontal_midpoint:])) if horizontal_midpoint > 0 else mean_luminance
+    lighting_asymmetry_delta = abs(left_luminance - right_luminance)
 
     # Exposure score
-    exposure_dist = abs(mean_l - LIGHTING_TARGET_MEAN)
-    if exposure_dist >= LIGHTING_TOLERANCE:
+    exposure_distance = abs(mean_luminance - LIGHTING_TARGET_MEAN)
+    if exposure_distance >= LIGHTING_TOLERANCE:
         exposure_score = 0.0
     else:
-        exposure_score = float(1.0 - exposure_dist / LIGHTING_TOLERANCE)
+        exposure_score = float(1.0 - exposure_distance / LIGHTING_TOLERANCE)
 
     # Symmetry score
-    if asym >= LIGHTING_ASYM_FLOOR:
-        sym_score = 0.0
+    if lighting_asymmetry_delta >= LIGHTING_ASYM_FLOOR:
+        symmetry_score = 0.0
     else:
-        sym_score = float(1.0 - asym / LIGHTING_ASYM_FLOOR)
+        symmetry_score = float(1.0 - lighting_asymmetry_delta / LIGHTING_ASYM_FLOOR)
 
-    score = float(min(exposure_score, sym_score))
-    return score, round(asym, 2), round(mean_l, 2)
+    score = float(min(exposure_score, symmetry_score))
+    return score, round(lighting_asymmetry_delta, 2), round(mean_luminance, 2)
 
 
 def _grade_from_score(score: float) -> str:
@@ -112,24 +112,24 @@ def _grade_from_score(score: float) -> str:
     return "REJEITADA"
 
 
-def _build_recommendations(subs: dict[str, float], pose: dict[str, float], asym: float) -> list[str]:
+def _build_recommendations(subscores: dict[str, float], pose: dict[str, float], lighting_asymmetry: float) -> list[str]:
     """Priority order: pose > sharpness > lighting > occlusion > expression. Returns up to 3 tips."""
     tips: list[str] = []
 
-    if subs["pose_score"] < 0.7:
-        worst = max(("yaw", "pitch", "roll"), key=lambda k: abs(pose[k]))
-        if worst == "yaw":
+    if subscores["pose_score"] < 0.7:
+        worst_axis = max(("yaw", "pitch", "roll"), key=lambda k: abs(pose[k]))
+        if worst_axis == "yaw":
             tips.append("Olhe diretamente para a câmera — você está virando o rosto.")
-        elif worst == "pitch":
+        elif worst_axis == "pitch":
             tips.append("Mantenha a cabeça nivelada — sem inclinar para cima ou para baixo.")
         else:
             tips.append("Endireite a cabeça — ela está inclinada lateralmente.")
 
-    if subs["sharpness_score"] < 0.7:
+    if subscores["sharpness_score"] < 0.7:
         tips.append("Reduza o desfoque: apoie o celular ou aproxime-se com firmeza.")
 
-    if subs["lighting_score"] < 0.7:
-        if asym >= 15:
+    if subscores["lighting_score"] < 0.7:
+        if lighting_asymmetry >= 15:
             tips.append("Ilumine o rosto de frente — há sombra forte de um lado.")
         else:
             tips.append("Ajuste a iluminação: a foto está muito escura ou muito clara.")
@@ -150,8 +150,8 @@ def evaluate(
     face_ok = 1.0 if face_count == 1 else 0.0
 
     pose_score = _pose_score(pose) if face_ok else 0.0
-    sharpness_score, blur_var = compute_blur_score(image_bgr, landmarks) if face_ok else (0.0, 0.0)
-    lighting_score, lighting_asym, mean_l = compute_lighting(image_bgr, landmarks) if face_ok else (0.0, 0.0, 0.0)
+    sharpness_score, blur_variance = compute_blur_score(image_bgr, landmarks) if face_ok else (0.0, 0.0)
+    lighting_score, lighting_asymmetry, mean_luminance = compute_lighting(image_bgr, landmarks) if face_ok else (0.0, 0.0, 0.0)
 
     # Placeholders — to be replaced by real detection in a future phase.
     occlusion_score = 1.0
@@ -171,7 +171,7 @@ def evaluate(
     )
     grade = _grade_from_score(score)
 
-    recommendations = _build_recommendations(subscores, pose, lighting_asym) if face_ok else [
+    recommendations = _build_recommendations(subscores, pose, lighting_asymmetry) if face_ok else [
         "Nenhum rosto detectado — capture um rosto único e centralizado." if face_count == 0
         else "Mais de um rosto detectado — capture apenas um rosto na foto."
     ]
@@ -181,9 +181,9 @@ def evaluate(
         "quality_grade": grade,
         "subscore_breakdown": subscores,
         "sharpness_score": round(sharpness_score, 4),
-        "lighting_asymmetry": lighting_asym,
-        "mean_luminance": mean_l,
-        "blur_variance": blur_var,
+        "lighting_asymmetry": lighting_asymmetry,
+        "mean_luminance": mean_luminance,
+        "blur_variance": blur_variance,
         "recommendations": recommendations,
         "regional_penalties": {"jaw": 0.0, "eye": 0.0, "nose": 0.0, "brow": 0.0, "mouth": 0.0},
         "flags": {
