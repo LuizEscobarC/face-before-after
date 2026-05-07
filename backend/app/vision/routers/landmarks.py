@@ -66,18 +66,14 @@ def get_landmarks(req: LandmarkRequest) -> LandmarkPayload:
         face_width_ratio = 0.0
         face_bbox: FaceBbox | None = None
     else:
-        face_rect = faces[0]
-        landmarks = face_detection.extract_landmarks(image, face_rect)
+        face_result = faces[0]
+        landmarks = face_detection.extract_landmarks(image, face_result)
         pose = estimate_pose(landmarks, (h, w))
         quality = quality_evaluator.evaluate(image, landmarks, pose, face_count)
         landmarks_list = landmarks.tolist()
-        face_width_ratio = float(face_rect.width()) / float(w) if w > 0 else 0.0
-        face_bbox = FaceBbox(
-            x=int(face_rect.left()),
-            y=int(face_rect.top()),
-            w=int(face_rect.width()),
-            h=int(face_rect.height()),
-        )
+        bx, by, bw, bh = face_result.bbox
+        face_width_ratio = float(bw) / float(w) if w > 0 else 0.0
+        face_bbox = FaceBbox(x=int(bx), y=int(by), w=int(bw), h=int(bh))
 
     fingerprint, fingerprint_parts = build_session_fingerprint(
         flags=quality["flags"],

@@ -10,7 +10,6 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any, Dict
 
-import dlib
 import numpy as np
 
 
@@ -19,7 +18,8 @@ class CanonicalFrame:
     image: np.ndarray
     landmarks: np.ndarray
     ipd_px: float
-    face_rect: dlib.rectangle
+    # Bounding box of the face in the canonical image: (x, y, w, h) in pixels.
+    face_rect: tuple[int, int, int, int]
     source_path: str
     crop_metadata: Dict[str, Any] = field(default_factory=dict)
 
@@ -30,3 +30,8 @@ class CanonicalFrame:
     @property
     def height(self) -> int:
         return int(self.image.shape[0])
+
+    @property
+    def face_width(self) -> int:
+        """Width of the detected face bbox in pixels."""
+        return int(self.face_rect[2]) if self.face_rect else 0

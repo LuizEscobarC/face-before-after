@@ -1,19 +1,19 @@
-<!-- Session: b71414a7-9409-4e9a-86e1-8ee931d263dc | Stop hook | 2026-05-07T18:26:26.113084 -->
+<!-- Session: b71414a7-9409-4e9a-86e1-8ee931d263dc | Stop hook | 2026-05-07T18:56:37.895919 -->
 
 ## Session Summary -- Execution Phase
-**Saved:** 2026-05-07 18:26:26  |  Session: b71414a7-9409-4e9a-86e1-8ee931d263dc
+**Saved:** 2026-05-07 18:56:37  |  Session: b71414a7-9409-4e9a-86e1-8ee931d263dc
 
 ### Last User Request
-> Base directory for this skill: /home/luizescobal/.claude/skills/auto-execute-prompt  # Auto Execute Prompt (C+B)  Encadeia plano aprovado → prompt gerado → execução com modelo recomendado, sem o usuário precisar especificar o modelo manualmente.  ## Pré-requisitos  1. Existe um plano em `.claude/local/plans/*.md` (não-CLAUDE_CONTEXT) com a seção:    ```    ## Recommended Execution Model    - **Mod
+> Base directory for this skill: /home/luizescobal/.claude/skills/prompt-initializer  # Prompt Initializer — High-Fidelity Context Orchestrator (6-Layer Protocol)  **MANDATORY SKILL** — creates a structured `.prompt.md` file for tasks arriving in chat while executing a **6-layer Precise Context Injection protocol** that eliminates hallucinations, enforces architectural safety, and ensures every task
 
 ### Key Decisions & Actions
-- Bloqueadores limpos: arch é **x86_64** (MediaPipe tem wheel oficial), libs nativas já presentes (`libglib2.0-0`, `libsm6`, `libxext6`). Falta apenas `libgl1` confirmado — `opencv-python-headless` cobr
-- Step 1 OK. Modo não-interativo — seguindo direto para Step 2.  ## Step 2 — `/prompt-initializer`
-- A skill é Laravel-centric (referencia `ai_context_master.md`, multi-tenant `tenant_id`, `mysql_dados`, `pint`, `vendor/bin`, Postman). **Nada disso existe aqui** — vou seguir o **espírito** (6-layer: 
-- **Identifiers verificados:** - API pública atual: `detect_faces(image_bgr) → list[dlib.rectangle]`, `extract_landmarks(image_bgr, face_rect) → np.ndarray(68,2)`, `detect_and_extract(image_bgr) → (land
-- Prompt validado. Step 2 OK. Modo não-interativo — seguindo direto para Step 3.  ## Step 3 — `/auto-execute-prompt`
-- O plano emitiu o modelo no formato `**sonnet**` (sem o prefixo `**Model:**` que a regex da skill espera). Vou normalizar editando o plano antes de prosseguir — assim o regex strict bate e o pipeline f
-- Disparando o subagent com modelo `sonnet`, prompt do arquivo, instruído a seguir o workflow `execute-prompt`.
+- Estado atual: `face_detection.py` está na versão anterior (MediaPipe com subset 68 + FaceRect + fallback dlib). Preciso criar um plano operacional novo refletindo a direção atual.
+- Seguindo o espírito da skill (adaptada para Python/FastAPI). Vou ler os arquivos críticos antes de escrever o plano.
+- Tenho o que preciso. `face.py` é um arquivo legado antigo com dlib na raiz — não é usado pelo pipeline atual (o pipeline atual usa `canonical_frame.py`). `landmarks.py` usa `face_rect.width()/left()/t
+- Agora tenho o quadro completo. `canonical_frame.py` importa `dlib` diretamente no tipo de `face_rect`. Vou escrever o plano operacional.
+- Plano validado. Seguindo para Step 2 — `/prompt-initializer`.
+- Seguindo o espírito da skill (adaptada para Python/FastAPI). Criando o `.prompt.md` diretamente com o contexto já carregado nos passos anteriores.
+- Prompt criado e validado. Seguindo para Step 3 — `/auto-execute-prompt` com modelo **opus**.
 
 ### Chain-of-Session
 ```
@@ -24,13 +24,13 @@ Execution  -- read plan, build
 **Current phase:** [Execution] Execution
 
 ### Recent Messages (last 8)
+- **ASSISTANT:** Plano validado. Seguindo para Step 2 — `/prompt-initializer`.
 - **ASSISTANT:** [tool:Skill]
-- **USER:** Base directory for this skill: /home/luizescobal/.claude/skills/auto-execute-prompt  # Auto Execute Prompt (C+B)  Encadeia plano aprovado → prompt gerado → execução com modelo recomendado, sem o usuário precisar especificar o modelo manualmente.  ## 
+- **USER:** Base directory for this skill: /home/luizescobal/.claude/skills/prompt-initializer  # Prompt Initializer — High-Fidelity Context Orchestrator (6-Layer Protocol)  **MANDATORY SKILL** — creates a structured `.prompt.md` file for tasks arriving in chat 
+- **ASSISTANT:** Seguindo o espírito da skill (adaptada para Python/FastAPI). Criando o `.prompt.md` diretamente com o contexto já carregado nos passos anteriores.
+- **ASSISTANT:** [tool:Write]
 - **ASSISTANT:** [tool:Bash]
-- **ASSISTANT:** O plano emitiu o modelo no formato `**sonnet**` (sem o prefixo `**Model:**` que a regex da skill espera). Vou normalizar editando o plano antes de prosseguir — assim o regex strict bate e o pipeline fica reproducível.
-- **ASSISTANT:** [tool:Edit]
-- **ASSISTANT:** [tool:Bash]
-- **ASSISTANT:** Disparando o subagent com modelo `sonnet`, prompt do arquivo, instruído a seguir o workflow `execute-prompt`.
+- **ASSISTANT:** Prompt criado e validado. Seguindo para Step 3 — `/auto-execute-prompt` com modelo **opus**.
 - **ASSISTANT:** [tool:Agent]
 
 ---

@@ -17,6 +17,28 @@ from typing import TYPE_CHECKING, Any, Dict, List, Sequence, Tuple
 import cv2
 import numpy as np
 
+from app.domain.landmarks_mesh import (
+    LM_JAWLINE,
+    P_BROW_LEFT_INNER,
+    P_BROW_LEFT_MID,
+    P_BROW_LEFT_OUTER,
+    P_BROW_RIGHT_INNER,
+    P_BROW_RIGHT_MID,
+    P_BROW_RIGHT_OUTER,
+    P_LEFT_EYE_INNER,
+    P_LEFT_EYE_OUTER,
+    P_LEFT_MOUTH,
+    P_MENTON,
+    P_NASION,
+    P_NOSE_LEFT,
+    P_NOSE_RIGHT,
+    P_RIGHT_EYE_INNER,
+    P_RIGHT_EYE_OUTER,
+    P_RIGHT_MOUTH,
+    P_SUBNASALE,
+    TOTAL_LANDMARKS,
+)
+
 if TYPE_CHECKING:
     from app.domain.canonical_frame import CanonicalFrame
 
@@ -96,15 +118,17 @@ def _label(
 
 def _midline_x(lm: Landmarks) -> int:
     """Linha média estimada: média horizontal entre os dois cantos externos dos olhos."""
-    return int((lm[36][0] + lm[45][0]) / 2)
+    return int((lm[P_LEFT_EYE_OUTER][0] + lm[P_RIGHT_EYE_OUTER][0]) / 2)
 
 
 def _half_asymmetry(lm: Landmarks, midline: int, side: str) -> float:
-    """Assimetria média dos landmarks de um lado em relação à linha média."""
+    """Assimetria média dos landmarks da metade esq/dir da jawline em relação à linha média."""
     if side == "left":
-        points = lm[:9]  # landmarks 0–8 (metade esquerda da mandíbula + olho esq)
+        # Jawline points dlib 0–8 — first half + chin centre.
+        points = [lm[i] for i in LM_JAWLINE[:9]]
     else:
-        points = lm[8:17]  # landmarks 8–16 (metade direita)
+        # Jawline points dlib 8–16 — chin centre + second half.
+        points = [lm[i] for i in LM_JAWLINE[8:17]]
     if not points:
         return 0.0
     dists = [abs(p[0] - midline) for p in points]
@@ -186,10 +210,10 @@ def annotate_ideal_proportions(
     # y_glabella ~ média lm[21][1] e lm[22][1]
     # y_nasion ~ lm[27][1]
     # y_menton ~ lm[8][1]
-    y_top = min(lm[19][1], lm[24][1])  # topo sobrancelhas
-    y_glabella = int((lm[21][1] + lm[22][1]) / 2)
-    y_nasion = lm[27][1]
-    y_menton = lm[8][1]
+    y_top = min(lm[P_BROW_LEFT_MID][1], lm[P_BROW_RIGHT_MID][1])  # topo sobrancelhas
+    y_glabella = int((lm[P_BROW_LEFT_INNER][1] + lm[P_BROW_RIGHT_INNER][1]) / 2)
+    y_nasion = lm[P_NASION][1]
+    y_menton = lm[P_MENTON][1]
 
     face_h = y_menton - y_top
     y_t1 = y_top + face_h // 3
@@ -202,8 +226,8 @@ def annotate_ideal_proportions(
     # ------------------------------------------------------------------
     # 2. Quintos verticais
     # ------------------------------------------------------------------
-    x_left_temple = lm[0][0]
-    x_right_temple = lm[16][0]
+    x_left_temple = lm[LM_JAWLINE[0]][0]
+    x_right_temple = lm[LM_JAWLINE[16]][0]
     face_w = x_right_temple - x_left_temple
     fifth = face_w // 5
 
@@ -216,8 +240,8 @@ def annotate_ideal_proportions(
     # 3. Ângulo cantal ideal (+5°) vs real
     # ------------------------------------------------------------------
     for eye_med_idx, eye_lat_idx, label_prefix in [
-        (39, 36, "OE"),
-        (42, 45, "OD"),
+        (P_LEFT_EYE_INNER, P_LEFT_EYE_OUTER, "OE"),
+        (P_RIGHT_EYE_INNER, P_RIGHT_EYE_OUTER, "OD"),
     ]:
         med = lm[eye_med_idx]
         lat = lm[eye_lat_idx]
@@ -249,10 +273,10 @@ def annotate_ideal_proportions(
     # ------------------------------------------------------------------
     # 4. Guia largura ideal do nariz (70% da boca)
     # ------------------------------------------------------------------
-    x_alar_l = lm[31][0]
-    x_alar_r = lm[35][0]
-    x_mouth_l = lm[48][0]
-    x_mouth_r = lm[54][0]
+    x_alar_l = lm[P_NOSE_LEFT][0]
+    x_alar_r = lm[P_NOSE_RIGHT][0]
+    x_mouth_l = lm[P_LEFT_MOUTH][0]
+    x_mouth_r = lm[P_RIGHT_MOUTH][0]
 
     mouth_w = x_mouth_r - x_mouth_l
     ideal_alar_w = int(mouth_w * 0.70)
@@ -264,7 +288,7 @@ def annotate_ideal_proportions(
     alar_dev = abs(real_alar_w - ideal_alar_w)
     alar_color = _deviation_color(float(alar_dev) / max(1, mouth_w) * 20)
 
-    y_alar = lm[33][1] + 8
+    y_alar = lm[P_SUBNASALE][1] + 8
     cv2.line(img, (x_alar_l, y_alar), (x_alar_r, y_alar), alar_color, 2)
     cv2.line(img, (ideal_alar_l, y_alar + 6), (ideal_alar_r, y_alar + 6), _GREEN, 1)
     _label(img, "Nariz ideal (70% boca)", (ideal_alar_l, y_alar + 18), color=_GREEN)
@@ -297,9 +321,9 @@ def simulate(
     """
     img = frame.image
     landmarks_arr = frame.landmarks
-    if landmarks_arr.shape[0] < 68:
+    if landmarks_arr.shape[0] < TOTAL_LANDMARKS:
         raise ValueError(
-            f"Esperado 68 landmarks, recebidos {landmarks_arr.shape[0]}"
+            f"Esperado {TOTAL_LANDMARKS} landmarks, recebidos {landmarks_arr.shape[0]}"
         )
     landmarks: Landmarks = [tuple(map(int, pt)) for pt in landmarks_arr]
 

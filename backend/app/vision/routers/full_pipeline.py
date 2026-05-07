@@ -93,7 +93,7 @@ async def _execute(image_bytes: bytes, filename: str, mode: str, storage: MinIOS
                 h, w = img_bgr.shape[:2]
                 pose = estimate_pose(landmarks, (h, w))
                 quality = quality_evaluator.evaluate(img_bgr, landmarks, pose, 1)
-                face_width_ratio = float(faces[0].width()) / float(w) if w > 0 else 0.0
+                face_width_ratio = float(faces[0].bbox[2]) / float(w) if w > 0 else 0.0
                 fingerprint_hash, fingerprint_parts = build_session_fingerprint(
                     quality["flags"], pose, quality.get("mean_luminance", 0.0), face_width_ratio
                 )

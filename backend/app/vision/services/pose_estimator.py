@@ -1,4 +1,4 @@
-"""Head pose estimation via OpenCV solvePnP using 6 stable 68-point landmarks."""
+"""Head pose estimation via OpenCV solvePnP using 6 stable Mesh-478 landmarks."""
 from __future__ import annotations
 
 import math
@@ -6,22 +6,26 @@ import math
 import cv2
 import numpy as np
 
+from app.domain.landmarks_mesh import PNP_LANDMARK_INDICES
+
 
 # 3D model coordinates (mm, approx) for 6 anchor points used in pose estimation.
 # Reference: Mallick, "Head Pose Estimation using OpenCV and Dlib".
+# The 3D anatomy is unchanged from the dlib version — only the 2D indices below
+# now point to the equivalent Mesh-478 landmarks.
 _MODEL_3D = np.array(
     [
-        (0.0, 0.0, 0.0),          # 30 — nose tip
-        (0.0, -63.6, -12.5),      # 8  — chin
-        (-43.3, 32.7, -26.0),     # 36 — left eye outer corner
-        (43.3, 32.7, -26.0),      # 45 — right eye outer corner
-        (-28.9, -28.9, -24.1),    # 48 — left mouth corner
-        (28.9, -28.9, -24.1),     # 54 — right mouth corner
+        (0.0, 0.0, 0.0),          # nose tip      (mesh 1   / dlib 30)
+        (0.0, -63.6, -12.5),      # chin (menton) (mesh 152 / dlib 8)
+        (-43.3, 32.7, -26.0),     # left eye outer corner  (mesh 33  / dlib 36)
+        (43.3, 32.7, -26.0),      # right eye outer corner (mesh 263 / dlib 45)
+        (-28.9, -28.9, -24.1),    # left mouth corner      (mesh 61  / dlib 48)
+        (28.9, -28.9, -24.1),     # right mouth corner     (mesh 291 / dlib 54)
     ],
     dtype=np.float64,
 )
 
-_LANDMARK_INDICES = [30, 8, 36, 45, 48, 54]
+_LANDMARK_INDICES = PNP_LANDMARK_INDICES
 
 
 def estimate_pose(landmarks: np.ndarray, image_size: tuple[int, int]) -> dict[str, float]:

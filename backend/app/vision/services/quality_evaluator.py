@@ -9,6 +9,19 @@ from typing import Any
 import cv2
 import numpy as np
 
+from app.domain.landmarks_mesh import (
+    LM_INNER_MOUTH,
+    LM_JAWLINE,
+    LM_LEFT_EYE,
+    LM_NOSE_BRIDGE,
+    LM_OUTER_MOUTH,
+    LM_RIGHT_EYE,
+    P_LEFT_MOUTH,
+    P_LOWER_LIP,
+    P_MENTON,
+    P_RIGHT_MOUTH,
+)
+
 
 # ---------------------------------------------------------------------------
 # Tunables
@@ -119,9 +132,10 @@ def detect_flags(image_bgr: np.ndarray, landmarks: np.ndarray) -> dict:
     h, w = image_bgr.shape[:2]
 
     # ── Beard ──────────────────────────────────────────────────────────────────
-    # Chin ROI: x-span of jaw landmarks 5–11, y from top-of-mouth to bottom-of-chin
-    jaw_pts = landmarks[5:12]
-    mouth_pts = landmarks[48:68]
+    # Chin ROI: x-span of lateral jaw landmarks (slice [5:12] of the 17-pt jawline)
+    # plus y from top-of-mouth to bottom-of-chin.
+    jaw_pts = landmarks[LM_JAWLINE[5:12]]
+    mouth_pts = landmarks[LM_OUTER_MOUTH + LM_INNER_MOUTH]
     mouth_top_y = int(np.min(mouth_pts[:, 1]))
     chin_y = int(np.max(jaw_pts[:, 1]))
     beard_x_min = int(max(0, np.min(jaw_pts[:, 0])))
@@ -140,8 +154,8 @@ def detect_flags(image_bgr: np.ndarray, landmarks: np.ndarray) -> dict:
             beard = beard_density > 0.35
 
     # ── Glasses ────────────────────────────────────────────────────────────────
-    # Eye ROI: landmarks 36–47 expanded by 20px
-    eye_pts = landmarks[36:48]
+    # Eye ROI: combined left + right eye landmarks expanded by 20px
+    eye_pts = landmarks[LM_LEFT_EYE + LM_RIGHT_EYE]
     eye_x_min = int(max(0, np.min(eye_pts[:, 0]))) - 20
     eye_x_max = int(min(w - 1, np.max(eye_pts[:, 0]))) + 20
     eye_y_min = int(max(0, np.min(eye_pts[:, 1]))) - 20
@@ -159,12 +173,12 @@ def detect_flags(image_bgr: np.ndarray, landmarks: np.ndarray) -> dict:
         glasses = edge_density > 0.28
 
     # ── Smile ──────────────────────────────────────────────────────────────────
-    # landmark 48 = left corner, 54 = right corner, 57 = bottom center
-    # Normalize lift by nose-bridge-to-chin distance to be resolution-independent
-    corners_y = (landmarks[48][1] + landmarks[54][1]) / 2.0
-    center_y = landmarks[57][1]
+    # P_LEFT_MOUTH = left corner, P_RIGHT_MOUTH = right corner, P_LOWER_LIP = bottom center.
+    # Normalize lift by nose-bridge-to-chin distance to be resolution-independent.
+    corners_y = (landmarks[P_LEFT_MOUTH][1] + landmarks[P_RIGHT_MOUTH][1]) / 2.0
+    center_y = landmarks[P_LOWER_LIP][1]
     lift = float(center_y - corners_y)
-    face_ref_height = float(landmarks[8][1] - landmarks[27][1])  # chin - nose bridge
+    face_ref_height = float(landmarks[P_MENTON][1] - landmarks[LM_NOSE_BRIDGE[0]][1])  # chin - nose bridge top
     normalized_lift = lift / face_ref_height if face_ref_height > 0 else 0.0
     smile = normalized_lift > 0.11  # ~11% of face height (raised from 0.06 to reduce FP on natural lip shape)
 

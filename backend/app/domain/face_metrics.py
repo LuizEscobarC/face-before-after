@@ -28,39 +28,53 @@ import numpy as np
 
 
 # ---------------------------------------------------------------------------
-# Constantes / índices (compatíveis com o modelo de 68 pontos dlib)
+# Constants — sourced from landmarks_mesh (Mesh-478 indices).
 # ---------------------------------------------------------------------------
-LM_LEFT_EYE        = list(range(36, 42))
-LM_RIGHT_EYE       = list(range(42, 48))
-LM_LEFT_BROW       = list(range(17, 22))
-LM_RIGHT_BROW      = list(range(22, 27))
-LM_NOSE_BRIDGE     = list(range(27, 31))
-LM_NOSE_TIP        = list(range(31, 36))
-LM_OUTER_MOUTH     = list(range(48, 60))
-LM_INNER_MOUTH     = list(range(60, 68))
-LM_JAWLINE         = list(range(0, 17))
-
-P_LEFT_EYE_OUTER   = 36
-P_LEFT_EYE_INNER   = 39
-P_RIGHT_EYE_INNER  = 42
-P_RIGHT_EYE_OUTER  = 45
-P_NOSE_TIP         = 30
-P_NOSE_LEFT        = 31
-P_NOSE_RIGHT       = 35
-P_SUBNASALE        = 33
-P_LEFT_MOUTH       = 48
-P_RIGHT_MOUTH      = 54
-P_UPPER_LIP        = 51   # labiale superius
-P_LOWER_LIP        = 57   # labiale inferius
-P_UPPER_LIP_TOP    = 50
-P_UPPER_LIP_BOT    = 62
-P_LOWER_LIP_TOP    = 66
-P_LOWER_LIP_BOT    = 58
-P_MENTON           = 8
-P_LEFT_GONION      = 4
-P_RIGHT_GONION     = 12
-P_BROW_LEFT_INNER  = 21
-P_BROW_RIGHT_INNER = 22
+from app.domain.landmarks_mesh import (  # noqa: E402
+    LM_INNER_MOUTH,
+    LM_JAWLINE,
+    LM_LEFT_BROW,
+    LM_LEFT_EYE,
+    LM_NOSE_BRIDGE,
+    LM_NOSE_TIP,
+    LM_OUTER_MOUTH,
+    LM_RIGHT_BROW,
+    LM_RIGHT_EYE,
+    P_BROW_LEFT_INNER,
+    P_BROW_LEFT_MID,
+    P_BROW_LEFT_OUTER,
+    P_BROW_RIGHT_INNER,
+    P_BROW_RIGHT_MID,
+    P_BROW_RIGHT_OUTER,
+    P_JAW_LEFT_2,
+    P_JAW_LEFT_6,
+    P_JAW_RIGHT_10,
+    P_JAW_RIGHT_14,
+    P_LEFT_CHEEK,
+    P_LEFT_EYE_INNER,
+    P_LEFT_EYE_OUTER,
+    P_LEFT_GONION,
+    P_LEFT_MOUTH,
+    P_LEFT_ZYGOMATIC,
+    P_LOWER_LIP,
+    P_LOWER_LIP_BOT,
+    P_LOWER_LIP_TOP,
+    P_MENTON,
+    P_NASION,
+    P_NOSE_LEFT,
+    P_NOSE_RIGHT,
+    P_NOSE_TIP,
+    P_RIGHT_CHEEK,
+    P_RIGHT_EYE_INNER,
+    P_RIGHT_EYE_OUTER,
+    P_RIGHT_GONION,
+    P_RIGHT_MOUTH,
+    P_RIGHT_ZYGOMATIC,
+    P_SUBNASALE,
+    P_UPPER_LIP,
+    P_UPPER_LIP_BOT,
+    P_UPPER_LIP_TOP,
+)
 
 
 # ---------------------------------------------------------------------------
@@ -117,7 +131,7 @@ def proportions(lm: np.ndarray) -> Dict[str, Any]:
     glabella   = _glabella(lm)
     subnasale  = lm[P_SUBNASALE]
     menton     = lm[P_MENTON]
-    nasion     = lm[27]  # ponta superior da ponte nasal
+    nasion     = lm[P_NASION]  # ponta superior da ponte nasal
 
     # Aproxima trichion: distância nasion->subnasale projetada para cima de nasion.
     mid_face_height = float(subnasale[1] - nasion[1])
@@ -141,7 +155,7 @@ def proportions(lm: np.ndarray) -> Dict[str, Any]:
         thirds_std = float(np.std([r_upper, r_middle, r_lower]))
 
     # Largura facial bizigomática (~ jawline pontos 1 e 15) e bigoníaca (4,12)
-    bizygomatic = float(np.linalg.norm(lm[1] - lm[15]))
+    bizygomatic = float(np.linalg.norm(lm[P_LEFT_ZYGOMATIC] - lm[P_RIGHT_ZYGOMATIC]))
     bigonial    = float(np.linalg.norm(lm[P_LEFT_GONION] - lm[P_RIGHT_GONION]))
 
     # Quintos: largura olho L, intercanthal, intercanthal-olho R, etc.
@@ -183,7 +197,7 @@ def proportions(lm: np.ndarray) -> Dict[str, Any]:
 # B) DIMORFISMO MASCULINO
 # ===========================================================================
 def masculinity(lm: np.ndarray, ipd: float) -> Dict[str, Any]:
-    bizygomatic = float(np.linalg.norm(lm[1] - lm[15]))
+    bizygomatic = float(np.linalg.norm(lm[P_LEFT_ZYGOMATIC] - lm[P_RIGHT_ZYGOMATIC]))
     bigonial    = float(np.linalg.norm(lm[P_LEFT_GONION] - lm[P_RIGHT_GONION]))
 
     # Ângulo gonial estimado: ângulo no ponto 4 (ramus->corpo) e 12, médio.
@@ -197,8 +211,8 @@ def masculinity(lm: np.ndarray, ipd: float) -> Dict[str, Any]:
         cos = max(-1.0, min(1.0, cos))
         return math.degrees(math.acos(cos))
 
-    gonial_l = _gonial(P_LEFT_GONION,  2, 6)
-    gonial_r = _gonial(P_RIGHT_GONION, 14, 10)
+    gonial_l = _gonial(P_LEFT_GONION,  P_JAW_LEFT_2, P_JAW_LEFT_6)
+    gonial_r = _gonial(P_RIGHT_GONION, P_JAW_RIGHT_14, P_JAW_RIGHT_10)
 
     # Projeção do mento vs lábio inferior (sagital projetada no plano frontal:
     # como não temos perfil, usamos diferença vertical menton vs lábio inferior
@@ -287,8 +301,8 @@ def eyes(lm: np.ndarray, ipd: float) -> Dict[str, Any]:
         dy = float(lm[lateral_idx][1] - lm[medial_idx][1])
         return -math.degrees(math.atan2(dy, dx))
 
-    brow_tilt_l = _brow_tilt(21, 17)  # 21 medial, 17 lateral (esq)
-    brow_tilt_r = _brow_tilt(22, 26)  # 22 medial, 26 lateral (dir)
+    brow_tilt_l = _brow_tilt(P_BROW_LEFT_INNER, P_BROW_LEFT_OUTER)   # medial → lateral (esq)
+    brow_tilt_r = _brow_tilt(P_BROW_RIGHT_INNER, P_BROW_RIGHT_OUTER) # medial → lateral (dir)
 
     return {
         "canthal_tilt_left_deg":           tilt_l,
@@ -315,7 +329,7 @@ def nose(lm: np.ndarray, ipd: float) -> Dict[str, Any]:
     intercanthal = float(np.linalg.norm(lm[P_LEFT_EYE_INNER] - lm[P_RIGHT_EYE_INNER]))
 
     # Comprimento nasal (nasion -> subnasale)
-    nasion = lm[27]
+    nasion = lm[P_NASION]
     nasal_len = float(lm[P_SUBNASALE][1] - nasion[1])
     face_h = float(lm[P_MENTON][1] - _glabella(lm)[1])
 
@@ -349,7 +363,7 @@ def mouth(lm: np.ndarray, ipd: float) -> Dict[str, Any]:
 # F) FORMA / GLOBAL
 # ===========================================================================
 def face_shape(lm: np.ndarray) -> Dict[str, Any]:
-    bizygomatic = float(np.linalg.norm(lm[1] - lm[15]))
+    bizygomatic = float(np.linalg.norm(lm[P_LEFT_ZYGOMATIC] - lm[P_RIGHT_ZYGOMATIC]))
     bigonial    = float(np.linalg.norm(lm[P_LEFT_GONION] - lm[P_RIGHT_GONION]))
     face_h      = float(lm[P_MENTON][1] - _glabella(lm)[1])
 
@@ -383,25 +397,26 @@ def marquardt_deviation(lm: np.ndarray, ipd: float) -> Dict[str, Any]:
     bilateral perfeita — proxy útil e estável da "máscara áurea" de
     Marquardt para fotos frontais.
     """
-    # Issue 2.6: pares espelhados validados contra dlib-68 (idx esq, idx dir).
-    pairs = [
-        # Mandíbula (8 pares simétricos em torno do menton 8):
-        (0, 16), (1, 15), (2, 14), (3, 13), (4, 12), (5, 11), (6, 10), (7, 9),
-        # Sobrancelhas (esq 17-21 ↔ dir 22-26 espelhada):
-        (17, 26), (18, 25), (19, 24), (20, 23), (21, 22),
-        # Olhos (esq 36-41 ↔ dir 42-47, mantendo a topologia dos cantos):
-        (36, 45), (37, 44), (38, 43), (39, 42), (40, 47), (41, 46),
-        # Asas do nariz (31 esq ↔ 35 dir; 32 esq ↔ 34 dir; 30/33 são centrais):
-        (31, 35), (32, 34),
-        # Boca externa (48-59):
-        # 48↔54 cantos; 49↔53 e 50↔52 lábio superior; 59↔55 e 58↔56 lábio inferior
-        # (51 e 57 são centrais, não espelhados).
-        (48, 54), (49, 53), (50, 52), (59, 55), (58, 56),
-        # Boca interna (60-67):
-        # 60↔64 cantos internos; 61↔63 lábio superior interno;
-        # 67↔65 lábio inferior interno (62 e 66 são centrais).
-        (60, 64), (61, 63), (67, 65),
-    ]
+    # Mirror pairs mapped to Mesh-478 indices. Built from region lists in
+    # landmarks_mesh so each pair is anatomically symmetric (left ↔ right).
+    # Jawline: 8 pairs around the menton (LM_JAWLINE[8] is centre).
+    pairs: list[tuple[int, int]] = []
+    pairs += list(zip(LM_JAWLINE[:8], list(reversed(LM_JAWLINE[9:]))))
+    # Brows: outer/middle/inner left ↔ inner/middle/outer right.
+    pairs += list(zip(LM_LEFT_BROW, list(reversed(LM_RIGHT_BROW))))
+    # Eyes: 6-point eye contours.
+    pairs += list(zip(LM_LEFT_EYE, LM_RIGHT_EYE))
+    # Nose alar wings (left/right) — mesh equivalents of dlib 31/35 and 32/34.
+    pairs += [(P_NOSE_LEFT, P_NOSE_RIGHT)]
+    # Outer mouth: dlib 48↔54, 49↔53, 50↔52, 59↔55, 58↔56 — mapped from LM_OUTER_MOUTH.
+    # LM_OUTER_MOUTH dlib order: [48,49,50,51,52,53,54,55,56,57,58,59]
+    om = LM_OUTER_MOUTH
+    pairs += [(om[0], om[6]), (om[1], om[5]), (om[2], om[4]),
+              (om[11], om[7]), (om[10], om[8])]
+    # Inner mouth: dlib 60↔64, 61↔63, 67↔65 — mapped from LM_INNER_MOUTH.
+    # LM_INNER_MOUTH dlib order: [60,61,62,63,64,65,66,67]
+    im = LM_INNER_MOUTH
+    pairs += [(im[0], im[4]), (im[1], im[3]), (im[7], im[5])]
     # Linha média = média entre eye_midpoint e glabela
     le, re = _eye_centers(lm)
     midline_x = float(((le[0] + re[0]) / 2.0 + _glabella(lm)[0]) / 2.0)
@@ -562,17 +577,17 @@ def _cheek_rois(lm: np.ndarray) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Retorna 3 polígonos (bochecha esq, bochecha dir, testa)."""
     le, re = _eye_centers(lm)
     # Bochechas: triângulo entre olho, asa do nariz e ponto da mandíbula 3/13
-    cheek_l = np.array([le, lm[P_NOSE_LEFT],  lm[3]],  dtype=np.int32)
-    cheek_r = np.array([re, lm[P_NOSE_RIGHT], lm[13]], dtype=np.int32)
+    cheek_l = np.array([le, lm[P_NOSE_LEFT],  lm[P_LEFT_CHEEK]],  dtype=np.int32)
+    cheek_r = np.array([re, lm[P_NOSE_RIGHT], lm[P_RIGHT_CHEEK]], dtype=np.int32)
     # Testa: retângulo acima das sobrancelhas (altura = ipd*0.6)
     ipd = _ipd(lm)
-    brow_y = float(min(lm[19][1], lm[24][1]))
+    brow_y = float(min(lm[P_BROW_LEFT_MID][1], lm[P_BROW_RIGHT_MID][1]))
     forehead_h = ipd * 0.6
     forehead = np.array([
-        [int(lm[19][0] - ipd * 0.1), int(brow_y - forehead_h)],
-        [int(lm[24][0] + ipd * 0.1), int(brow_y - forehead_h)],
-        [int(lm[24][0] + ipd * 0.1), int(brow_y - ipd * 0.1)],
-        [int(lm[19][0] - ipd * 0.1), int(brow_y - ipd * 0.1)],
+        [int(lm[P_BROW_LEFT_MID][0] - ipd * 0.1), int(brow_y - forehead_h)],
+        [int(lm[P_BROW_RIGHT_MID][0] + ipd * 0.1), int(brow_y - forehead_h)],
+        [int(lm[P_BROW_RIGHT_MID][0] + ipd * 0.1), int(brow_y - ipd * 0.1)],
+        [int(lm[P_BROW_LEFT_MID][0] - ipd * 0.1), int(brow_y - ipd * 0.1)],
     ], dtype=np.int32)
     return cheek_l, cheek_r, forehead
 

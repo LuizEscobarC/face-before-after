@@ -10,7 +10,6 @@ License: MIT
 """
 
 import cv2
-import dlib
 import numpy as np
 import argparse
 import json
@@ -19,42 +18,55 @@ import sys
 from typing import Tuple, Optional, Dict, List, Any
 
 import app.domain.face_metrics as face_metrics
+from app.domain.landmarks_mesh import (
+    LM_INNER_MOUTH,
+    LM_JAWLINE,
+    LM_LEFT_BROW,
+    LM_LEFT_EYE,
+    LM_NOSE_BRIDGE,
+    LM_NOSE_TIP,
+    LM_OUTER_MOUTH,
+    LM_RIGHT_BROW,
+    LM_RIGHT_EYE,
+    P_BROW_LEFT_INNER,
+    P_BROW_RIGHT_INNER,
+    P_LEFT_MOUTH,
+    P_MENTON,
+    P_NOSE_LEFT,
+    P_NOSE_RIGHT,
+    P_NOSE_TIP,
+    P_RIGHT_MOUTH,
+    P_UPPER_LIP,
+)
+from app.vision.services import face_detection
+from app.vision.services.face_landmarker import FaceDetectionResult
 
 
 # ============================================================================
 # CONFIGURATION
 # ============================================================================
 
-# Path to dlib's 68-point facial landmark predictor
-PREDICTOR_PATH = "shape_predictor_68_face_landmarks.dat"
-
-# Landmark indices for the 68-point model
+# Region groups and anatomical points are sourced from landmarks_mesh.
 LANDMARKS = {
-    # Eyes
-    'left_eye': list(range(36, 42)),
-    'right_eye': list(range(42, 48)),
-    # Eyebrows
-    'left_eyebrow': list(range(17, 22)),
-    'right_eyebrow': list(range(22, 27)),
-    # Nose
-    'nose_bridge': list(range(27, 31)),
-    'nose_tip': list(range(31, 36)),
-    # Mouth
-    'outer_mouth': list(range(48, 60)),
-    'inner_mouth': list(range(60, 68)),
-    # Jawline
-    'jawline': list(range(0, 17)),
+    'left_eye': LM_LEFT_EYE,
+    'right_eye': LM_RIGHT_EYE,
+    'left_eyebrow': LM_LEFT_BROW,
+    'right_eyebrow': LM_RIGHT_BROW,
+    'nose_bridge': LM_NOSE_BRIDGE,
+    'nose_tip': LM_NOSE_TIP,
+    'outer_mouth': LM_OUTER_MOUTH,
+    'inner_mouth': LM_INNER_MOUTH,
+    'jawline': LM_JAWLINE,
 }
 
-# Key anatomical points (indices)
 ANATOMICAL_POINTS = {
-    'pronasale': 30,          # Nose tip
-    'labiale_superius': 51,   # Upper lip center
-    'menton': 8,              # Chin bottom
-    'left_mouth_corner': 48,
-    'right_mouth_corner': 54,
-    'nose_left': 31,
-    'nose_right': 35,
+    'pronasale': P_NOSE_TIP,           # Nose tip
+    'labiale_superius': P_UPPER_LIP,   # Upper lip center
+    'menton': P_MENTON,                # Chin bottom
+    'left_mouth_corner': P_LEFT_MOUTH,
+    'right_mouth_corner': P_RIGHT_MOUTH,
+    'nose_left': P_NOSE_LEFT,
+    'nose_right': P_NOSE_RIGHT,
 }
 
 # Visualization colors (BGR format)
@@ -75,21 +87,17 @@ COLORS = {
 class FaceAsymmetryAnalyzer:
     """Main class for facial asymmetry analysis."""
     
-    def __init__(self, predictor_path: str = PREDICTOR_PATH):
+    def __init__(self, predictor_path: str | None = None):
+        """Initialize the analyzer.
+
+        ``predictor_path`` is kept for backwards-compat with the CLI and
+        ignored — detection is now performed by MediaPipe Tasks Vision via
+        :mod:`app.vision.services.face_detection`.
         """
-        Initialize the analyzer with dlib detector and predictor.
-        
-        Args:
-            predictor_path: Path to the shape predictor model file.
-        """
-        if not os.path.exists(predictor_path):
-            raise FileNotFoundError(
-                f"Shape predictor model not found: {predictor_path}\n"
-                f"Download from: http://dlib.net/files/shape_predictor_68_face_landmarks.dat.bz2"
-            )
-        
-        self.detector = dlib.get_frontal_face_detector()
-        self.predictor = dlib.shape_predictor(predictor_path)
+        # Cache of last detection: maps id(image_bytes) → FaceDetectionResult.
+        # Avoids running MediaPipe twice when caller invokes detect_face then
+        # detect_landmarks with the same image.
+        self._last_detection: dict[int, FaceDetectionResult] = {}
         self.landmarks = None
         self.original_image = None
         self.aligned_image = None
@@ -97,45 +105,43 @@ class FaceAsymmetryAnalyzer:
         self.rotation_angle = 0.0
         self.midline = None
         self.asymmetry_data = {}
-    
-    def detect_face(self, image: np.ndarray) -> Optional[dlib.rectangle]:
+
+    def detect_face(self, image: np.ndarray) -> Optional[FaceDetectionResult]:
+        """Detect the largest face in the image.
+
+        Returns a :class:`FaceDetectionResult` with full Mesh-478 landmarks
+        already populated (the actual landmark extraction is part of the
+        MediaPipe single-shot inference). Returns ``None`` if no face found.
         """
-        Detect face in the image using dlib's frontal face detector.
-        
-        Args:
-            image: Input BGR image.
-            
-        Returns:
-            dlib.rectangle of detected face, or None if no face found.
-        """
-        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-        faces = self.detector(gray, 1)
-        
-        if len(faces) == 0:
+        faces = face_detection.detect_faces(image)
+        if not faces:
             return None
-        
         if len(faces) > 1:
             print(f"Warning: {len(faces)} faces detected. Using the largest one.")
-            # Select the largest face
-            faces = sorted(faces, key=lambda r: r.width() * r.height(), reverse=True)
-        
-        return faces[0]
-    
-    def detect_landmarks(self, image: np.ndarray, face_rect: dlib.rectangle) -> np.ndarray:
+        result = faces[0]
+        # Cache for follow-up detect_landmarks call on the same image.
+        self._last_detection[id(image)] = result
+        return result
+
+    def detect_landmarks(self, image: np.ndarray, face_result: FaceDetectionResult) -> np.ndarray:
+        """Return the (478, 2) landmarks for ``face_result``.
+
+        For backwards compat with the previous (image, dlib_rect) signature,
+        callers may pass any object whose ``.landmarks`` attribute holds an
+        ndarray. If the cached detection covers the same image, we reuse it.
         """
-        Detect 68 facial landmarks within the face region.
-        
-        Args:
-            image: Input BGR image.
-            face_rect: dlib rectangle containing the face.
-            
-        Returns:
-            numpy array of shape (68, 2) containing landmark coordinates.
-        """
-        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-        shape = self.predictor(gray, face_rect)
-        landmarks = np.array([[p.x, p.y] for p in shape.parts()])
-        return landmarks
+        # Fast path: result carries its own landmarks.
+        landmarks = getattr(face_result, "landmarks", None)
+        if landmarks is not None:
+            return np.asarray(landmarks)
+        # Fallback: re-detect.
+        cached = self._last_detection.get(id(image))
+        if cached is not None and cached.landmarks is not None:
+            return np.asarray(cached.landmarks)
+        result = self.detect_face(image)
+        if result is None or result.landmarks is None:
+            raise ValueError("No face detected; cannot extract landmarks.")
+        return np.asarray(result.landmarks)
     
     def compute_eye_centers(self, landmarks: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
         """
@@ -161,9 +167,9 @@ class FaceAsymmetryAnalyzer:
         Returns:
             Glabella point coordinates.
         """
-        # Inner eyebrow points: 21 (left inner) and 22 (right inner)
-        left_inner_brow = landmarks[21]
-        right_inner_brow = landmarks[22]
+        # Inner eyebrow points (Mesh-478): 107 (left inner) and 336 (right inner).
+        left_inner_brow = landmarks[P_BROW_LEFT_INNER]
+        right_inner_brow = landmarks[P_BROW_RIGHT_INNER]
         glabella = (left_inner_brow + right_inner_brow) / 2
         return glabella
     
@@ -592,18 +598,15 @@ class FaceAsymmetryAnalyzer:
         # Left landmarks: 0-16 (left half of jaw), 17-21 (left brow), 36-41 (left eye)
         # Right landmarks mirror these
         
-        pairs = [
-            # Jawline pairs
-            (0, 16), (1, 15), (2, 14), (3, 13), (4, 12), (5, 11), (6, 10), (7, 9),
-            # Eye pairs
-            (36, 45), (37, 44), (38, 43), (39, 42), (40, 47), (41, 46),
-            # Eyebrow pairs
-            (17, 26), (18, 25), (19, 24), (20, 23), (21, 22),
-            # Nose pairs
-            (31, 35), (32, 34),
-            # Mouth pairs
-            (48, 54), (49, 53), (50, 52), (59, 55), (58, 56),
-        ]
+        # Mirror pairs in Mesh-478 indices (built from region lists).
+        pairs: list[tuple[int, int]] = []
+        pairs += list(zip(LM_JAWLINE[:8], list(reversed(LM_JAWLINE[9:]))))
+        pairs += list(zip(LM_LEFT_EYE, LM_RIGHT_EYE))
+        pairs += list(zip(LM_LEFT_BROW, list(reversed(LM_RIGHT_BROW))))
+        pairs += [(P_NOSE_LEFT, P_NOSE_RIGHT)]
+        om = LM_OUTER_MOUTH
+        pairs += [(om[0], om[6]), (om[1], om[5]), (om[2], om[4]),
+                  (om[11], om[7]), (om[10], om[8])]
         
         for left_idx, right_idx in pairs:
             left_point = landmarks[left_idx]

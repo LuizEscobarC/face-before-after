@@ -26,6 +26,7 @@ import numpy as np
 
 from app.domain.canonical_frame import CanonicalFrame
 from app.domain.face_asymmetry import FaceAsymmetryAnalyzer
+from app.domain.landmarks_mesh import LM_LEFT_EYE, LM_RIGHT_EYE
 import app.domain.face_metrics as fm
 from app.domain.layers.impression import build_first_impression
 from app.domain.layers.visual_status import build_visual_status
@@ -196,8 +197,8 @@ def maybe_auto_crop_3x4(image: np.ndarray, landmarks: np.ndarray) -> tuple[np.nd
     Usa distância entre os olhos como proxy de escala do rosto.
     """
     h, w = image.shape[:2]
-    left_eye = landmarks[36:42].mean(axis=0)
-    right_eye = landmarks[42:48].mean(axis=0)
+    left_eye = landmarks[LM_LEFT_EYE].mean(axis=0)
+    right_eye = landmarks[LM_RIGHT_EYE].mean(axis=0)
     eye_distance = float(np.linalg.norm(right_eye - left_eye))
 
     if eye_distance <= 1.0:
@@ -1068,14 +1069,23 @@ def run(image_path: str, output_dir: str, mode: str = "premium") -> dict:
 
     # 2c. Constrói o frame canônico — única fonte de verdade daqui para frente.
     ipd_px = float(np.linalg.norm(
-        aligned_landmarks[42:48].mean(axis=0)
-        - aligned_landmarks[36:42].mean(axis=0)
+        aligned_landmarks[LM_RIGHT_EYE].mean(axis=0)
+        - aligned_landmarks[LM_LEFT_EYE].mean(axis=0)
     ))
+    # Convert FaceDetectionResult bbox (or fall back to landmarks extent) to (x,y,w,h).
+    if aligned_face_rect is not None and getattr(aligned_face_rect, "bbox", None):
+        face_rect_tuple = tuple(int(v) for v in aligned_face_rect.bbox)
+    else:
+        x_min = int(np.min(aligned_landmarks[:, 0]))
+        y_min = int(np.min(aligned_landmarks[:, 1]))
+        x_max = int(np.max(aligned_landmarks[:, 0]))
+        y_max = int(np.max(aligned_landmarks[:, 1]))
+        face_rect_tuple = (x_min, y_min, max(0, x_max - x_min), max(0, y_max - y_min))
     canonical = CanonicalFrame(
         image=aligned_img,
         landmarks=aligned_landmarks,
         ipd_px=ipd_px,
-        face_rect=aligned_face_rect,
+        face_rect=face_rect_tuple,
         source_path=resolved_image_path,
         crop_metadata=auto_crop_data,
     )
@@ -1089,7 +1099,7 @@ def run(image_path: str, output_dir: str, mode: str = "premium") -> dict:
     advanced_bundle = fm.compute_all(
         canonical.image,
         canonical.landmarks,
-        face_rect_w=canonical.face_rect.width(),
+        face_rect_w=canonical.face_width,
     )
     advanced_metrics = advanced_bundle.get("advanced", {})
     skin_metrics = advanced_bundle.get("skin", {})
