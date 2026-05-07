@@ -1,3 +1,16 @@
+export type ClientLandmarkPayload = {
+  landmarks: number[][];
+  pose: { yaw: number; pitch: number; roll: number };
+  processing_mode: 'CLIENT_SIDE';
+  session_id?: string;
+};
+
+export type RealtimeFeedback = {
+  face_detected: boolean;
+  pose_ok: boolean;
+  light_ok: boolean;
+};
+
 export type AnalyzeMode = "free" | "premium" | "compare";
 
 export type CaptureGuidelines = {

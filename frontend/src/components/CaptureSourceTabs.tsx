@@ -1,4 +1,8 @@
 import { useEffect, useRef, useState } from "react";
+import { DeviceCapabilityDetector } from "../vision/DeviceCapabilityDetector";
+import { ClientPhotoProcessor } from "../vision/ClientPhotoProcessor";
+import type { RealtimeFeedback } from "../types";
+import { submitLandmarkPayload } from "../api";
 
 type SourceTab = "upload" | "webcam";
 
@@ -48,6 +52,10 @@ export function CaptureSourceTabs({ onPhotoReady, busy, currentFile }: Props) {
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const processorRef = useRef<ClientPhotoProcessor | null>(null);
+  const frameCountRef = useRef(0);
+  const [feedback, setFeedback] = useState<RealtimeFeedback | null>(null);
+  const [clientProcessing, setClientProcessing] = useState(false);
 
   // Atualiza preview a partir do arquivo controlado
   useEffect(() => {
@@ -75,6 +83,60 @@ export function CaptureSourceTabs({ onPhotoReady, busy, currentFile }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab]);
 
+  // Initialize client-side MediaPipe processor when webcam tab is opened
+  useEffect(() => {
+    if (activeTab !== "webcam") return;
+    let cancelled = false;
+    DeviceCapabilityDetector.shouldFallback().then((shouldFallback) => {
+      if (shouldFallback || cancelled) return;
+      ClientPhotoProcessor.create()
+        .then((processor) => {
+          if (cancelled) { processor.dispose(); return; }
+          processorRef.current = processor;
+        })
+        .catch(() => { /* silently fall back to server-side path */ });
+    });
+    return () => {
+      cancelled = true;
+      processorRef.current?.dispose();
+      processorRef.current = null;
+      setFeedback(null);
+    };
+  }, [activeTab]);
+
+  // Real-time feedback loop: runs every 5 frames while camera is on
+  useEffect(() => {
+    if (!cameraOn || !processorRef.current) return;
+    let animId: number;
+    const loop = () => {
+      frameCountRef.current++;
+      if (
+        frameCountRef.current % 5 === 0 &&
+        videoRef.current &&
+        processorRef.current
+      ) {
+        const video = videoRef.current;
+        if (video.readyState >= 2 && video.videoWidth > 0) {
+          const offscreen = document.createElement("canvas");
+          offscreen.width = video.videoWidth;
+          offscreen.height = video.videoHeight;
+          const ctx = offscreen.getContext("2d");
+          if (ctx) {
+            ctx.drawImage(video, 0, 0);
+            const imageData = ctx.getImageData(0, 0, offscreen.width, offscreen.height);
+            processorRef.current
+              .validateRealtimeFeedback(imageData)
+              .then((result) => { if (result) setFeedback(result); })
+              .catch(() => {});
+          }
+        }
+      }
+      animId = requestAnimationFrame(loop);
+    };
+    animId = requestAnimationFrame(loop);
+    return () => cancelAnimationFrame(animId);
+  }, [cameraOn]);
+
   const validateAndEmit = (file: File) => {
     if (!["image/png", "image/jpeg"].includes(file.type)) {
       setUploadError("Formato inválido. Use PNG ou JPG/JPEG.");
@@ -86,8 +148,8 @@ export function CaptureSourceTabs({ onPhotoReady, busy, currentFile }: Props) {
   };
 
   const onUploadChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const f = e.target.files?.[0];
-    if (f) validateAndEmit(f);
+    const selectedFile = e.target.files?.[0];
+    if (selectedFile) validateAndEmit(selectedFile);
   };
 
   const openCamera = async () => {
@@ -159,7 +221,7 @@ export function CaptureSourceTabs({ onPhotoReady, busy, currentFile }: Props) {
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
     canvas.toBlob(
-      (blob) => {
+      async (blob) => {
         if (!blob) {
           setCameraError("Falha ao capturar a imagem.");
           return;
@@ -169,6 +231,27 @@ export function CaptureSourceTabs({ onPhotoReady, busy, currentFile }: Props) {
         });
         setCameraError("");
         const url = URL.createObjectURL(captured);
+
+        if (processorRef.current) {
+          try {
+            setClientProcessing(true);
+            const captureCtx = canvas.getContext("2d");
+            if (captureCtx) {
+              const imageData = captureCtx.getImageData(0, 0, canvas.width, canvas.height);
+              const landmarkPayload = await processorRef.current.runMediaPipe(imageData);
+              if (landmarkPayload) {
+                await submitLandmarkPayload(landmarkPayload);
+                onPhotoReady(captured, url);
+                return;
+              }
+            }
+          } catch {
+            // fall through to server-side path
+          } finally {
+            setClientProcessing(false);
+          }
+        }
+
         onPhotoReady(captured, url);
       },
       "image/jpeg",
@@ -295,6 +378,25 @@ export function CaptureSourceTabs({ onPhotoReady, busy, currentFile }: Props) {
                 />
               </svg>
               <div className="webcam-hint">Alinhe os olhos com a linha tracejada</div>
+              {feedback && (
+                <div
+                  className="feedback-ring"
+                  title={feedback.face_detected ? (feedback.pose_ok ? "Pose OK" : "Ajuste o ângulo") : "Rosto não detectado"}
+                  style={{
+                    position: "absolute",
+                    top: 8,
+                    right: 8,
+                    width: 12,
+                    height: 12,
+                    borderRadius: "50%",
+                    background:
+                      feedback.face_detected && feedback.pose_ok
+                        ? "var(--accent2)"
+                        : "red",
+                    boxShadow: "0 0 6px rgba(0,0,0,0.5)",
+                  }}
+                />
+              )}
             </div>
           )}
 
@@ -304,9 +406,9 @@ export function CaptureSourceTabs({ onPhotoReady, busy, currentFile }: Props) {
                 type="button"
                 className="btn btn-secondary"
                 onClick={captureFromCamera}
-                disabled={busy}
+                disabled={busy || clientProcessing}
               >
-                📸 Capturar
+                {clientProcessing ? "⏳ Processando..." : "📸 Capturar"}
               </button>
               <button
                 type="button"

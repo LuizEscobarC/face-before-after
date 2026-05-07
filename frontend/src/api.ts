@@ -213,6 +213,29 @@ export async function fetchGlossary(): Promise<Record<string, GlossaryTerm>> {
   return {};
 }
 
+// ---------- Client-side landmark submission ----------
+
+export type ClientLandmarkPayload = {
+  landmarks: number[][];
+  pose: { yaw: number; pitch: number; roll: number };
+  processing_mode: 'CLIENT_SIDE';
+  session_id?: string;
+};
+
+export async function submitLandmarkPayload(
+  payload: ClientLandmarkPayload,
+): Promise<PhotoQualityDecision> {
+  const res = await fetch(`${BASE}/v1/vision/submit-landmarks`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    throw new Error(await readError(res, 'Falha ao enviar landmarks do cliente.'));
+  }
+  return (await res.json()) as PhotoQualityDecision;
+}
+
 // ---------- Consistency types (E3) ----------
 
 export type CompareWithConsistency = CompareResult & {

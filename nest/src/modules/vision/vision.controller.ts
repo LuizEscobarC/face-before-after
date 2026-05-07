@@ -12,6 +12,7 @@ import {
   MetricsRequestDto,
   MetricsResponseDto,
 } from './dto/vision.dto.js';
+import { ClientLandmarkPayloadDto } from './dto/client-landmark-payload.dto.js';
 
 @ApiTags('Vision')
 @Controller('v1/vision')
@@ -39,6 +40,14 @@ export class VisionController {
   @ApiResponse({ status: 200, type: MetricsResponseDto })
   metrics(@Body() body: MetricsRequestDto): Promise<MetricsResponseDto> {
     return this.client.metrics(body);
+  }
+
+  @Post('submit-landmarks')
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Recebe landmarks processados pelo cliente e calcula métricas' })
+  @ApiResponse({ status: 200, type: MetricsResponseDto })
+  submitLandmarks(@Body() body: ClientLandmarkPayloadDto): Promise<MetricsResponseDto> {
+    return this.client.submitLandmarks(body);
   }
 
   @Post('full-pipeline')

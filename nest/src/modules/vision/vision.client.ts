@@ -18,6 +18,7 @@ import {
   MetricsRequestDto,
   MetricsResponseDto,
 } from './dto/vision.dto.js';
+import type { ClientLandmarkPayloadDto } from './dto/client-landmark-payload.dto.js';
 import { VISION_CLIENT_CONFIG, VisionClientConfig } from './vision.config.js';
 
 @Injectable()
@@ -49,6 +50,14 @@ export class VisionClient {
 
   metrics(payload: MetricsRequestDto): Promise<MetricsResponseDto> {
     return this.request<MetricsResponseDto>('POST', '/vision/metrics', payload);
+  }
+
+  submitLandmarks(payload: ClientLandmarkPayloadDto): Promise<MetricsResponseDto> {
+    return this.request<MetricsResponseDto>('POST', '/vision/metrics', {
+      landmarks: payload.landmarks,
+      quality_context: { quality_score: 1.0, regional_penalties: {} },
+      session_id: payload.session_id,
+    });
   }
 
   fullPipeline(payload: FullPipelineRequestDto): Promise<FullPipelineResponseDto> {
