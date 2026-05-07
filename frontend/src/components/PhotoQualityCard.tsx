@@ -1,4 +1,7 @@
 import type { PhotoQualityDecision } from "../api";
+import { FlagChips } from "./FlagChips";
+import { PoseIndicator } from "./PoseIndicator";
+import { SubscoreBar } from "./SubscoreBar";
 
 type Props = {
   decision: PhotoQualityDecision;
@@ -115,12 +118,16 @@ export function PhotoQualityCard({ decision, onContinue, onRetake }: Props): JSX
           gap: 12,
         }}
       >
-        <Subscore label="Pose" value={decision.subscore_breakdown.pose_score} />
-        <Subscore label="Nitidez" value={decision.subscore_breakdown.sharpness_score} />
-        <Subscore label="Iluminação" value={decision.subscore_breakdown.lighting_score} />
-        <Subscore label="Oclusão" value={decision.subscore_breakdown.occlusion_score} />
-        <Subscore label="Expressão" value={decision.subscore_breakdown.expression_score} />
+        <SubscoreBar label="Pose"       value={decision.subscore_breakdown.pose_score} />
+        <SubscoreBar label="Nitidez"    value={decision.subscore_breakdown.sharpness_score} />
+        <SubscoreBar label="Iluminação" value={decision.subscore_breakdown.lighting_score} />
+        <SubscoreBar label="Oclusão"    value={decision.subscore_breakdown.occlusion_score} />
+        <SubscoreBar label="Expressão"  value={decision.subscore_breakdown.expression_score} />
       </section>
+
+      <PoseIndicator pose={decision.pose} />
+
+      <FlagChips flags={decision.flags as Parameters<typeof FlagChips>[0]["flags"]} />
 
       <footer style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
         {onRetake && (
@@ -135,22 +142,5 @@ export function PhotoQualityCard({ decision, onContinue, onRetake }: Props): JSX
         )}
       </footer>
     </article>
-  );
-}
-
-function Subscore({ label, value }: { label: string; value?: number }): JSX.Element {
-  const pct = Math.round((value ?? 0) * 100);
-  return (
-    <div
-      style={{
-        background: "var(--surface2)",
-        border: "1px solid var(--border)",
-        borderRadius: 12,
-        padding: 12,
-      }}
-    >
-      <p style={{ margin: 0, color: "var(--muted)", fontSize: 11, textTransform: "uppercase" }}>{label}</p>
-      <p style={{ margin: "4px 0 0", color: "var(--text)", fontWeight: 600, fontSize: 18 }}>{pct}</p>
-    </div>
   );
 }

@@ -49,8 +49,15 @@ export type PhotoQualityDecision = {
   quality_score: number;
   recommendations: string[];
   fingerprint: string;
+  fingerprint_parts: string[];
   subscore_breakdown: Record<string, number>;
-  flags: Record<string, boolean>;
+  flags: {
+    beard: boolean;
+    beard_density: number;
+    glasses: boolean;
+    smile: boolean;
+    hair_covering: boolean;
+  };
   pose: { yaw: number; pitch: number; roll: number };
   sharpness_score: number;
   lighting_asymmetry: number;
@@ -153,3 +160,11 @@ export async function compareRuns(
 export async function fetchGlossary(): Promise<Record<string, GlossaryTerm>> {
   return {};
 }
+
+// ---------- Consistency types (E3) ----------
+
+export type CompareWithConsistency = CompareResult & {
+  consistency_score: number;
+  consistency_issues: string[];
+  is_comparable: boolean;
+};
