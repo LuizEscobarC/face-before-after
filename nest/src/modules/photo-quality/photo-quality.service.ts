@@ -43,10 +43,12 @@ export class PhotoQualityService {
       case 'ALTA':
         return 'ACCEPT';
       case 'MEDIA':
-        return 'WARN';
       case 'BAIXA':
+        // BAIXA = imperfect but usable — warn user but don't block analysis
+        return 'WARN';
       case 'REJEITADA':
       default:
+        // REJEITADA = genuine blocker (no face detected, extreme pose/lighting)
         return 'REJECT';
     }
   }

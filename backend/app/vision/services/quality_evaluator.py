@@ -24,7 +24,8 @@ LIGHTING_ASYM_FLOOR = 35.0    # |L_left - L_right| above this → score 0
 GRADE_THRESHOLDS = [
     (0.85, "ALTA"),
     (0.70, "MEDIA"),
-    (0.55, "BAIXA"),
+    (0.35, "BAIXA"),
+    # below 0.35 → REJEITADA (extreme pose, no face, compound failures)
 ]
 
 
@@ -164,7 +165,7 @@ def detect_flags(image_bgr: np.ndarray, landmarks: np.ndarray) -> dict:
     lift = float(center_y - corners_y)
     face_ref_height = float(landmarks[8][1] - landmarks[27][1])  # chin - nose bridge
     normalized_lift = lift / face_ref_height if face_ref_height > 0 else 0.0
-    smile = normalized_lift > 0.06  # ~6% of face height (was 4px absolute)
+    smile = normalized_lift > 0.11  # ~11% of face height (raised from 0.06 to reduce FP on natural lip shape)
 
     return {
         "beard": bool(beard),
@@ -285,7 +286,7 @@ def evaluate(
 
     # Expression/occlusion scores derived from flags.
     occlusion_score = max(0.5, 1.0 - float(flags.get("beard_density", 0.0)) * 0.3)
-    expression_score = 0.85 if flags.get("smile") else 1.0
+    expression_score = 0.93 if flags.get("smile") else 1.0  # 7% penalty (was 15%) — smile is advisory, not critical
 
     regional_penalties = _compute_regional_penalties(flags, lighting_asymmetry) if face_ok else {
         "jaw": 0.0, "eye": 0.0, "nose": 0.0, "brow": 0.0, "mouth": 0.0,
