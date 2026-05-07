@@ -140,8 +140,8 @@ export function PremiumResultPage() {
     );
   }
 
-  const annotatedUrl = result.run_id ? `/api/result/${result.run_id}/annotated` : null;
-  const simBase = result.run_id ? `/api/result/${result.run_id}/simulation` : null;
+  const annotatedUrl = result.run_id ? `/v1/results/${result.run_id}/annotated` : null;
+  const simBase = result.run_id ? `/v1/results/${result.run_id}/simulation` : null;
   const hasSimulation = simBase && result.simulation_paths && !result.simulation_error;
   const hasWarnings = (result.photo_warnings?.length ?? 0) > 0;
   const hasRecs = (result.capture_recommendations?.length ?? 0) > 0;
