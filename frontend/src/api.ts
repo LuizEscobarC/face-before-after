@@ -9,19 +9,31 @@ import type {
 // Vite dev proxy maps /v1 → orchestrator (see vite.config.ts).
 const BASE = "";
 
-async function fileToBase64(file: File): Promise<string> {
+/**
+ * Resize to max MAX_DIM on the longest side, then compress to JPEG.
+ * Keeps aspect ratio. Reduces a 4K selfie (~8 MB) to ~150 KB.
+ */
+const MAX_DIM = 1280;
+const JPEG_QUALITY = 0.88;
+
+async function prepareImageBase64(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => {
-      const result = reader.result;
-      if (typeof result === "string") {
-        resolve(result);
-      } else {
-        reject(new Error("Falha ao ler imagem."));
-      }
+    const img = new Image();
+    const objectUrl = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(objectUrl);
+      const { naturalWidth: w, naturalHeight: h } = img;
+      const scale = Math.min(1, MAX_DIM / Math.max(w, h));
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.round(w * scale);
+      canvas.height = Math.round(h * scale);
+      const ctx = canvas.getContext("2d");
+      if (!ctx) { reject(new Error("Canvas não disponível.")); return; }
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      resolve(canvas.toDataURL("image/jpeg", JPEG_QUALITY));
     };
-    reader.onerror = () => reject(new Error("Falha ao ler arquivo."));
-    reader.readAsDataURL(file);
+    img.onerror = () => { URL.revokeObjectURL(objectUrl); reject(new Error("Falha ao ler imagem.")); };
+    img.src = objectUrl;
   });
 }
 
@@ -69,7 +81,7 @@ export async function validatePhotoQuality(
   file: File,
   sessionId?: string,
 ): Promise<PhotoQualityDecision> {
-  const image_base64 = await fileToBase64(file);
+  const image_base64 = await prepareImageBase64(file);
   const res = await fetch(`${BASE}/v1/photo-quality/validate`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -108,7 +120,7 @@ export async function fetchCaptureGuidelines(): Promise<CaptureGuidelines> {
 // ---------- Analyze ----------
 
 export async function analyzePhoto(mode: AnalyzeMode, file: File): Promise<AnalysisResult> {
-  const image_base64 = await fileToBase64(file);
+  const image_base64 = await prepareImageBase64(file);
   const visionMode: "premium" | "teaser" = mode === "premium" ? "premium" : "teaser";
 
   const res = await fetch(`${BASE}/v1/analysis`, {
