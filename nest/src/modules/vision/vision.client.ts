@@ -122,23 +122,23 @@ export class VisionClient {
       }
 
       this.logger.warn(`${context} responded ${String(status)}`);
-      let raw = axErr.response?.data as unknown;
+      let upstreamData = axErr.response?.data as unknown;
       // Binary endpoints request responseType=arraybuffer; FastAPI errors are
       // still JSON, but axios delivers them as Buffer/ArrayBuffer. Decode so
       // the error envelope carries readable strings instead of byte arrays.
-      if (raw instanceof ArrayBuffer) {
-        raw = Buffer.from(raw).toString('utf8');
-      } else if (Buffer.isBuffer(raw)) {
-        raw = raw.toString('utf8');
+      if (upstreamData instanceof ArrayBuffer) {
+        upstreamData = Buffer.from(upstreamData).toString('utf8');
+      } else if (Buffer.isBuffer(upstreamData)) {
+        upstreamData = (upstreamData as Buffer).toString('utf8');
       }
-      if (typeof raw === 'string') {
+      if (typeof upstreamData === 'string') {
         try {
-          raw = JSON.parse(raw) as unknown;
+          upstreamData = JSON.parse(upstreamData) as unknown;
         } catch {
           // keep as plain string
         }
       }
-      const upstream = (typeof raw === 'object' && raw !== null ? raw : { detail: raw }) as {
+      const upstream = (typeof upstreamData === 'object' && upstreamData !== null ? upstreamData : { detail: upstreamData }) as {
         detail?: unknown;
         message?: string;
         code?: string;

@@ -25,21 +25,21 @@ _REGION_HINTS: list[tuple[tuple[str, ...], str]] = [
 
 
 def _infer_region(metric_id: str) -> str:
-    lower = metric_id.lower()
+    metric_id_lower = metric_id.lower()
     for keys, region in _REGION_HINTS:
-        if any(k in lower for k in keys):
+        if any(k in metric_id_lower for k in keys):
             return region
     return "general"
 
 
 def _infer_direction(metric_id: str, value: Any) -> str:
-    lower = metric_id.lower()
-    if "left" in lower:
+    metric_id_lower = metric_id.lower()
+    if "left" in metric_id_lower:
         return "left"
-    if "right" in lower:
+    if "right" in metric_id_lower:
         return "right"
     if isinstance(value, (int, float)):
-        if "asymmetry" in lower or "deviation" in lower:
+        if "asymmetry" in metric_id_lower or "deviation" in metric_id_lower:
             if value == 0:
                 return "neutral"
             return "asymmetric"
@@ -79,10 +79,11 @@ def compute_metrics(
         image_bgr = np.zeros((max(h, 64), max(w, 64), 3), dtype=np.uint8)
 
     raw = face_metrics.compute_all(image_bgr, landmarks)
+    pipeline_output = raw
 
     results: list[MetricResult] = []
     for block_name in ("advanced", "photo_quality", "skin"):
-        block = raw.get(block_name) or {}
+        block = pipeline_output.get(block_name) or {}
         for metric_id, value in _flatten("", block):
             region = _infer_region(metric_id)
             results.append(
@@ -96,4 +97,4 @@ def compute_metrics(
                 )
             )
 
-    return results, raw
+    return results, pipeline_output

@@ -46,15 +46,15 @@ def estimate_pose(landmarks: np.ndarray, image_size: tuple[int, int]) -> dict[st
     except IndexError:
         return {"yaw": 0.0, "pitch": 0.0, "roll": 0.0}
 
-    success, rvec, _tvec = cv2.solvePnP(
+    success, rotation_vector, _translation_vector = cv2.solvePnP(
         _MODEL_3D, image_points, camera_matrix, dist_coeffs, flags=cv2.SOLVEPNP_ITERATIVE
     )
     if not success:
         return {"yaw": 0.0, "pitch": 0.0, "roll": 0.0}
 
-    rmat, _ = cv2.Rodrigues(rvec)
-    proj = np.hstack([rmat, np.zeros((3, 1))])
-    _, _, _, _, _, _, euler_angles = cv2.decomposeProjectionMatrix(proj)
+    rotation_matrix, _ = cv2.Rodrigues(rotation_vector)
+    projection_matrix = np.hstack([rotation_matrix, np.zeros((3, 1))])
+    _, _, _, _, _, _, euler_angles = cv2.decomposeProjectionMatrix(projection_matrix)
     pitch, yaw, roll = (float(angle) for angle in euler_angles.flatten())
 
     # decomposeProjectionMatrix returns angles in [-180, 180]; normalize pitch.

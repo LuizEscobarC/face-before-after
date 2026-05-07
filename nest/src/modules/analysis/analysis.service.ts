@@ -59,7 +59,7 @@ export class AnalysisService {
       });
     }
 
-    const pipeline: FullPipelineResponseDto = await this.vision.fullPipeline({
+    const pipelineResponse: FullPipelineResponseDto = await this.vision.fullPipeline({
       image_base64: payload.image_base64,
       mode: payload.mode ?? 'premium',
       session_id: payload.session_id,
@@ -68,19 +68,19 @@ export class AnalysisService {
 
     this.events.emit('analysis.completed', {
       session_id: payload.session_id,
-      run_id: pipeline.run_id,
+      run_id: pipelineResponse.run_id,
       mode: payload.mode ?? 'premium',
     });
 
     this.logger.log(
-      `analysis run_id=${pipeline.run_id} mode=${payload.mode ?? 'premium'} quality=${qualityDecision?.grade ?? 'skipped'}`,
+      `analysis run_id=${pipelineResponse.run_id} mode=${payload.mode ?? 'premium'} quality=${qualityDecision?.grade ?? 'skipped'}`,
     );
 
     return {
-      run_id: pipeline.run_id,
-      output_dir: pipeline.output_dir,
-      photo_url: pipeline.photo_url,
-      result: pipeline.result,
+      run_id: pipelineResponse.run_id,
+      output_dir: pipelineResponse.output_dir,
+      photo_url: pipelineResponse.photo_url,
+      result: pipelineResponse.result,
       quality: qualityDecision,
     };
   }

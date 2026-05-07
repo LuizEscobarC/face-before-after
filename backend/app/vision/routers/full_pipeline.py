@@ -38,8 +38,8 @@ def _validate_bytes(filename: str, raw: bytes) -> None:
         raise FileTooLargeError(limit_mb=15)
 
 
-async def _execute(raw: bytes, filename: str, mode: str, storage: MinIOStorage | None) -> FullPipelineResponse:
-    _validate_bytes(filename, raw)
+async def _execute(image_bytes: bytes, filename: str, mode: str, storage: MinIOStorage | None) -> FullPipelineResponse:
+    _validate_bytes(filename, image_bytes)
     if mode not in _VALID_MODES:
         raise HTTPException(status_code=400, detail=f"Invalid mode '{mode}'. Use one of: {sorted(_VALID_MODES)}.")
 
@@ -51,7 +51,7 @@ async def _execute(raw: bytes, filename: str, mode: str, storage: MinIOStorage |
     if not Path(safe_name).suffix:
         safe_name += ".jpg"
     input_path = out_dir / safe_name
-    input_path.write_bytes(raw)
+    input_path.write_bytes(image_bytes)
 
     try:
         result = await asyncio.to_thread(pipeline.run, str(input_path), str(out_dir), mode)
@@ -65,8 +65,10 @@ async def _execute(raw: bytes, filename: str, mode: str, storage: MinIOStorage |
     if storage:
         try:
             minio_path = f"uploads/{run_id}/{safe_name}"
-            storage.upload_file(raw, minio_path)
+            storage.upload_file(image_bytes, minio_path)
             photo_url = f"minio://{minio_path}"
+        except Exception:
+            logger.warning("MinIO upload failed for run_id=%s", run_id)
         except Exception:
             logger.warning("MinIO upload failed for run_id=%s", run_id)
 
@@ -89,10 +91,10 @@ async def full_pipeline_json(
     storage: MinIOStorage | None = Depends(get_storage),
 ) -> FullPipelineResponse:
     try:
-        raw = base64.b64decode(req.image_base64.split(",", 1)[-1], validate=False)
+        image_bytes = base64.b64decode(req.image_base64.split(",", 1)[-1], validate=False)
     except Exception as exc:
         raise HTTPException(status_code=400, detail=f"Invalid base64: {exc}") from exc
-    return await _execute(raw, req.filename or "upload.jpg", req.mode, storage)
+    return await _execute(image_bytes, req.filename or "upload.jpg", req.mode, storage)
 
 
 @router.post("/full-pipeline/upload", response_model=FullPipelineResponse)
@@ -101,5 +103,5 @@ async def full_pipeline_upload(
     mode: str = Form("premium"),
     storage: MinIOStorage | None = Depends(get_storage),
 ) -> FullPipelineResponse:
-    raw = await photo.read()
-    return await _execute(raw, photo.filename or "upload.jpg", mode, storage)
+    image_bytes = await photo.read()
+    return await _execute(image_bytes, photo.filename or "upload.jpg", mode, storage)

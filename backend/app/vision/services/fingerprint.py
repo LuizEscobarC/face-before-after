@@ -38,7 +38,7 @@ def build_session_fingerprint(
     mean_luminance: float,
     face_width_ratio: float,
 ) -> str:
-    parts = [
+    fingerprint_parts = [
         str(bool(flags.get("beard", False))),
         str(bool(flags.get("glasses", False))),
         str(bool(flags.get("smile", False))),
@@ -46,5 +46,5 @@ def build_session_fingerprint(
         _bucket_pose(pose),
         _bucket_distance(face_width_ratio),
     ]
-    raw = "|".join(parts)
-    return hashlib.sha1(raw.encode("utf-8"), usedforsecurity=False).hexdigest()[:16]
+    fingerprint_input = "|".join(fingerprint_parts)
+    return hashlib.sha1(fingerprint_input.encode("utf-8"), usedforsecurity=False).hexdigest()[:16]

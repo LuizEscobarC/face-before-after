@@ -13,27 +13,27 @@ export class PhotoQualityService {
   constructor(private readonly vision: VisionClient) {}
 
   async validate(payload: ValidatePhotoDto): Promise<PhotoQualityDecisionDto> {
-    const result: LandmarkResponseDto = await this.vision.landmarks(payload);
+    const landmarkResponse: LandmarkResponseDto = await this.vision.landmarks(payload);
 
-    const decision = this.gradeToDecision(result.quality_grade);
+    const decision = this.gradeToDecision(landmarkResponse.quality_grade);
 
     this.logger.log(
-      `photo-quality session=${result.session_id} grade=${result.quality_grade} score=${result.quality_score.toFixed(2)} decision=${decision}`,
+      `photo-quality session=${landmarkResponse.session_id} grade=${landmarkResponse.quality_grade} score=${landmarkResponse.quality_score.toFixed(2)} decision=${decision}`,
     );
 
     return {
       decision,
-      grade: result.quality_grade,
-      quality_score: result.quality_score,
-      recommendations: result.recommendations,
-      fingerprint: result.fingerprint,
-      subscore_breakdown: result.subscore_breakdown,
-      flags: result.flags,
-      pose: result.pose,
-      sharpness_score: result.sharpness_score,
-      lighting_asymmetry: result.lighting_asymmetry,
-      session_id: result.session_id,
-      processing_mode: result.processing_mode,
+      grade: landmarkResponse.quality_grade,
+      quality_score: landmarkResponse.quality_score,
+      recommendations: landmarkResponse.recommendations,
+      fingerprint: landmarkResponse.fingerprint,
+      subscore_breakdown: landmarkResponse.subscore_breakdown,
+      flags: landmarkResponse.flags,
+      pose: landmarkResponse.pose,
+      sharpness_score: landmarkResponse.sharpness_score,
+      lighting_asymmetry: landmarkResponse.lighting_asymmetry,
+      session_id: landmarkResponse.session_id,
+      processing_mode: landmarkResponse.processing_mode,
     };
   }
 
