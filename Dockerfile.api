@@ -23,11 +23,10 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
-# Copy requirements first for layer caching
-COPY requirements-api.txt ./
+# Copy pyproject.toml first for layer caching
+COPY backend/pyproject.toml ./
 
 # Install dlib separately first — heavy C++ compile, cached as its own layer.
-# If requirements-api.txt changes but dlib version does not, this layer is reused.
 RUN pip install --no-cache-dir --target=/app/site-packages dlib>=19.24.0
 
 # Install remaining dependencies (fast, no compilation)
@@ -35,6 +34,7 @@ RUN pip install --no-cache-dir --target=/app/site-packages \
     fastapi>=0.112.0 \
     uvicorn>=0.30.0 \
     python-multipart>=0.0.9 \
+    pydantic-settings>=2.0 \
     requests>=2.31.0 \
     opencv-python-headless>=4.8.0 \
     numpy>=1.24.0 \
@@ -43,12 +43,9 @@ RUN pip install --no-cache-dir --target=/app/site-packages \
     minio>=7.2.0 \
     python-dotenv>=1.0.0
 
-# Copy application code
-COPY api_server.py mvp_pipeline.py face.py face_asymmetry.py face_metrics.py \
-     impression_layer.py recommendations.py top_leverage.py visual_status.py \
-     glossary.py simulate_before_after.py compare_report.py evolution_path.py \
-     build_html_report.py minio_client.py start_api.py entrypoint.sh \
-     shape_predictor_68_face_landmarks.dat ./
+# Copy application code from backend/ package
+COPY backend/ ./
+COPY entrypoint.sh shape_predictor_68_face_landmarks.dat ./
 
 RUN chmod +x /app/entrypoint.sh
 

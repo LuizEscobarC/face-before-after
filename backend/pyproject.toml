@@ -1,0 +1,21 @@
+[project]
+name = "face-analysis-api"
+version = "1.0.0"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi>=0.112.0",
+    "uvicorn>=0.30.0",
+    "python-multipart>=0.0.9",
+    "pydantic-settings>=2.0",
+    "requests>=2.31.0",
+    "opencv-python-headless>=4.8.0",
+    "numpy>=1.24.0",
+    "dlib>=19.24.0",
+    "pillow>=10.0.0",
+    "scipy>=1.11.0",
+    "minio>=7.2.0",
+    "python-dotenv>=1.0.0",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

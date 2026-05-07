@@ -46,11 +46,12 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.api
+      # Build context is root so Dockerfile can access both backend/ and entrypoint.sh
     container_name: face-api
     ports:
       - "9015:8000"
     environment:
-      - PYTHONPATH=/app
+      - PYTHONPATH=/app:/app/site-packages
       - ENV=development
       - MINIO_ENDPOINT=minio:9000
       - MINIO_ACCESS_KEY=${MINIO_ROOT_USER:-beforeafter}
