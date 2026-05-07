@@ -1,8 +1,15 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-import { analyzePhoto, compareRuns, fetchCaptureGuidelines } from "../api";
+import {
+  analyzePhoto,
+  compareRuns,
+  fetchCaptureGuidelines,
+  validatePhotoQuality,
+  type PhotoQualityDecision,
+} from "../api";
 import { CaptureSourceTabs } from "../components/CaptureSourceTabs";
+import { PhotoQualityCard } from "../components/PhotoQualityCard";
 import type { AnalyzeMode, CaptureGuidelines } from "../types";
 
 const fallbackGuidelines: CaptureGuidelines = {
@@ -27,6 +34,8 @@ export function CapturePage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [guidelines, setGuidelines] = useState<CaptureGuidelines>(fallbackGuidelines);
+  const [quality, setQuality] = useState<PhotoQualityDecision | null>(null);
+  const [validating, setValidating] = useState(false);
 
   useEffect(() => {
     fetchCaptureGuidelines()
@@ -34,9 +43,31 @@ export function CapturePage() {
       .catch(() => setGuidelines(fallbackGuidelines));
   }, []);
 
-  const handlePhotoReady = (picked: File) => {
+  const handlePhotoReady = async (picked: File) => {
     setError("");
     setFile(picked);
+    setQuality(null);
+    setValidating(true);
+    try {
+      const decision = await validatePhotoQuality(picked);
+      setQuality(decision);
+      if (decision.decision === "REJECT") {
+        setError(
+          "A foto não passou nos critérios mínimos. Veja as recomendações abaixo e capture novamente.",
+        );
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Falha ao validar a foto.";
+      setError(message);
+    } finally {
+      setValidating(false);
+    }
+  };
+
+  const handleRetake = () => {
+    setFile(null);
+    setQuality(null);
+    setError("");
   };
 
   const submit = async () => {
@@ -68,6 +99,11 @@ export function CapturePage() {
 
     if (!file) {
       setError("Escolha uma foto ou capture pela câmera antes de continuar.");
+      return;
+    }
+
+    if (quality && quality.decision === "REJECT") {
+      setError("A foto foi rejeitada pelo gatekeeper. Capture outra antes de continuar.");
       return;
     }
 
@@ -172,6 +208,14 @@ export function CapturePage() {
                 )}
               </div>
             </div>
+          )}
+
+          {validating && (
+            <p style={{ color: "var(--muted)", fontSize: 13 }}>Validando qualidade da foto…</p>
+          )}
+
+          {quality && mode !== "compare" && (
+            <PhotoQualityCard decision={quality} onRetake={handleRetake} />
           )}
 
           {error && <p className="error-text">{error}</p>}

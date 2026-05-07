@@ -270,3 +270,67 @@ docker-open:
 
 # Alias para up (desenvolvimento)
 up: docker-up
+
+##############################
+# NESTJS ORCHESTRATOR (face-orchestrator)
+##############################
+
+# Instala deps do orchestrator (NestJS)
+nest-install:
+    cd nest && npm install
+
+# Sobe o orchestrator localmente (sem Docker) em http://localhost:3001
+nest-dev:
+    cd nest && PORT=3001 npm run start:dev-local
+
+# Build TypeScript do orchestrator
+nest-build:
+    cd nest && npm run build
+
+# Lint do orchestrator
+nest-lint:
+    cd nest && npm run lint
+
+# Build da imagem Docker do orchestrator
+nest-docker-build:
+    docker compose build orchestrator
+
+# Restart só do orchestrator
+nest-restart:
+    docker compose restart orchestrator
+
+# Logs do orchestrator
+nest-logs:
+    docker compose logs -f orchestrator
+
+##############################
+# VISION-SERVICE (face-vision-service)
+##############################
+
+# Logs do vision-service
+vision-logs:
+    docker compose logs -f vision-service
+
+# Restart só do vision-service
+vision-restart:
+    docker compose restart vision-service
+
+##############################
+# STACK COMPLETA (vision + orchestrator + frontend)
+##############################
+
+# Sobe todos os microserviços (vision + orchestrator + frontend + minio)
+stack-up:
+    docker compose up -d --build
+
+# Derruba tudo
+stack-down:
+    docker compose down
+
+# Logs de toda a stack
+stack-logs:
+    docker compose logs -f
+
+# Status
+stack-status:
+    docker compose ps

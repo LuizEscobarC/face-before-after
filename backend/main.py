@@ -1,19 +1,20 @@
 from __future__ import annotations
 
-import os
-
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api.router import router
 from app.core.logging import setup_logging
+from app.vision.router import router as vision_router
 
 setup_logging()
 
 app = FastAPI(
-    title="Face Before/After API",
-    version="1.0.0",
-    description="Facial symmetry & metrics analysis API",
+    title="Face Vision Service",
+    version="2.0.0",
+    description=(
+        "Microservice for face detection, landmark extraction, photo-quality "
+        "evaluation and atomic facial metrics. Consumed by the NestJS orchestrator."
+    ),
 )
 
 app.add_middleware(
@@ -24,7 +25,27 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(router)
+
+@app.get("/")
+def root() -> dict:
+    return {
+        "service": "face-vision-service",
+        "status": "ok",
+        "endpoints": [
+            "/vision/capture-guidelines",
+            "/vision/health",
+            "/vision/landmarks",
+            "/vision/metrics",
+            "/vision/full-pipeline",
+            "/vision/full-pipeline/upload",
+            "/vision/compare",
+            "/vision/results/{run_id}/annotated",
+            "/vision/results/{run_id}/simulation/{sim_type}",
+        ],
+    }
+
+
+app.include_router(vision_router)
 
 if __name__ == "__main__":
     import uvicorn

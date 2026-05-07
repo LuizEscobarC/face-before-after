@@ -42,11 +42,11 @@ services:
       "
     restart: on-failure
 
-  api:
+  vision-service:
     build:
       context: .
       dockerfile: Dockerfile.api
-    container_name: face-api
+    container_name: face-vision-service
     ports:
       - "9015:8000"
     environment:
@@ -73,6 +73,36 @@ services:
       retries: 5
       start_period: 60s
 
+  orchestrator:
+    build:
+      context: ./nest
+      dockerfile: Dockerfile.dev
+    container_name: face-orchestrator
+    ports:
+      - "9020:3000"
+    environment:
+      - NODE_ENV=development
+      - PORT=3000
+      - LOG_LEVEL=debug
+      - VISION_SERVICE_URL=http://vision-service:8000
+      - VISION_SERVICE_TIMEOUT_MS=60000
+    volumes:
+      - ./nest/src:/app/src
+      - ./nest/tsconfig.json:/app/tsconfig.json
+      - ./nest/tsconfig.build.json:/app/tsconfig.build.json
+    depends_on:
+      vision-service:
+        condition: service_started
+    networks:
+      - face-analysis
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --spider http://localhost:3000/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
   frontend:
     build:
       context: .
@@ -81,7 +111,9 @@ services:
     ports:
       - "9016:80"
     depends_on:
-      api:
+      orchestrator:
+        condition: service_started
+      vision-service:
         condition: service_started
     networks:
       - face-analysis

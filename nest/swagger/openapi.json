@@ -1,0 +1,727 @@
+{
+  "openapi": "3.0.0",
+  "paths": {
+    "/": {
+      "get": {
+        "operationId": "HealthController_root",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "summary": "Root health check (ELB) — sem dependência externa",
+        "tags": [
+          "Health"
+        ]
+      }
+    },
+    "/health": {
+      "get": {
+        "operationId": "HealthController_check",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "summary": "Liveness probe",
+        "tags": [
+          "Health"
+        ]
+      }
+    },
+    "/v1/vision/capture-guidelines": {
+      "get": {
+        "operationId": "VisionController_guidelines",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CaptureGuidelinesDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Diretrizes para captura ideal da foto",
+        "tags": [
+          "Vision"
+        ]
+      }
+    },
+    "/v1/vision/landmarks": {
+      "post": {
+        "operationId": "VisionController_landmarks",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LandmarkRequestDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LandmarkResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Extrai landmarks + qualidade (fallback server-side)",
+        "tags": [
+          "Vision"
+        ]
+      }
+    },
+    "/v1/vision/metrics": {
+      "post": {
+        "operationId": "VisionController_metrics",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MetricsRequestDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MetricsResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Calcula métricas a partir de landmarks",
+        "tags": [
+          "Vision"
+        ]
+      }
+    },
+    "/v1/vision/full-pipeline": {
+      "post": {
+        "operationId": "VisionController_fullPipeline",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FullPipelineRequestDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FullPipelineResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Roda o pipeline completo (premium ou teaser)",
+        "tags": [
+          "Vision"
+        ]
+      }
+    },
+    "/v1/vision/compare": {
+      "post": {
+        "operationId": "VisionController_compare",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CompareRequestDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Compara dois runs antes/depois",
+        "tags": [
+          "Vision"
+        ]
+      }
+    },
+    "/v1/vision/results/{runId}/annotated": {
+      "get": {
+        "operationId": "VisionController_annotated",
+        "parameters": [
+          {
+            "name": "runId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Imagem anotada com landmarks",
+        "tags": [
+          "Vision"
+        ]
+      }
+    },
+    "/v1/vision/results/{runId}/simulation/{simType}": {
+      "get": {
+        "operationId": "VisionController_simulation",
+        "parameters": [
+          {
+            "name": "runId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "simType",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Simulação visual (symmetrized | ideal_proportions | comparison_grid)",
+        "tags": [
+          "Vision"
+        ]
+      }
+    },
+    "/v1/photo-quality/validate": {
+      "post": {
+        "operationId": "PhotoQualityController_validate",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ValidatePhotoDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PhotoQualityDecisionDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Module 0 — valida qualidade da foto e devolve decisão (ACCEPT/WARN/REJECT)",
+        "tags": [
+          "PhotoQuality"
+        ]
+      }
+    },
+    "/v1/analysis": {
+      "post": {
+        "operationId": "AnalysisController_analyze",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AnalyzePhotoDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Roda gatekeeper Module 0 + full-pipeline e devolve resultado",
+        "tags": [
+          "Analysis"
+        ]
+      }
+    },
+    "/v1/analysis/compare": {
+      "post": {
+        "operationId": "AnalysisController_compare",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CompareRunsDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Compara dois runs antes/depois (proxy + evento)",
+        "tags": [
+          "Analysis"
+        ]
+      }
+    }
+  },
+  "info": {
+    "title": "Face Analysis Orchestrator API",
+    "description": "\n# Face Before/After — Orchestrator\n\nAPI NestJS que orquestra o pipeline de análise facial sobre o vision-service (FastAPI/Python).\n\n## Módulos\n| Módulo | Descrição |\n|--------|-----------|\n| **Health** | Verificação de saúde |\n| **Vision** | Proxy para o vision-service (landmarks, métricas, full-pipeline, compare) |\n| **Photo Quality** | Gatekeeper Module 0 — valida qualidade da foto antes de avançar |\n| **Analysis** | Orquestra full-pipeline + comparação |\n        ",
+    "version": "0.1.0",
+    "contact": {}
+  },
+  "tags": [
+    {
+      "name": "Health",
+      "description": ""
+    },
+    {
+      "name": "Vision",
+      "description": ""
+    },
+    {
+      "name": "PhotoQuality",
+      "description": ""
+    },
+    {
+      "name": "Analysis",
+      "description": ""
+    }
+  ],
+  "servers": [],
+  "components": {
+    "schemas": {
+      "CaptureGuidelinesDto": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "distance_meters": {
+            "type": "number"
+          },
+          "zoom": {
+            "type": "string"
+          },
+          "tips": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "title",
+          "distance_meters",
+          "zoom",
+          "tips"
+        ]
+      },
+      "LandmarkRequestDto": {
+        "type": "object",
+        "properties": {
+          "image_base64": {
+            "type": "string",
+            "description": "Base64 da imagem (com ou sem data URL prefix)"
+          },
+          "session_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "image_base64"
+        ]
+      },
+      "PoseAnglesDto": {
+        "type": "object",
+        "properties": {
+          "yaw": {
+            "type": "number"
+          },
+          "pitch": {
+            "type": "number"
+          },
+          "roll": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "yaw",
+          "pitch",
+          "roll"
+        ]
+      },
+      "LandmarkResponseDto": {
+        "type": "object",
+        "properties": {
+          "session_id": {
+            "type": "string"
+          },
+          "landmarks": {
+            "type": "array",
+            "items": {
+              "type": "array",
+              "items": {
+                "type": "number"
+              }
+            }
+          },
+          "pose": {
+            "$ref": "#/components/schemas/PoseAnglesDto"
+          },
+          "quality_score": {
+            "type": "number"
+          },
+          "quality_grade": {
+            "type": "string",
+            "enum": [
+              "ALTA",
+              "MEDIA",
+              "BAIXA",
+              "REJEITADA"
+            ]
+          },
+          "flags": {
+            "type": "object"
+          },
+          "regional_penalties": {
+            "type": "object"
+          },
+          "recommendations": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "fingerprint": {
+            "type": "string"
+          },
+          "processing_mode": {
+            "type": "string"
+          },
+          "sharpness_score": {
+            "type": "number"
+          },
+          "lighting_asymmetry": {
+            "type": "number"
+          },
+          "subscore_breakdown": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "session_id",
+          "landmarks",
+          "pose",
+          "quality_score",
+          "quality_grade",
+          "flags",
+          "regional_penalties",
+          "recommendations",
+          "fingerprint",
+          "processing_mode",
+          "sharpness_score",
+          "lighting_asymmetry",
+          "subscore_breakdown"
+        ]
+      },
+      "QualityContextDto": {
+        "type": "object",
+        "properties": {
+          "quality_score": {
+            "type": "number"
+          },
+          "regional_penalties": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "quality_score",
+          "regional_penalties"
+        ]
+      },
+      "MetricsRequestDto": {
+        "type": "object",
+        "properties": {
+          "session_id": {
+            "type": "string"
+          },
+          "landmarks": {
+            "type": "array",
+            "items": {
+              "type": "array",
+              "items": {
+                "type": "number"
+              }
+            }
+          },
+          "image_base64": {
+            "type": "string"
+          },
+          "quality_context": {
+            "$ref": "#/components/schemas/QualityContextDto"
+          }
+        },
+        "required": [
+          "landmarks",
+          "quality_context"
+        ]
+      },
+      "MetricsResponseDto": {
+        "type": "object",
+        "properties": {
+          "metrics": {
+            "type": "array"
+          },
+          "raw": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "metrics",
+          "raw"
+        ]
+      },
+      "FullPipelineRequestDto": {
+        "type": "object",
+        "properties": {
+          "image_base64": {
+            "type": "string"
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "premium",
+              "teaser"
+            ],
+            "default": "premium"
+          },
+          "session_id": {
+            "type": "string"
+          },
+          "filename": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "image_base64"
+        ]
+      },
+      "FullPipelineResponseDto": {
+        "type": "object",
+        "properties": {
+          "run_id": {
+            "type": "string"
+          },
+          "output_dir": {
+            "type": "string"
+          },
+          "photo_url": {
+            "type": "string"
+          },
+          "result": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "run_id",
+          "output_dir",
+          "result"
+        ]
+      },
+      "CompareRequestDto": {
+        "type": "object",
+        "properties": {
+          "run_id_before": {
+            "type": "string"
+          },
+          "run_id_after": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "run_id_before",
+          "run_id_after"
+        ]
+      },
+      "ValidatePhotoDto": {
+        "type": "object",
+        "properties": {
+          "image_base64": {
+            "type": "string",
+            "description": "Imagem em base64 (com ou sem data URL prefix)"
+          },
+          "session_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "image_base64"
+        ]
+      },
+      "PhotoQualityDecisionDto": {
+        "type": "object",
+        "properties": {
+          "decision": {
+            "type": "string",
+            "enum": [
+              "ACCEPT",
+              "WARN",
+              "REJECT"
+            ]
+          },
+          "grade": {
+            "type": "string",
+            "enum": [
+              "ALTA",
+              "MEDIA",
+              "BAIXA",
+              "REJEITADA"
+            ]
+          },
+          "quality_score": {
+            "type": "number"
+          },
+          "recommendations": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "fingerprint": {
+            "type": "string"
+          },
+          "subscore_breakdown": {
+            "type": "object"
+          },
+          "flags": {
+            "type": "object"
+          },
+          "pose": {
+            "type": "object"
+          },
+          "sharpness_score": {
+            "type": "number"
+          },
+          "lighting_asymmetry": {
+            "type": "number"
+          },
+          "session_id": {
+            "type": "string"
+          },
+          "processing_mode": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "decision",
+          "grade",
+          "quality_score",
+          "recommendations",
+          "fingerprint",
+          "subscore_breakdown",
+          "flags",
+          "pose",
+          "sharpness_score",
+          "lighting_asymmetry",
+          "session_id",
+          "processing_mode"
+        ]
+      },
+      "AnalyzePhotoDto": {
+        "type": "object",
+        "properties": {
+          "image_base64": {
+            "type": "string"
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "premium",
+              "teaser"
+            ],
+            "default": "premium"
+          },
+          "session_id": {
+            "type": "string"
+          },
+          "filename": {
+            "type": "string"
+          },
+          "skip_quality_gate": {
+            "type": "boolean",
+            "default": false,
+            "description": "Pula o gatekeeper Module 0 (NÃO recomendado em produção)"
+          }
+        },
+        "required": [
+          "image_base64"
+        ]
+      },
+      "CompareRunsDto": {
+        "type": "object",
+        "properties": {
+          "run_id_before": {
+            "type": "string"
+          },
+          "run_id_after": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "run_id_before",
+          "run_id_after"
+        ]
+      }
+    }
+  }
+}

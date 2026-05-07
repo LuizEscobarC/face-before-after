@@ -1,0 +1,38 @@
+# Dependencies
+node_modules
+npm-debug.log
+
+# Build outputs
+dist
+build
+
+# Development files
+*.md
+!README.md
+.git
+.gitignore
+.github
+.vscode
+.idea
+
+# Docker files
+Dockerfile*
+docker-compose*.yml
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+
+# Test files
+coverage
+*.test.ts
+*.spec.ts
+
+# Logs
+*.log
+logs
+
+# Temp
+tmp
+temp
