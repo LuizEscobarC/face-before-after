@@ -1,23 +1,10 @@
-import { Module, Logger } from '@nestjs/common';
-import { OnEvent } from '@nestjs/event-emitter';
-import { Injectable } from '@nestjs/common';
+import { Module } from '@nestjs/common';
+import { DiagnosisService } from './diagnosis.service.js';
+import { DiagnosisController } from './diagnosis.controller.js';
 
-@Injectable()
-class DiagnosisListener {
-  private readonly logger = new Logger('DiagnosisListener');
-
-  @OnEvent('analysis.completed')
-  onAnalysisCompleted(payload: unknown): void {
-    this.logger.debug(`(stub) diagnosing analysis: ${JSON.stringify(payload)}`);
-  }
-}
-
-/**
- * DiagnosisModule — DDD stub. Futuro:
- *   - DiagnoseFaceUseCase reads metrics + builds Insight aggregate
- *   - Reage a evento `analysis.completed`
- */
 @Module({
-  providers: [DiagnosisListener],
+  controllers: [DiagnosisController],
+  providers: [DiagnosisService],
+  exports: [DiagnosisService],
 })
 export class DiagnosisModule {}

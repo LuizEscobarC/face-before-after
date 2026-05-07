@@ -70,6 +70,7 @@ export class AnalysisService {
       session_id: payload.session_id,
       run_id: pipelineResponse.run_id,
       mode: payload.mode ?? 'premium',
+      result: pipelineResponse.result,
     });
 
     this.logger.log(
