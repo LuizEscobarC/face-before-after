@@ -152,15 +152,19 @@ def detect_flags(image_bgr: np.ndarray, landmarks: np.ndarray) -> dict:
         sobel_y = cv2.Sobel(gray, cv2.CV_64F, 0, 1, ksize=3)
         edge_magnitudes = np.sqrt(sobel_x ** 2 + sobel_y ** 2)
         roi_area = (eye_x_max - eye_x_min) * (eye_y_max - eye_y_min)
-        edge_density = float(np.count_nonzero(edge_magnitudes > 80)) / max(roi_area, 1)
-        glasses = edge_density > 0.18
+        # Threshold 120 (was 80) + density 0.28 (was 0.18) to avoid thick-eyebrow FP
+        edge_density = float(np.count_nonzero(edge_magnitudes > 120)) / max(roi_area, 1)
+        glasses = edge_density > 0.28
 
     # ── Smile ──────────────────────────────────────────────────────────────────
     # landmark 48 = left corner, 54 = right corner, 57 = bottom center
+    # Normalize lift by nose-bridge-to-chin distance to be resolution-independent
     corners_y = (landmarks[48][1] + landmarks[54][1]) / 2.0
     center_y = landmarks[57][1]
     lift = float(center_y - corners_y)
-    smile = lift > 4.0
+    face_ref_height = float(landmarks[8][1] - landmarks[27][1])  # chin - nose bridge
+    normalized_lift = lift / face_ref_height if face_ref_height > 0 else 0.0
+    smile = normalized_lift > 0.06  # ~6% of face height (was 4px absolute)
 
     return {
         "beard": bool(beard),

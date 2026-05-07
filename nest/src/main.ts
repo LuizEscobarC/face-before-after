@@ -35,6 +35,7 @@ async function bootstrap(): Promise<void> {
       AppModule,
       new FastifyAdapter({
         logger: pinoHttpLogger,
+        bodyLimit: 52428800, // 50 MB — accommodates base64-encoded images
       }),
     );
 
