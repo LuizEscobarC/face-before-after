@@ -74,7 +74,7 @@ export function FreeResultPage() {
     );
   }
 
-  const annotatedUrl = result.run_id ? `/v1/results/${result.run_id}/annotated` : null;
+  const annotatedUrl = result.run_id ? `/v1/vision/results/${result.run_id}/annotated` : null;
   const hasWarnings = (result.photo_warnings?.length ?? 0) > 0;
   const hasRecs = (result.capture_recommendations?.length ?? 0) > 0;
 
