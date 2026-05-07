@@ -64,14 +64,14 @@ def get_landmarks(req: LandmarkRequest) -> LandmarkPayload:
         landmarks_list: list[list[float]] = empty_landmarks
         face_width_ratio = 0.0
     else:
-        rect = faces[0]
-        landmarks = face_detection.extract_landmarks(image, rect)
+        face_rect = faces[0]
+        landmarks = face_detection.extract_landmarks(image, face_rect)
         pose = estimate_pose(landmarks, (h, w))
         quality = quality_evaluator.evaluate(image, landmarks, pose, face_count)
         landmarks_list = landmarks.tolist()
-        face_width_ratio = float(rect.width()) / float(w) if w > 0 else 0.0
+        face_width_ratio = float(face_rect.width()) / float(w) if w > 0 else 0.0
 
-    fingerprint = build_session_fingerprint(
+    fingerprint, fingerprint_parts = build_session_fingerprint(
         flags=quality["flags"],
         pose=pose,
         mean_luminance=quality.get("mean_luminance", 0.0),
@@ -97,6 +97,7 @@ def get_landmarks(req: LandmarkRequest) -> LandmarkPayload:
         regional_penalties=RegionalPenalties(**quality["regional_penalties"]),
         recommendations=quality["recommendations"],
         fingerprint=fingerprint,
+        fingerprint_parts=fingerprint_parts,
         processing_mode="SERVER_FALLBACK",
         sharpness_score=quality["sharpness_score"],
         lighting_asymmetry=quality["lighting_asymmetry"],

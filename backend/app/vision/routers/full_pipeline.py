@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import asyncio
 import base64
+import json
 import logging
 import uuid
 from pathlib import Path
@@ -19,6 +20,10 @@ from app.core.config import settings
 from app.core.exceptions import FileTooLargeError, InvalidImageError
 from app.infra.storage import MinIOStorage
 from app.vision.schemas.pipeline import FullPipelineRequest, FullPipelineResponse
+from app.vision.services import face_detection, quality_evaluator
+from app.vision.services.fingerprint import build_session_fingerprint
+from app.vision.services.image_codec import decode_base64_image
+from app.vision.services.pose_estimator import estimate_pose
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -69,13 +74,33 @@ async def _execute(image_bytes: bytes, filename: str, mode: str, storage: MinIOS
             photo_url = f"minio://{minio_path}"
         except Exception:
             logger.warning("MinIO upload failed for run_id=%s", run_id)
-        except Exception:
-            logger.warning("MinIO upload failed for run_id=%s", run_id)
 
     if isinstance(result, dict):
         result["run_id"] = run_id
         result["output_dir"] = str(out_dir)
         result["photo_url"] = photo_url
+
+    # Save fingerprint sidecar for consistency score in compare runs.
+    try:
+        import cv2
+        import numpy as np
+        img_array = np.frombuffer(image_bytes, np.uint8)
+        img_bgr = cv2.imdecode(img_array, cv2.IMREAD_COLOR)
+        if img_bgr is not None:
+            faces = face_detection.detect_faces(img_bgr)
+            if faces:
+                landmarks = face_detection.extract_landmarks(img_bgr, faces[0])
+                h, w = img_bgr.shape[:2]
+                pose = estimate_pose(landmarks, (h, w))
+                quality = quality_evaluator.evaluate(img_bgr, landmarks, pose, 1)
+                face_width_ratio = float(faces[0].width()) / float(w) if w > 0 else 0.0
+                fingerprint_hash, fingerprint_parts = build_session_fingerprint(
+                    quality["flags"], pose, quality.get("mean_luminance", 0.0), face_width_ratio
+                )
+                sidecar = out_dir / f"{run_id}_fingerprint.json"
+                sidecar.write_text(json.dumps({"fingerprint": fingerprint_hash, "fingerprint_parts": fingerprint_parts}))
+    except Exception:
+        logger.debug("Fingerprint sidecar generation failed for run_id=%s (non-fatal)", run_id)
 
     return FullPipelineResponse(
         run_id=run_id,

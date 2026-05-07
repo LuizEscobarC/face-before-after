@@ -30,6 +30,7 @@ export class LandmarkResponseDto {
   @ApiProperty() regional_penalties!: Record<string, number>;
   @ApiProperty({ type: [String] }) recommendations!: string[];
   @ApiProperty() fingerprint!: string;
+  @ApiProperty({ type: [String] }) fingerprint_parts!: string[];
   @ApiProperty() processing_mode!: string;
   @ApiProperty() sharpness_score!: number;
   @ApiProperty() lighting_asymmetry!: number;
@@ -83,6 +84,12 @@ export class CaptureGuidelinesDto {
   @ApiProperty({ type: Number }) distance_meters!: number;
   @ApiProperty({ type: String }) zoom!: string;
   @ApiProperty({ type: [String] }) tips!: string[];
+}
+
+export class CompareResponseDto {
+  @ApiProperty({ type: Number }) consistency_score!: number;
+  @ApiProperty({ type: [String] }) consistency_issues!: string[];
+  @ApiProperty({ type: Boolean }) is_comparable!: boolean;
 }
 
 // Suppress unused import warning when validators unused on a class

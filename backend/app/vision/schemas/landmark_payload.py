@@ -53,6 +53,7 @@ class LandmarkPayload(BaseModel):
     regional_penalties: RegionalPenalties
     recommendations: list[str] = Field(default_factory=list)
     fingerprint: str
+    fingerprint_parts: list[str] = Field(default_factory=list)
     processing_mode: ProcessingMode = "SERVER_FALLBACK"
     sharpness_score: float = 0.0
     lighting_asymmetry: float = 0.0
