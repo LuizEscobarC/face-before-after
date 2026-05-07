@@ -120,12 +120,17 @@ export async function cropImageToFace(
 export async function validatePhotoQuality(
   file: File,
   sessionId?: string,
+  userConsented?: boolean,
 ): Promise<PhotoQualityDecision> {
   const image_base64 = await prepareImageBase64(file);
   const res = await fetch(`${BASE}/v1/photo-quality/validate`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ image_base64, session_id: sessionId }),
+    body: JSON.stringify({
+      image_base64,
+      session_id: sessionId,
+      user_consented: userConsented ?? false,
+    }),
   });
   if (!res.ok) {
     throw new Error(await readError(res, "Falha ao validar qualidade da foto."));

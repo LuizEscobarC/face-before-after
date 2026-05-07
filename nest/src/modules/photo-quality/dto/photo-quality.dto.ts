@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsOptional, IsString } from 'class-validator';
+import { IsBoolean, IsOptional, IsString } from 'class-validator';
 
 export class ValidatePhotoDto {
   @ApiProperty({ description: 'Imagem em base64 (com ou sem data URL prefix)' })
@@ -10,6 +10,11 @@ export class ValidatePhotoDto {
   @IsOptional()
   @IsString()
   session_id?: string;
+
+  @ApiPropertyOptional({ description: 'Indica se o usuário consentiu com armazenamento da foto bruta' })
+  @IsOptional()
+  @IsBoolean()
+  user_consented?: boolean;
 }
 
 export class PhotoQualityDecisionDto {
@@ -27,6 +32,9 @@ export class PhotoQualityDecisionDto {
 
   @ApiProperty()
   fingerprint!: string;
+
+  @ApiProperty({ type: [String] })
+  fingerprint_parts!: string[];
 
   @ApiProperty()
   subscore_breakdown!: Record<string, number>;

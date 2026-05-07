@@ -5,20 +5,28 @@ import {
   PhotoQualityDecisionDto,
   ValidatePhotoDto,
 } from './dto/photo-quality.dto.js';
+import { PhotoStoragePolicy } from './photo-storage-policy.js';
 
 @Injectable()
 export class PhotoQualityService {
   private readonly logger = new Logger(PhotoQualityService.name);
 
-  constructor(private readonly vision: VisionClient) {}
+  constructor(
+    private readonly vision: VisionClient,
+    private readonly storagePolicy: PhotoStoragePolicy,
+  ) {}
 
   async validate(payload: ValidatePhotoDto): Promise<PhotoQualityDecisionDto> {
     const landmarkResponse: LandmarkResponseDto = await this.vision.landmarks(payload);
 
     const decision = this.gradeToDecision(landmarkResponse.quality_grade);
+    const shouldStorePhoto = this.storagePolicy.shouldStore({
+      userConsented: payload.user_consented ?? false,
+      purpose: 'quality-validation',
+    });
 
     this.logger.log(
-      `photo-quality session=${landmarkResponse.session_id} grade=${landmarkResponse.quality_grade} score=${landmarkResponse.quality_score.toFixed(2)} decision=${decision}`,
+      `photo-quality session=${landmarkResponse.session_id} grade=${landmarkResponse.quality_grade} score=${landmarkResponse.quality_score.toFixed(2)} decision=${decision} mode=${landmarkResponse.processing_mode} storage=${shouldStorePhoto}`,
     );
 
     return {
@@ -27,6 +35,7 @@ export class PhotoQualityService {
       quality_score: landmarkResponse.quality_score,
       recommendations: landmarkResponse.recommendations,
       fingerprint: landmarkResponse.fingerprint,
+      fingerprint_parts: landmarkResponse.fingerprint_parts,
       subscore_breakdown: landmarkResponse.subscore_breakdown,
       flags: landmarkResponse.flags,
       pose: landmarkResponse.pose,
