@@ -13,7 +13,7 @@ import numpy as np
 # ---------------------------------------------------------------------------
 # Tunables
 # ---------------------------------------------------------------------------
-POSE_LIMITS = {"yaw": (8.0, 20.0), "pitch": (8.0, 20.0), "roll": (5.0, 15.0)}
+POSE_LIMITS = {"yaw": (8.0, 20.0), "pitch": (8.0, 20.0), "roll": (8.0, 20.0)}
 SHARPNESS_FLOOR = 40.0       # Laplacian variance below this → score 0
 SHARPNESS_TARGET = 250.0     # variance >= this → score 1
 LIGHTING_TARGET_MEAN = 130.0  # ideal L mean (LAB) — middle exposure
@@ -43,7 +43,8 @@ def _pose_score(pose: dict[str, float]) -> float:
     yaw_score = _linear_decay(pose["yaw"], *POSE_LIMITS["yaw"])
     pitch_score = _linear_decay(pose["pitch"], *POSE_LIMITS["pitch"])
     roll_score = _linear_decay(pose["roll"], *POSE_LIMITS["roll"])
-    return float(min(yaw_score, pitch_score, roll_score))
+    # Weighted average (60% yaw, 20% pitch, 20% roll) instead of min() to avoid over-penalization
+    return float(0.6 * yaw_score + 0.2 * pitch_score + 0.2 * roll_score)
 
 
 def _face_bbox_from_landmarks(landmarks: np.ndarray, image_shape: tuple[int, int]) -> tuple[int, int, int, int]:
@@ -231,7 +232,7 @@ def _build_recommendations(
         if worst_axis == "yaw":
             tips.append("Olhe diretamente para a câmera — você está virando o rosto.")
         elif worst_axis == "pitch":
-            tips.append("Mantenha a cabeça nivelada — sem inclinar para cima ou para baixo.")
+            tips.append("Levante a câmera: deve estar na altura dos seus olhos, não do peito.")
         else:
             tips.append("Endireite a cabeça — ela está inclinada lateralmente.")
 
