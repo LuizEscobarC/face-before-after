@@ -399,17 +399,34 @@ class FaceAsymmetryAnalyzer:
                 if key.endswith('_px') and key not in ('ipd_px',):
                     norm_key = key[:-3] + '_pct_ipd'
                     normalized[norm_key] = (asymmetry[key] / ipd_px) * 100.0
-            # Score normalizado (mesma fórmula, métricas em %IPD)
-            norm_weights = {k[:-3] + '_pct_ipd': v for k, v in weights.items()}
-            norm_weighted_sum = sum(normalized[k] * norm_weights[k] for k in norm_weights)
-            normalized['overall_asymmetry_score_pct_ipd'] = norm_weighted_sum / total_weight
+            # Issue 2.5: só agrega métricas que efetivamente foram normalizadas;
+            # se alguma estiver ausente (landmarks faltando), pula sem crashar.
+            norm_weights = {
+                k[:-3] + '_pct_ipd': weights[k]
+                for k in weights
+                if (k[:-3] + '_pct_ipd') in normalized
+            }
+            sum_norm_weights = sum(norm_weights.values())
+            if sum_norm_weights > 0:
+                norm_weighted_sum = sum(
+                    normalized[k] * norm_weights[k] for k in norm_weights
+                )
+                normalized['overall_asymmetry_score_pct_ipd'] = (
+                    norm_weighted_sum / sum_norm_weights
+                )
+            else:
+                normalized['overall_asymmetry_score_pct_ipd'] = None
             asymmetry.update(normalized)
+        else:
+            asymmetry['overall_asymmetry_score_pct_ipd'] = None
 
-        # Round all values for cleaner output
+        # Round all values for cleaner output (preserva None).
         for key in asymmetry:
-            # mais casas para % (valores pequenos)
+            value = asymmetry[key]
+            if value is None:
+                continue
             decimals = 3 if key.endswith('_pct_ipd') else 2
-            asymmetry[key] = round(asymmetry[key], decimals)
+            asymmetry[key] = round(value, decimals)
         
         self.asymmetry_data = asymmetry
         return asymmetry

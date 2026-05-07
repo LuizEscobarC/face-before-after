@@ -8,7 +8,10 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     api_host: str = "0.0.0.0"
     api_port: int = 8000
-    resultado_api_dir: str = str(Path(__file__).parents[3] / "resultado_api")
+    # Default: ../../../resultado_api relativo a este arquivo. No container o
+    # backend/ é COPY para /app, então este path resolve para /app/resultado_api
+    # (volume montado pelo docker-compose).
+    resultado_api_dir: str = str(Path(__file__).resolve().parents[2] / "resultado_api")
     minio_endpoint: str = "minio:9000"
     minio_access_key: str = "minioadmin"
     minio_secret_key: str = "minioadmin123"

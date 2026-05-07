@@ -12,10 +12,13 @@ Nenhuma dependência de IA generativa — apenas OpenCV + numpy.
 from __future__ import annotations
 
 import os
-from typing import Any, Dict, List, Sequence, Tuple
+from typing import TYPE_CHECKING, Any, Dict, List, Sequence, Tuple
 
 import cv2
 import numpy as np
+
+if TYPE_CHECKING:
+    from app.domain.canonical_frame import CanonicalFrame
 
 
 # ---------------------------------------------------------------------------
@@ -275,36 +278,33 @@ def annotate_ideal_proportions(
 
 
 def simulate(
-    image_path: str,
-    landmarks: Landmarks,
+    frame: "CanonicalFrame",
     output_dir: str,
 ) -> Dict[str, str]:
-    """Gera 3 imagens de simulação e retorna os caminhos.
+    """Gera 3 imagens de simulação a partir do frame canônico.
 
-    Args:
-        image_path: caminho da foto original.
-        landmarks: lista de 68 tuplas (x, y) dos landmarks dlib.
-        output_dir: diretório onde salvar as imagens geradas.
+    Roda sobre ``frame.image`` (já cropada e alinhada) e ``frame.landmarks``
+    (no mesmo sistema de coordenadas), garantindo que a simulação use a
+    mesma foto que alimentou todas as outras análises do pipeline.
 
     Returns:
         {
+            "canonical": str,
             "symmetrized": str,
             "ideal_proportions": str,
             "comparison_grid": str,
         }
-
-    Raises:
-        ValueError: se a imagem não puder ser lida ou landmarks insuficientes.
     """
-    if len(landmarks) < 68:
-        raise ValueError(f"Esperado 68 landmarks, recebidos {len(landmarks)}")
-
-    img = cv2.imread(image_path)
-    if img is None:
-        raise ValueError(f"Não foi possível ler a imagem: {image_path}")
+    img = frame.image
+    landmarks_arr = frame.landmarks
+    if landmarks_arr.shape[0] < 68:
+        raise ValueError(
+            f"Esperado 68 landmarks, recebidos {landmarks_arr.shape[0]}"
+        )
+    landmarks: Landmarks = [tuple(map(int, pt)) for pt in landmarks_arr]
 
     os.makedirs(output_dir, exist_ok=True)
-    base = os.path.splitext(os.path.basename(image_path))[0]
+    base = os.path.splitext(os.path.basename(frame.source_path))[0]
 
     # Camada A
     img_sym = symmetrize(img, landmarks)
@@ -332,16 +332,19 @@ def simulate(
             _FONT, 0.55, _WHITE, 1, cv2.LINE_AA,
         )
 
-    # Salvar
+    # Salvar — inclui a foto canônica como referência (foto base usada na análise)
+    path_canonical = os.path.join(output_dir, f"{base}_canonical.jpg")
     path_sym = os.path.join(output_dir, f"{base}_symmetrized.jpg")
     path_prop = os.path.join(output_dir, f"{base}_ideal_proportions.jpg")
     path_grid = os.path.join(output_dir, f"{base}_comparison_grid.jpg")
 
+    cv2.imwrite(path_canonical, img)
     cv2.imwrite(path_sym, img_sym)
     cv2.imwrite(path_prop, img_prop)
     cv2.imwrite(path_grid, grid)
 
     return {
+        "canonical": path_canonical,
         "symmetrized": path_sym,
         "ideal_proportions": path_prop,
         "comparison_grid": path_grid,

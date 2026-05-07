@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { fetchGlossary } from "../api";
+import { MetricExplainer } from "../components/MetricExplainer";
+import { feynmanFor } from "../data/feynman";
 import type { AnalysisResult, GlossaryTerm, PremiumMetricCategory } from "../types";
 
 type LocationState = { result?: AnalysisResult };
@@ -82,37 +84,31 @@ function BarRow({ label, value }: { label: string; value: number | undefined }) 
   );
 }
 
-function MetricsCategory({ category }: { category: PremiumMetricCategory }) {
+function MetricsCategory({
+  category,
+  glossary,
+}: {
+  category: PremiumMetricCategory;
+  glossary: Record<string, GlossaryTerm>;
+}) {
   return (
     <details className="metric-group">
       <summary>
         {category.title} <span className="metric-count">{category.count} métricas</span>
       </summary>
-      <div className="metric-table-wrap">
-        <table className="metric-table">
-          <thead>
-            <tr>
-              <th>Métrica</th>
-              <th>Valor</th>
-              <th>Unidade</th>
-              <th>Ideal</th>
-              <th>Severidade</th>
-            </tr>
-          </thead>
-          <tbody>
-            {category.metrics.map((m) => (
-              <tr key={`${category.slug}-${m.key}`}>
-                <td>{m.label}</td>
-                <td>{m.display_value}</td>
-                <td>{m.unit || "—"}</td>
-                <td>{m.ideal || "—"}</td>
-                <td>
-                  <span className={severityClass(m.severity)}>{m.severity}</span>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      <div className="metric-explainer-list">
+        {category.metrics.map((m) => (
+          <MetricExplainer
+            key={`${category.slug}-${m.key}`}
+            metricKey={m.key}
+            label={m.label}
+            value={m.display_value}
+            unit={m.unit}
+            ideal={m.ideal}
+            severity={m.severity}
+            glossary={glossary}
+          />
+        ))}
       </div>
     </details>
   );
@@ -179,6 +175,24 @@ export function PremiumResultPage() {
 
       {/* ── CONTEÚDO ── */}
       <div className="page">
+
+        {/* Insight Principal */}
+        {result.main_insight?.short_name && (
+          <section className="main-insight" style={{ marginTop: 20 }}>
+            <div className="main-insight-kicker">💡 Insight principal</div>
+            <h2 className="main-insight-title">{result.main_insight.short_name}</h2>
+            {result.main_insight.detail && (
+              <p className="main-insight-detail">{result.main_insight.detail}</p>
+            )}
+            {result.main_insight.metric_key &&
+              feynmanFor(result.main_insight.metric_key) && (
+                <details className="main-insight-feynman">
+                  <summary>💡 Explicar como se eu tivesse 5 anos</summary>
+                  <p>{feynmanFor(result.main_insight.metric_key)}</p>
+                </details>
+              )}
+          </section>
+        )}
 
         {/* Benchmark strip */}
         {(result.benchmark_message || result.score_context) && (
@@ -336,20 +350,38 @@ export function PremiumResultPage() {
         {result.measurements && (
           <section className="section">
             <h2 className="section-title">🔬 Perfil Facial Detalhado</h2>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 12, marginTop: 12 }}>
-              {[
-                ["Formato facial", result.measurements["face_shape"]],
-                ["Olheiras (esq)", result.measurements["under_eye_darkness_left"]?.toString()],
-                ["Olheiras (dir)", result.measurements["under_eye_darkness_right"]?.toString()],
-                ["Uniformidade pele", result.measurements["skin_uniformity_score"]?.toString()],
-                ["Desvio Máscara Áurea", result.measurements["marquardt_deviation_pct_ipd"] != null ? `${Number(result.measurements["marquardt_deviation_pct_ipd"]).toFixed(1)}%` : null],
-                ["Inclinação Canthal", result.measurements["canthal_tilt_mean_deg"] != null ? `${Number(result.measurements["canthal_tilt_mean_deg"]).toFixed(1)}°` : null],
-              ].filter(([, v]) => v != null && v !== "").map(([label, value]) => (
-                <div key={label as string} style={{ background: "var(--surface2)", borderRadius: 10, padding: "10px 14px", border: "1px solid var(--border)" }}>
-                  <div style={{ fontSize: 11, color: "var(--muted)", marginBottom: 4 }}>{label as string}</div>
-                  <div style={{ fontSize: 15, color: "var(--text)", fontWeight: 600 }}>{value as string}</div>
-                </div>
-              ))}
+            <p className="section-sub">
+              Toque em cada métrica para ver a explicação simples e o detalhe técnico.
+            </p>
+            <div className="metric-explainer-list">
+              {([
+                ["Olheiras (esq)", "under_eye_darkness_left", ""],
+                ["Olheiras (dir)", "under_eye_darkness_right", ""],
+                ["Uniformidade da pele (esq)", "skin_uniformity_std_lab_left", ""],
+                ["Uniformidade da pele (dir)", "skin_uniformity_std_lab_right", ""],
+                ["Desvio Máscara Áurea", "marquardt_deviation_pct_ipd", "%"],
+                ["Inclinação Canthal", "canthal_tilt_mean_deg", "°"],
+                ["Razão facial (fWHR)", "fwhr", ""],
+                ["Terço inferior", "lower_third_ratio", ""],
+                ["Definição da mandíbula", "jawline_definition_score", ""],
+              ] as [string, string, string][])
+                .map(([label, key, unit]) => {
+                  const v = result.measurements?.[key];
+                  if (v == null) return null;
+                  const num = typeof v === "number" ? v : Number(v);
+                  const display = Number.isFinite(num) ? num.toFixed(2) : String(v);
+                  return (
+                    <MetricExplainer
+                      key={key}
+                      metricKey={key}
+                      label={label}
+                      value={display}
+                      unit={unit || undefined}
+                      glossary={glossary}
+                    />
+                  );
+                })
+                .filter(Boolean)}
             </div>
           </section>
         )}
@@ -465,7 +497,7 @@ export function PremiumResultPage() {
             <h2 className="section-title">📚 Métricas Completas (Premium)</h2>
             <p className="section-sub">Todas as métricas calculadas para este rosto, organizadas por categoria.</p>
             {result.premium_metrics_catalog.map((category) => (
-              <MetricsCategory key={category.slug} category={category} />
+              <MetricsCategory key={category.slug} category={category} glossary={glossary} />
             ))}
           </section>
         )}
@@ -505,22 +537,44 @@ export function PremiumResultPage() {
           </section>
         )}
 
-        {/* Glossário */}
+        {/* Glossário (referência rápida) */}
         {Object.keys(glossary).length > 0 && (
           <section className="section">
-            <h2 className="section-title">📖 Glossário</h2>
-            <p className="section-sub">Significado de cada métrica utilizada na análise.</p>
-            {Object.entries(glossary).map(([key, term]) => (
-              <details key={key} style={{ marginBottom: 8, background: "var(--surface2)", border: "1px solid var(--border)", borderRadius: 10, padding: "10px 14px" }}>
-                <summary style={{ cursor: "pointer", fontWeight: 600, color: "var(--text)", listStyle: "none" }}>
-                  {term.termo} {term.unidade && <span style={{ fontSize: 11, color: "var(--muted)", fontWeight: 400 }}>({term.unidade})</span>}
-                </summary>
-                <div style={{ marginTop: 8, fontSize: 13, color: "var(--muted)", lineHeight: 1.6 }}>
-                  <p style={{ margin: "0 0 4px" }}>{term.descricao}</p>
-                  {term.faixas && <p style={{ margin: 0 }}><strong style={{ color: "var(--text)" }}>Faixas:</strong> {term.faixas}</p>}
-                </div>
-              </details>
-            ))}
+            <h2 className="section-title">📖 Glossário (referência)</h2>
+            <p className="section-sub">
+              Termos técnicos usados na análise. Cada métrica acima já vem com a
+              explicação simples e o detalhe — esta seção é só um índice.
+            </p>
+            <div className="metric-explainer-list">
+              {Object.entries(glossary).map(([key, term]) => (
+                <details
+                  key={key}
+                  className="metric-explainer"
+                  style={{ paddingTop: 0 }}
+                >
+                  <summary>
+                    <span className="me-label">{term.termo}</span>
+                    {term.unidade && (
+                      <span className="me-unit">({term.unidade})</span>
+                    )}
+                    <span className="me-toggle" aria-hidden>▾</span>
+                  </summary>
+                  <div className="me-body">
+                    <p className="me-mini">{term.descricao}</p>
+                    {term.como_medido && (
+                      <p className="me-mini" style={{ marginTop: 6 }}>
+                        <strong>Como medimos:</strong> {term.como_medido}
+                      </p>
+                    )}
+                    {term.faixas && (
+                      <p className="me-mini" style={{ marginTop: 6 }}>
+                        <strong>Faixas:</strong> {term.faixas}
+                      </p>
+                    )}
+                  </div>
+                </details>
+              ))}
+            </div>
           </section>
         )}
 

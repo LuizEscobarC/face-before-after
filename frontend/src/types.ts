@@ -156,5 +156,15 @@ export type AnalysisResult = {
   simulation_error?: string | null;
   capture_confidence?: number;
   measurements?: Record<string, number | string | boolean | null>;
+  measurements_blocks?: {
+    advanced?: Record<string, number | string | boolean | null>;
+    skin?: Record<string, number | string | boolean | null>;
+    photo_quality?: Record<string, number | string | boolean | null | string[]>;
+  };
+  main_insight?: {
+    metric_key?: string;
+    short_name?: string;
+    detail?: string;
+  };
   recommendations?: MetricRecommendation[];
 };

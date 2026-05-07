@@ -21,7 +21,7 @@ from __future__ import annotations
 
 from typing import Any, Dict, List, Optional
 
-import face_metrics as fm
+import app.domain.face_metrics as fm
 
 
 # ----------------------------------------------------------------------

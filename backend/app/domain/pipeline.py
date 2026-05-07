@@ -24,6 +24,7 @@ from typing import Any, Dict, List
 import cv2
 import numpy as np
 
+from app.domain.canonical_frame import CanonicalFrame
 from app.domain.face_asymmetry import FaceAsymmetryAnalyzer
 import app.domain.face_metrics as fm
 from app.domain.layers.impression import build_first_impression
@@ -208,14 +209,9 @@ def maybe_auto_crop_3x4(image: np.ndarray, landmarks: np.ndarray) -> tuple[np.nd
         }
 
     eye_ratio = eye_distance / float(max(w, 1))
-    if eye_ratio >= AUTO_CROP_MIN_EYE_RATIO:
-        return image, {
-            "applied": False,
-            "reason": "face-close-enough",
-            "eye_ratio_before": round(eye_ratio, 3),
-            "target_ratio": "3:4",
-        }
-
+    # Decisão aprovada: sempre força crop para enquadramento canônico — mesmo
+    # quando o rosto já está bem enquadrado. Garante que TODOS os pipelines
+    # rodem sobre uma imagem com escala/posição comparáveis entre runs.
     crop_w = eye_distance / AUTO_CROP_TARGET_EYE_RATIO
     crop_h = crop_w * (AUTO_CROP_RATIO_H / AUTO_CROP_RATIO_W)
     eye_center = (left_eye + right_eye) / 2.0
@@ -462,8 +458,14 @@ def build_premium_metrics_catalog(
 # CÁLCULOS DE SCORE E INSIGHTS
 # ============================================================================
 
-def asymmetry_to_score(overall_pct_ipd: float) -> int:
-    """Converte assimetria (% IPD, menor = melhor) para score 0–100 (maior = melhor)."""
+def asymmetry_to_score(overall_pct_ipd: float | None) -> int:
+    """Converte assimetria (% IPD, menor = melhor) para score 0–100 (maior = melhor).
+
+    Aceita None (medição inválida) e devolve 0 — sinaliza ausência de dado
+    válido no payload sem crashar o pipeline.
+    """
+    if overall_pct_ipd is None:
+        return 0
     clamped = min(overall_pct_ipd, MAX_ASYMMETRY_REFERENCE)
     score = int(round((1.0 - clamped / MAX_ASYMMETRY_REFERENCE) * 100))
     return max(0, min(100, score))
@@ -1026,7 +1028,7 @@ def run(image_path: str, output_dir: str, mode: str = "premium") -> dict:
         )
         sys.exit(1)
 
-    # 2. Pré-processar enquadramento (auto-corte 3x4 quando necessário)
+    # 2. Pré-processar enquadramento — sempre crop+align para canonicalizar.
     analyzer = FaceAsymmetryAnalyzer()
     original_face_rect = analyzer.detect_face(original_img)
     if original_face_rect is None:
@@ -1034,39 +1036,60 @@ def run(image_path: str, output_dir: str, mode: str = "premium") -> dict:
         sys.exit(1)
 
     original_landmarks = analyzer.detect_landmarks(original_img, original_face_rect)
-    working_img, auto_crop_data = maybe_auto_crop_3x4(original_img, original_landmarks)
 
-    # 3. Analisar assimetria na imagem final de trabalho
+    # 2a. Crop 3x4 sempre (decisão aprovada). Re-detecta face no recorte.
+    cropped_img, auto_crop_data = maybe_auto_crop_3x4(original_img, original_landmarks)
     if auto_crop_data.get("applied"):
-        face_rect = analyzer.detect_face(working_img)
-        if face_rect is None:
-            # Fallback defensivo: se o recorte falhar para detecção, usa a imagem original.
-            working_img = original_img
-            face_rect = original_face_rect
-            landmarks = original_landmarks
+        recropped_face = analyzer.detect_face(cropped_img)
+        if recropped_face is None:
+            # Detecção falhou no crop — fallback para original (caso degenerado).
+            cropped_img = original_img
+            cropped_face = original_face_rect
+            cropped_landmarks = original_landmarks
             auto_crop_data = {
+                **auto_crop_data,
                 "applied": False,
                 "reason": "crop-fallback-no-face",
-                "eye_ratio_before": auto_crop_data.get("eye_ratio_before"),
-                "target_ratio": "3:4",
             }
         else:
-            landmarks = analyzer.detect_landmarks(working_img, face_rect)
+            cropped_face = recropped_face
+            cropped_landmarks = analyzer.detect_landmarks(cropped_img, cropped_face)
     else:
-        face_rect = original_face_rect
-        landmarks = original_landmarks
+        cropped_face = original_face_rect
+        cropped_landmarks = original_landmarks
 
-    aligned_img, rotation_matrix = analyzer.align_face(working_img, landmarks)
-    aligned_landmarks = analyzer.transform_landmarks(landmarks, rotation_matrix)
-    analyzer.compute_midline(aligned_landmarks)
-    asymmetry_measurements = analyzer.measure_asymmetry(aligned_landmarks)
-    annotated_img = analyzer.draw_annotations(aligned_img.copy(), aligned_landmarks)
+    # 2b. Alinha (rotação Frankfort) — gera a imagem CANÔNICA usada por TUDO.
+    aligned_img, rotation_matrix = analyzer.align_face(cropped_img, cropped_landmarks)
+    aligned_landmarks = analyzer.transform_landmarks(cropped_landmarks, rotation_matrix)
 
-    # 2b. Métricas avançadas (proporções, pele e qualidade de captura)
+    # Re-detecta face_rect no espaço alinhado para que face_pixel_width esteja
+    # correto no mesmo sistema de coordenadas dos landmarks.
+    aligned_face_rect = analyzer.detect_face(aligned_img) or cropped_face
+
+    # 2c. Constrói o frame canônico — única fonte de verdade daqui para frente.
+    ipd_px = float(np.linalg.norm(
+        aligned_landmarks[42:48].mean(axis=0)
+        - aligned_landmarks[36:42].mean(axis=0)
+    ))
+    canonical = CanonicalFrame(
+        image=aligned_img,
+        landmarks=aligned_landmarks,
+        ipd_px=ipd_px,
+        face_rect=aligned_face_rect,
+        source_path=resolved_image_path,
+        crop_metadata=auto_crop_data,
+    )
+
+    analyzer.compute_midline(canonical.landmarks)
+    asymmetry_measurements = analyzer.measure_asymmetry(canonical.landmarks)
+    annotated_img = analyzer.draw_annotations(canonical.image.copy(), canonical.landmarks)
+
+    # 2d. Métricas avançadas — TODAS sobre o frame canônico.
+    # face_rect_w usa a largura do bbox da face no espaço canônico (Issue 1.3).
     advanced_bundle = fm.compute_all(
-        aligned_img,
-        aligned_landmarks,
-        face_rect_w=face_rect.width(),
+        canonical.image,
+        canonical.landmarks,
+        face_rect_w=canonical.face_rect.width(),
     )
     advanced_metrics = advanced_bundle.get("advanced", {})
     skin_metrics = advanced_bundle.get("skin", {})
@@ -1084,7 +1107,7 @@ def run(image_path: str, output_dir: str, mode: str = "premium") -> dict:
     rec_plan = rec.recommend(measurements) if analysis_mode == "premium" else []
 
     # 3. Calcular score e insights
-    score = asymmetry_to_score(measurements['overall_asymmetry_score_pct_ipd'])
+    score = asymmetry_to_score(measurements.get('overall_asymmetry_score_pct_ipd'))
     tier_label, tier_description = get_score_tier(score)
     score_context_data = _get_score_context(score, tier_label)
     debug_top_insights = get_top_insights(measurements, top_n=3)
@@ -1164,16 +1187,14 @@ def run(image_path: str, output_dir: str, mode: str = "premium") -> dict:
     else:
         key_metric_insight = ""
 
-    # 3c. Simulação antes/depois sem IA paga (não bloqueante)
+    # 3c. Simulação antes/depois sobre o frame canônico (mesma imagem que
+    # alimentou todas as outras análises — sem desencontro de coordenadas).
     simulation_outputs = None
     simulation_error = None
     if analysis_mode == "premium":
         try:
-            simulation_source_landmarks = original_landmarks if auto_crop_data.get("applied") else landmarks
-            simulation_landmarks = [tuple(map(int, pt)) for pt in simulation_source_landmarks]
             simulation_outputs = simulate_before_after(
-                image_path=resolved_image_path,
-                landmarks=simulation_landmarks,
+                frame=canonical,
                 output_dir=output_dir,
             )
         except Exception as exc:  # pylint: disable=broad-except

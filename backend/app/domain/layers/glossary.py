@@ -56,7 +56,11 @@ GLOSSARY: Dict[str, Dict[str, Any]] = {
         "termo":    "Canthal Tilt",
         "unidade":  "graus (°)",
         "descricao": "Inclinação da linha que une o canto medial e o lateral do olho. Positivo = canto lateral mais alto.",
-        "como_medido": "atan2(Δy, |Δx|) entre landmarks medial (39/42) e lateral (36/45) por olho.",
+        "como_medido": (
+            "atan2(Δy, |Δx|) entre landmarks medial (39/42) e lateral (36/45). "
+            "Como o canto lateral é sempre temporal, |Δx| é equivalente a Δx anatomicamente; "
+            "se a relação se inverter (landmark falho), a métrica retorna null em vez de valor enganoso."
+        ),
         "faixas":   "Atrativo masculino: +3° a +8°. Negativo dá ar cansado.",
         "problemas_comuns": [
             "Roll da cabeça aparenta tilt onde não há",
@@ -99,6 +103,76 @@ GLOSSARY: Dict[str, Dict[str, Any]] = {
         "referencias": [
             {"titulo": "Marquardt — Phi Mask",
              "url": "https://en.wikipedia.org/wiki/Marquardt_Beauty_Mask"},
+        ],
+    },
+
+    "skin_uniformity": {
+        "termo":    "Uniformidade da pele (LAB std magnitude)",
+        "unidade":  "magnitude do vetor de desvios em CIE Lab",
+        "descricao": (
+            "Mede o quanto o tom da pele varia dentro da bochecha/testa. "
+            "NÃO é Delta-E — é a magnitude do vetor [σ_L, σ_a, σ_b] dentro do ROI; "
+            "rostos uniformemente iluminados e sem manchas tendem a 0."
+        ),
+        "como_medido": (
+            "Converte ROI para Lab, calcula desvio-padrão por canal, devolve a "
+            "norma euclidiana do vetor de desvios. Implementação em "
+            "face_metrics._roi_std_lab."
+        ),
+        "faixas":   "Excelente <10. Aceitável <15. Visivelmente irregular >25.",
+        "problemas_comuns": [
+            "Sombras laterais aumentam σ_L sem haver lesão",
+            "Barba ou cabelo dentro da ROI inflam todos os canais",
+        ],
+        "referencias": [
+            {"titulo": "OpenCV — cvtColor BGR2Lab",
+             "url": "https://docs.opencv.org/4.x/de/d25/imgproc_color_conversions.html"},
+        ],
+    },
+
+    "under_eye_darkness": {
+        "termo":    "Olheiras (escuridão infra-orbital)",
+        "unidade":  "razão em [0, 1]",
+        "descricao": (
+            "Quanto a região logo abaixo do olho é mais escura que a bochecha "
+            "média. 0 = igual à bochecha (saudável); >0.2 = olheira visível."
+        ),
+        "como_medido": (
+            "(L_bochecha − L_under) / L_bochecha em CIE Lab, clampado em [0, 1]. "
+            "Inverte sinal automaticamente quando a iluminação satura a bochecha."
+        ),
+        "faixas":   "Excelente <0.05. Visível 0.10–0.20. Severo >0.25.",
+        "problemas_comuns": [
+            "Iluminação por baixo cria sombra que vira falso-positivo",
+            "Maquiagem corretiva mascara olheira real",
+        ],
+        "referencias": [
+            {"titulo": "Mac-Mary 2019 — Quantification of skin tone heterogeneity",
+             "url": "https://onlinelibrary.wiley.com/doi/10.1111/srt.12715"},
+        ],
+    },
+
+    "jawline_definition_score": {
+        "termo":    "Definição da linha mandibular",
+        "unidade":  "desvio-padrão de ângulos (clampado em [0, 30])",
+        "descricao": (
+            "Mede o quão consistente é o contorno mandibular. Valores baixos "
+            "indicam uma linha contínua e nítida; valores altos refletem "
+            "irregularidade ou landmarks ruidosos (clampados em 30 para não "
+            "explodir o score derivado)."
+        ),
+        "como_medido": (
+            "Calcula o ângulo entre segmentos consecutivos da jawline (landmarks 0–16); "
+            "retorna std(ângulos) limitada a 30."
+        ),
+        "faixas":   "Excelente <5. Aceitável <12. Suspeito >20 (revisar landmarks).",
+        "problemas_comuns": [
+            "Adiposidade submentoniana suaviza segmentos sem indicar má-definição estrutural",
+            "Pose 3/4 deforma os ângulos",
+        ],
+        "referencias": [
+            {"titulo": "Naini — Facial Aesthetics (capítulo mandibular)",
+             "url": "https://onlinelibrary.wiley.com/doi/10.1002/9781118786109"},
         ],
     },
 

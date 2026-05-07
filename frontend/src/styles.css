@@ -399,6 +399,181 @@ body {
   background: rgba(34,211,238,0.08); color: var(--text); padding: 10px 12px; border-radius: 8px;
 }
 
+/* ── Tabs (Webcam | Upload) ──────────────────────────────── */
+.capture-tabs { display: flex; flex-direction: column; gap: 14px; margin-bottom: 14px; }
+
+.source-tabs {
+  display: flex; gap: 4px; padding: 4px;
+  background: var(--surface2);
+  border-radius: 12px;
+  border: 1px solid var(--border);
+}
+.source-tab {
+  flex: 1; padding: 10px 14px;
+  background: transparent; border: 0;
+  color: var(--muted); font-size: 14px; font-weight: 600;
+  border-radius: 10px; cursor: pointer;
+  transition: background 0.18s, color 0.18s, box-shadow 0.18s;
+}
+.source-tab:hover:not(:disabled):not(.is-active) { color: var(--text); }
+.source-tab:disabled { opacity: 0.5; cursor: not-allowed; }
+.source-tab.is-active {
+  background: var(--surface); color: var(--text);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.4), 0 0 0 1px rgba(99,102,241,0.3);
+}
+
+.tab-panel { display: flex; flex-direction: column; gap: 12px; }
+.hint-line { color: var(--muted); font-size: 12px; margin: 4px 0 0; }
+
+.webcam-empty, .webcam-error {
+  display: flex; flex-direction: column; gap: 12px;
+  padding: 18px; background: var(--surface2);
+  border-radius: 12px; border: 1px dashed var(--border);
+  align-items: flex-start;
+}
+
+.webcam-frame {
+  position: relative; width: 100%;
+  aspect-ratio: 4 / 3;
+  background: #000;
+  border-radius: 14px; overflow: hidden;
+  border: 1px solid var(--border);
+}
+.webcam-video {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+  object-fit: cover;
+  /* Prévia espelhada (estilo selfie) — captura é des-espelhada via canvas */
+  transform: scaleX(-1);
+}
+.webcam-guide {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+  pointer-events: none;
+}
+.webcam-hint {
+  position: absolute; bottom: 10px; left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0,0,0,0.65);
+  color: #e2e8f0; font-size: 11px;
+  padding: 4px 10px; border-radius: 99px;
+  border: 1px solid rgba(99,102,241,0.4);
+}
+
+/* ── Insight Principal (card destaque) ──────────────────── */
+.main-insight {
+  background: linear-gradient(135deg, rgba(99,102,241,0.18), rgba(34,211,238,0.10));
+  border: 1px solid rgba(99,102,241,0.3);
+  border-radius: 16px;
+  padding: 22px 24px;
+  box-shadow: var(--shadow);
+}
+.main-insight-kicker {
+  font-size: 12px; font-weight: 700;
+  color: #a5b4fc; letter-spacing: 0.5px;
+  text-transform: uppercase; margin-bottom: 6px;
+}
+.main-insight-title {
+  margin: 0 0 8px;
+  font-size: clamp(20px, 3.4vw, 26px);
+  color: var(--text);
+  line-height: 1.25;
+}
+.main-insight-detail {
+  margin: 0; color: var(--muted);
+  font-size: 14px; line-height: 1.55;
+}
+.main-insight-feynman {
+  margin-top: 14px;
+  background: rgba(99,102,241,0.10);
+  border: 1px solid rgba(99,102,241,0.25);
+  border-radius: 10px;
+  padding: 10px 14px;
+}
+.main-insight-feynman > summary {
+  cursor: pointer; list-style: none;
+  font-size: 13px; font-weight: 600;
+  color: #a5b4fc;
+}
+.main-insight-feynman > summary::-webkit-details-marker { display: none; }
+.main-insight-feynman[open] > summary { margin-bottom: 8px; }
+.main-insight-feynman > p {
+  margin: 0; color: var(--text);
+  font-size: 13px; line-height: 1.6;
+}
+
+/* ── MetricExplainer (3 camadas progressivas) ────────────── */
+.metric-explainer-list { display: grid; gap: 8px; }
+
+.metric-explainer {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 0;
+  transition: border-color 0.18s;
+}
+.metric-explainer[open] { border-color: rgba(99,102,241,0.35); }
+
+.metric-explainer > summary {
+  cursor: pointer; list-style: none;
+  display: flex; align-items: center; gap: 10px;
+  padding: 12px 14px;
+  font-size: 14px;
+}
+.metric-explainer > summary::-webkit-details-marker { display: none; }
+.metric-explainer > summary:hover { background: rgba(255,255,255,0.02); border-radius: 12px; }
+
+.me-label { font-weight: 600; color: var(--text); flex: 1 1 auto; min-width: 0; }
+.me-value { color: var(--accent2); font-variant-numeric: tabular-nums; font-weight: 600; }
+.me-unit { color: var(--muted); font-weight: 400; margin-left: 4px; font-size: 12px; }
+.me-toggle {
+  color: var(--muted); transition: transform 0.18s;
+  font-size: 12px; margin-left: 4px;
+}
+.metric-explainer[open] > summary .me-toggle { transform: rotate(180deg); }
+
+.me-body {
+  padding: 0 14px 14px;
+  display: grid; gap: 8px;
+}
+
+.me-layer {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+.me-layer > summary {
+  cursor: pointer; list-style: none;
+  padding: 10px 12px;
+  font-size: 13px; font-weight: 600;
+  color: var(--text);
+  display: flex; align-items: center; justify-content: space-between;
+}
+.me-layer > summary::-webkit-details-marker { display: none; }
+.me-layer > summary::after {
+  content: "→"; transition: transform 0.18s;
+  color: var(--muted); font-size: 12px;
+}
+.me-layer[open] > summary::after { transform: rotate(90deg); }
+.me-layer > p, .me-layer > .me-mini {
+  padding: 0 12px 12px;
+}
+.me-layer ul { padding: 0 12px 12px 30px; }
+
+.me-feynman { background: rgba(99,102,241,0.08); border-color: rgba(99,102,241,0.25); }
+.me-feynman > summary { color: #a5b4fc; }
+.me-feynman > p { color: var(--text); font-size: 13px; line-height: 1.6; margin: 0; padding: 0 12px 12px; }
+
+.me-mini { font-size: 12px; color: var(--muted); margin: 0; line-height: 1.55; }
+.me-mini strong { color: var(--text); }
+.me-list { margin: 0; display: grid; gap: 4px; font-size: 12px; color: var(--muted); }
+.me-link {
+  color: var(--accent2);
+  text-decoration: none;
+  font-size: 11px;
+}
+.me-link:hover { text-decoration: underline; }
+
 /* ── Responsive ───────────────────────────────────────────── */
 @media (max-width: 980px) {
   .capture-layout { grid-template-columns: 1fr; }
@@ -406,4 +581,6 @@ body {
 @media (max-width: 480px) {
   .section { padding: 20px 16px; }
   .action-card { flex-direction: column; gap: 8px; }
+  .source-tab { padding: 9px 8px; font-size: 13px; }
+  .main-insight { padding: 18px 18px; }
 }

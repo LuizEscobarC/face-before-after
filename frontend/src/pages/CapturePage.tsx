@@ -1,7 +1,8 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import { analyzePhoto, compareRuns, fetchCaptureGuidelines } from "../api";
+import { CaptureSourceTabs } from "../components/CaptureSourceTabs";
 import type { AnalyzeMode, CaptureGuidelines } from "../types";
 
 const fallbackGuidelines: CaptureGuidelines = {
@@ -16,11 +17,6 @@ const fallbackGuidelines: CaptureGuidelines = {
   ],
 };
 
-function stopStream(stream: MediaStream | null) {
-  if (!stream) return;
-  stream.getTracks().forEach((track) => track.stop());
-}
-
 export function CapturePage() {
   const navigate = useNavigate();
 
@@ -28,15 +24,9 @@ export function CapturePage() {
   const [file, setFile] = useState<File | null>(null);
   const [fileBefore, setFileBefore] = useState<File | null>(null);
   const [fileAfter, setFileAfter] = useState<File | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string>("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-  const [cameraOn, setCameraOn] = useState(false);
-  const [stream, setStream] = useState<MediaStream | null>(null);
   const [guidelines, setGuidelines] = useState<CaptureGuidelines>(fallbackGuidelines);
-
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
     fetchCaptureGuidelines()
@@ -44,106 +34,13 @@ export function CapturePage() {
       .catch(() => setGuidelines(fallbackGuidelines));
   }, []);
 
-  useEffect(() => {
-    if (!file) {
-      setPreviewUrl("");
-      return;
-    }
-    const url = URL.createObjectURL(file);
-    setPreviewUrl(url);
-    return () => URL.revokeObjectURL(url);
-  }, [file]);
-
-  useEffect(() => {
-    return () => {
-      stopStream(stream);
-    };
-  }, [stream]);
-
-  const onFilePicked = (picked: File | null) => {
-    if (!picked) return;
-    if (!["image/png", "image/jpeg"].includes(picked.type)) {
-      setError("Formato inválido. Use PNG ou JPG/JPEG.");
-      return;
-    }
+  const handlePhotoReady = (picked: File) => {
     setError("");
     setFile(picked);
   };
 
-  const onFileInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    onFilePicked(event.target.files?.[0] ?? null);
-  };
-
-  const openCamera = async () => {
-    setError("");
-    try {
-      const media = await navigator.mediaDevices.getUserMedia({
-        video: {
-          facingMode: "user",
-          width: { ideal: 1280 },
-          height: { ideal: 720 },
-        },
-        audio: false,
-      });
-      setStream(media);
-      setCameraOn(true);
-      if (videoRef.current) {
-        videoRef.current.srcObject = media;
-        await videoRef.current.play();
-      }
-    } catch {
-      setError("Não foi possível abrir a câmera. Verifique permissão do navegador.");
-    }
-  };
-
-  const closeCamera = () => {
-    stopStream(stream);
-    setStream(null);
-    setCameraOn(false);
-  };
-
-  const captureFromCamera = () => {
-    if (!videoRef.current || !canvasRef.current) {
-      setError("Câmera indisponível para captura.");
-      return;
-    }
-
-    const video = videoRef.current;
-    const canvas = canvasRef.current;
-
-    if (!video.videoWidth || !video.videoHeight) {
-      setError("Aguarde a câmera carregar antes de capturar.");
-      return;
-    }
-
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) {
-      setError("Não foi possível processar a captura.");
-      return;
-    }
-
-    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-    canvas.toBlob(
-      (blob) => {
-        if (!blob) {
-          setError("Falha ao capturar a imagem.");
-          return;
-        }
-        const captured = new File([blob], `captura-${Date.now()}.jpg`, {
-          type: "image/jpeg",
-        });
-        setFile(captured);
-        setError("");
-      },
-      "image/jpeg",
-      0.95
-    );
-  };
-
-  const submit = async () => {    if (mode === "compare") {
+  const submit = async () => {
+    if (mode === "compare") {
       if (!fileBefore || !fileAfter) {
         setError("Escolha as fotos ANTES e DEPOIS para comparar.");
         return;
@@ -156,18 +53,19 @@ export function CapturePage() {
           analyzePhoto("premium", fileAfter),
         ]);
         const runBefore = resBefore.run_id;
-        const runAfter  = resAfter.run_id;
-        if (!runBefore || !runAfter) throw new Error("run_id n\u00e3o retornado pela API.");
+        const runAfter = resAfter.run_id;
+        if (!runBefore || !runAfter) throw new Error("run_id não retornado pela API.");
         const compareResult = await compareRuns(runBefore, runAfter);
         navigate("/resultado/compare", { state: { compareResult, resBefore, resAfter } });
       } catch (err) {
-        const message = err instanceof Error ? err.message : "Erro inesperado na compara\u00e7\u00e3o.";
+        const message = err instanceof Error ? err.message : "Erro inesperado na comparação.";
         setError(message);
       } finally {
         setBusy(false);
       }
       return;
     }
+
     if (!file) {
       setError("Escolha uma foto ou capture pela câmera antes de continuar.");
       return;
@@ -227,71 +125,22 @@ export function CapturePage() {
 
       <section className="capture-layout">
         <article className="panel">
-          <h2 className="panel-title">Enviar ou tirar foto</h2>
+          <h2 className="panel-title">
+            {mode === "compare" ? "Envie as duas fotos" : "Como você quer enviar a foto?"}
+          </h2>
 
-          <div className="input-stack">
-            <label className="field-label" htmlFor="upload-file">
-              Selecionar foto (PNG/JPG)
-            </label>
-            <input
-              id="upload-file"
-              className="file-input"
-              type="file"
-              accept="image/png,image/jpeg"
-              onChange={onFileInputChange}
+          {mode !== "compare" ? (
+            <CaptureSourceTabs
+              onPhotoReady={handlePhotoReady}
+              busy={busy}
+              currentFile={file}
             />
-
-            <label className="field-label" htmlFor="capture-file">
-              Abrir câmera do celular (captura direta)
-            </label>
-            <input
-              id="capture-file"
-              className="file-input"
-              type="file"
-              accept="image/png,image/jpeg"
-              capture="user"
-              onChange={onFileInputChange}
-            />
-          </div>
-
-          <div className="camera-actions">
-            {!cameraOn ? (
-              <button type="button" className="btn btn-secondary" onClick={openCamera}>
-                Abrir webcam
-              </button>
-            ) : (
-              <>
-                <button type="button" className="btn btn-secondary" onClick={captureFromCamera}>
-                  Capturar da webcam
-                </button>
-                <button type="button" className="btn btn-ghost" onClick={closeCamera}>
-                  Fechar câmera
-                </button>
-              </>
-            )}
-          </div>
-
-          {cameraOn && (
-            <div className="video-wrap">
-              <video ref={videoRef} playsInline muted className="video" />
-            </div>
-          )}
-
-          <canvas ref={canvasRef} className="hidden-canvas" />
-
-          {previewUrl && (
-            <figure className="preview-wrap">
-              <img src={previewUrl} alt="Prévia da foto escolhida" className="preview-image" />
-              <figcaption>Prévia da foto enviada</figcaption>
-            </figure>
-          )}
-
-          {error && <p className="error-text">{error}</p>}
-
-          {mode === "compare" ? (
+          ) : (
             <div style={{ display: "grid", gap: 12 }}>
               <div>
-                <label className="field-label" htmlFor="upload-before">Foto ANTES (PNG/JPG)</label>
+                <label className="field-label" htmlFor="upload-before">
+                  Foto ANTES (PNG/JPG)
+                </label>
                 <input
                   id="upload-before"
                   className="file-input"
@@ -299,10 +148,16 @@ export function CapturePage() {
                   accept="image/png,image/jpeg"
                   onChange={(e) => setFileBefore(e.target.files?.[0] ?? null)}
                 />
-                {fileBefore && <p style={{ fontSize: 12, color: "var(--muted)", marginTop: 4 }}>✅ {fileBefore.name}</p>}
+                {fileBefore && (
+                  <p style={{ fontSize: 12, color: "var(--muted)", marginTop: 4 }}>
+                    ✅ {fileBefore.name}
+                  </p>
+                )}
               </div>
               <div>
-                <label className="field-label" htmlFor="upload-after">Foto DEPOIS (PNG/JPG)</label>
+                <label className="field-label" htmlFor="upload-after">
+                  Foto DEPOIS (PNG/JPG)
+                </label>
                 <input
                   id="upload-after"
                   className="file-input"
@@ -310,12 +165,23 @@ export function CapturePage() {
                   accept="image/png,image/jpeg"
                   onChange={(e) => setFileAfter(e.target.files?.[0] ?? null)}
                 />
-                {fileAfter && <p style={{ fontSize: 12, color: "var(--muted)", marginTop: 4 }}>✅ {fileAfter.name}</p>}
+                {fileAfter && (
+                  <p style={{ fontSize: 12, color: "var(--muted)", marginTop: 4 }}>
+                    ✅ {fileAfter.name}
+                  </p>
+                )}
               </div>
             </div>
-          ) : null}
+          )}
 
-          <button type="button" className="btn btn-primary" onClick={submit} disabled={busy}>
+          {error && <p className="error-text">{error}</p>}
+
+          <button
+            type="button"
+            className="btn btn-primary"
+            onClick={submit}
+            disabled={busy}
+          >
             {busy
               ? "Analisando..."
               : mode === "compare"
@@ -340,7 +206,8 @@ export function CapturePage() {
             ))}
           </ul>
           <p className="hint-box">
-            Dica prática: enquadre o rosto como foto 3x4, com espaço pequeno acima da cabeça e sem cortar queixo.
+            Dica prática: enquadre o rosto como foto 3x4, com espaço pequeno acima da
+            cabeça e sem cortar queixo.
           </p>
         </article>
       </section>

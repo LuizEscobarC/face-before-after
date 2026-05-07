@@ -130,10 +130,15 @@ def proportions(lm: np.ndarray) -> Dict[str, Any]:
     h_lower  = float(menton[1] - subnasale[1])       # subnasale -> menton
     h_total  = h_upper + h_middle + h_lower
 
-    r_upper  = _safe_div(h_upper,  h_total)
-    r_middle = _safe_div(h_middle, h_total)
-    r_lower  = _safe_div(h_lower,  h_total)
-    thirds_std = float(np.std([r_upper, r_middle, r_lower]))
+    # Issue 2.7: rejeita medições degeneradas (landmarks invertidos no eixo Y).
+    if h_total <= 0 or h_upper < 0 or h_middle < 0 or h_lower < 0:
+        r_upper = r_middle = r_lower = None
+        thirds_std = None
+    else:
+        r_upper  = _safe_div(h_upper,  h_total)
+        r_middle = _safe_div(h_middle, h_total)
+        r_lower  = _safe_div(h_lower,  h_total)
+        thirds_std = float(np.std([r_upper, r_middle, r_lower]))
 
     # Largura facial bizigomática (~ jawline pontos 1 e 15) e bigoníaca (4,12)
     bizygomatic = float(np.linalg.norm(lm[1] - lm[15]))
@@ -154,11 +159,12 @@ def proportions(lm: np.ndarray) -> Dict[str, Any]:
 
     # Lower-third (ideal masc. 0.55-0.57)
     glabella_to_menton = float(menton[1] - glabella[1])
-    lower_third_ratio = _safe_div(h_lower, glabella_to_menton)
+    lower_third_ratio = _safe_div(h_lower, glabella_to_menton) if glabella_to_menton > 0 else None
 
-    # fWHR: bizygomatic / upper-face height (glabella -> upper lip)
+    # fWHR: bizygomatic / upper-face height (glabella -> upper lip).
+    # Issue 2.1: rejeita altura inválida (landmarks degenerados ou face deitada).
     upper_face_h = float(lm[P_UPPER_LIP][1] - glabella[1])
-    fwhr = _safe_div(bizygomatic, upper_face_h)
+    fwhr = (bizygomatic / upper_face_h) if upper_face_h > 0 else None
 
     return {
         "thirds_upper_ratio":  r_upper,
@@ -207,7 +213,9 @@ def masculinity(lm: np.ndarray, ipd: float) -> Dict[str, Any]:
         v2 = jaw[i + 1] - jaw[i]
         a = math.degrees(math.atan2(v2[1], v2[0]) - math.atan2(v1[1], v1[0]))
         angles.append(abs(a))
-    jaw_def_score = float(np.std(angles)) if angles else 0.0
+    # Issue 2.10: clamp em [0, 30] (3σ típico em rostos humanos);
+    # acima disso indica landmarks ruins, não rosto realmente irregular.
+    jaw_def_score = float(min(30.0, np.std(angles))) if angles else 0.0
 
     return {
         "jaw_width_pct_ipd":             100.0 * _safe_div(bigonial, ipd),
@@ -226,16 +234,23 @@ def masculinity(lm: np.ndarray, ipd: float) -> Dict[str, Any]:
 def eyes(lm: np.ndarray, ipd: float) -> Dict[str, Any]:
     # Canthal tilt: ângulo da reta canto medial -> canto lateral.
     # Sinal: tilt positivo = canto lateral mais alto que medial (desejável).
-    # Em coordenadas de imagem o eixo Y aumenta para baixo, então invertemos.
-    # Usamos |dx| para evitar wrap-around de atan2 quando o canto lateral
-    # está à esquerda do medial (olho esquerdo da imagem).
-    def _tilt(inner_idx: int, outer_idx: int) -> float:
-        dx = abs(float(lm[outer_idx][0] - lm[inner_idx][0]))
+    # Em coordenadas de imagem Y cresce para baixo, então invertemos.
+    # Issue 2.4: usamos a distância horizontal absoluta (anatomicamente o canto
+    # lateral está sempre temporalmente afastado do medial); se isso não se
+    # confirmar, o landmark falhou e devolvemos None.
+    def _tilt(inner_idx: int, outer_idx: int) -> float | None:
+        raw_dx = float(lm[outer_idx][0] - lm[inner_idx][0])
+        if abs(raw_dx) < 1e-3:
+            return None
+        dx = abs(raw_dx)
         dy = float(lm[outer_idx][1] - lm[inner_idx][1])
         return -math.degrees(math.atan2(dy, dx))
 
     tilt_l = _tilt(P_LEFT_EYE_INNER,  P_LEFT_EYE_OUTER)
     tilt_r = _tilt(P_RIGHT_EYE_INNER, P_RIGHT_EYE_OUTER)
+    tilt_mean = (
+        (tilt_l + tilt_r) / 2.0 if (tilt_l is not None and tilt_r is not None) else None
+    )
 
     # EAR (eye aspect ratio) clássico (Soukupová & Čech, 2016)
     def _ear(eye_pts: np.ndarray) -> float:
@@ -278,7 +293,7 @@ def eyes(lm: np.ndarray, ipd: float) -> Dict[str, Any]:
     return {
         "canthal_tilt_left_deg":           tilt_l,
         "canthal_tilt_right_deg":          tilt_r,
-        "canthal_tilt_mean_deg":           (tilt_l + tilt_r) / 2.0,
+        "canthal_tilt_mean_deg":           tilt_mean,
         "eye_aspect_ratio_left":           ear_l,
         "eye_aspect_ratio_right":          ear_r,
         "eye_aspect_ratio_mean":           (ear_l + ear_r) / 2.0,
@@ -368,13 +383,24 @@ def marquardt_deviation(lm: np.ndarray, ipd: float) -> Dict[str, Any]:
     bilateral perfeita — proxy útil e estável da "máscara áurea" de
     Marquardt para fotos frontais.
     """
-    # Pares espelhados clássicos do modelo de 68 pontos
+    # Issue 2.6: pares espelhados validados contra dlib-68 (idx esq, idx dir).
     pairs = [
+        # Mandíbula (8 pares simétricos em torno do menton 8):
         (0, 16), (1, 15), (2, 14), (3, 13), (4, 12), (5, 11), (6, 10), (7, 9),
+        # Sobrancelhas (esq 17-21 ↔ dir 22-26 espelhada):
         (17, 26), (18, 25), (19, 24), (20, 23), (21, 22),
+        # Olhos (esq 36-41 ↔ dir 42-47, mantendo a topologia dos cantos):
         (36, 45), (37, 44), (38, 43), (39, 42), (40, 47), (41, 46),
+        # Asas do nariz (31 esq ↔ 35 dir; 32 esq ↔ 34 dir; 30/33 são centrais):
         (31, 35), (32, 34),
-        (48, 54), (49, 53), (50, 52), (59, 55), (58, 56), (60, 64), (61, 63), (67, 65),
+        # Boca externa (48-59):
+        # 48↔54 cantos; 49↔53 e 50↔52 lábio superior; 59↔55 e 58↔56 lábio inferior
+        # (51 e 57 são centrais, não espelhados).
+        (48, 54), (49, 53), (50, 52), (59, 55), (58, 56),
+        # Boca interna (60-67):
+        # 60↔64 cantos internos; 61↔63 lábio superior interno;
+        # 67↔65 lábio inferior interno (62 e 66 são centrais).
+        (60, 64), (61, 63), (67, 65),
     ]
     # Linha média = média entre eye_midpoint e glabela
     le, re = _eye_centers(lm)
@@ -567,6 +593,13 @@ def _roi_mean_lab(image_bgr: np.ndarray, polygon: np.ndarray) -> np.ndarray:
 
 
 def _roi_std_lab(image_bgr: np.ndarray, polygon: np.ndarray) -> float:
+    """Magnitude do vetor de desvios-padrão por canal LAB dentro do ROI.
+
+    Não é Delta-E (que seria distância entre dois pontos no espaço LAB).
+    É uma proxy de "uniformidade de tom": rostos mais homogêneos (pele
+    sem manchas, iluminação plana) tendem a 0; rostos com sombras,
+    manchas ou textura agressiva crescem com a magnitude.
+    """
     h, w = image_bgr.shape[:2]
     mask = np.zeros((h, w), dtype=np.uint8)
     poly = polygon.copy()
@@ -609,11 +642,12 @@ def skin(image_bgr: np.ndarray, lm: np.ndarray) -> Dict[str, Any]:
         ], dtype=np.int32)
         l_under = _roi_mean_lab(image_bgr, ue_poly)[0]
         l_cheek = _roi_mean_lab(image_bgr, cheek_poly)[0]
-        # Retorna escala de escuridão [0, ~0.4]: 0 = sem olheira, >0.2 = visível.
-        # Usamos 1 - ratio para que 0 = igual ao bochecha (saudável) e
-        # valores positivos = mais escuro que bochecha.
-        ratio = _safe_div(l_under, l_cheek, default=1.0)
-        return max(0.0, 1.0 - ratio)
+        # Issue 2.3: escala em [0, 1] usando diferença assinada normalizada.
+        # under-eye mais escura que bochecha → positivo; mais clara → 0.
+        if l_cheek <= 1e-6:
+            return 0.0
+        delta = (l_cheek - l_under) / l_cheek
+        return float(max(0.0, min(1.0, delta)))
 
     ue_l = _under_eye_dark(LM_LEFT_EYE,  cheek_l)
     ue_r = _under_eye_dark(LM_RIGHT_EYE, cheek_r)
@@ -658,7 +692,7 @@ ADVANCED_IDEALS: Dict[str, Tuple[float, float]] = {
 
 
 def severity_for(key: str, value: float) -> str:
-    if key not in ADVANCED_IDEALS:
+    if value is None or key not in ADVANCED_IDEALS:
         return "leve"
     ideal, tol = ADVANCED_IDEALS[key]
     diff = abs(value - ideal)
