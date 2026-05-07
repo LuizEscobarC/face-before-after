@@ -105,6 +105,88 @@ def compute_lighting(image_bgr: np.ndarray, landmarks: np.ndarray) -> tuple[floa
     return score, round(lighting_asymmetry_delta, 2), round(mean_luminance, 2)
 
 
+def detect_flags(image_bgr: np.ndarray, landmarks: np.ndarray) -> dict:
+    """Detect beard/glasses/smile using landmark geometry + pixel statistics (no new packages)."""
+    h, w = image_bgr.shape[:2]
+
+    # ── Beard ──────────────────────────────────────────────────────────────────
+    # Chin ROI: x-span of jaw landmarks 5–11, y from top-of-mouth to bottom-of-chin
+    jaw_pts = landmarks[5:12]
+    mouth_pts = landmarks[48:68]
+    mouth_top_y = int(np.min(mouth_pts[:, 1]))
+    chin_y = int(np.max(jaw_pts[:, 1]))
+    beard_x_min = int(max(0, np.min(jaw_pts[:, 0])))
+    beard_x_max = int(min(w - 1, np.max(jaw_pts[:, 0])))
+    beard_density = 0.0
+    beard = False
+    if chin_y > mouth_top_y and beard_x_max > beard_x_min:
+        roi_y_min, roi_y_max = max(0, mouth_top_y), min(h - 1, chin_y)
+        if roi_y_max > roi_y_min:
+            beard_roi = image_bgr[roi_y_min:roi_y_max, beard_x_min:beard_x_max]
+            lab = cv2.cvtColor(beard_roi, cv2.COLOR_BGR2LAB)
+            luminance_channel = lab[:, :, 0].astype(np.float32)
+            luminance_std = float(np.std(luminance_channel))
+            luminance_mean = float(np.mean(luminance_channel))
+            beard_density = round(max(0.0, min(1.0, (luminance_std / 50.0) * (1.0 - luminance_mean / 220.0))), 4)
+            beard = beard_density > 0.35
+
+    # ── Glasses ────────────────────────────────────────────────────────────────
+    # Eye ROI: landmarks 36–47 expanded by 20px
+    eye_pts = landmarks[36:48]
+    eye_x_min = int(max(0, np.min(eye_pts[:, 0]))) - 20
+    eye_x_max = int(min(w - 1, np.max(eye_pts[:, 0]))) + 20
+    eye_y_min = int(max(0, np.min(eye_pts[:, 1]))) - 20
+    eye_y_max = int(min(h - 1, np.max(eye_pts[:, 1]))) + 20
+    glasses = False
+    if eye_x_max > eye_x_min and eye_y_max > eye_y_min:
+        eye_roi = image_bgr[eye_y_min:eye_y_max, eye_x_min:eye_x_max]
+        gray = cv2.cvtColor(eye_roi, cv2.COLOR_BGR2GRAY)
+        sobel_x = cv2.Sobel(gray, cv2.CV_64F, 1, 0, ksize=3)
+        sobel_y = cv2.Sobel(gray, cv2.CV_64F, 0, 1, ksize=3)
+        edge_magnitudes = np.sqrt(sobel_x ** 2 + sobel_y ** 2)
+        roi_area = (eye_x_max - eye_x_min) * (eye_y_max - eye_y_min)
+        edge_density = float(np.count_nonzero(edge_magnitudes > 80)) / max(roi_area, 1)
+        glasses = edge_density > 0.18
+
+    # ── Smile ──────────────────────────────────────────────────────────────────
+    # landmark 48 = left corner, 54 = right corner, 57 = bottom center
+    corners_y = (landmarks[48][1] + landmarks[54][1]) / 2.0
+    center_y = landmarks[57][1]
+    lift = float(center_y - corners_y)
+    smile = lift > 4.0
+
+    return {
+        "beard": bool(beard),
+        "beard_density": beard_density,
+        "glasses": bool(glasses),
+        "smile": bool(smile),
+        "hair_covering": False,
+    }
+
+
+def _compute_regional_penalties(flags: dict, lighting_asymmetry: float) -> dict:
+    """Compute per-region confidence penalties from detected flags and lighting."""
+    jaw_pen = min(0.4, float(flags.get("beard_density", 0.0)) * 0.5) if flags.get("beard") else 0.0
+    mouth_pen = 0.10 if flags.get("smile") else 0.0
+    eye_pen = 0.15 if flags.get("glasses") else 0.0
+    brow_pen = 0.05 if flags.get("glasses") else 0.0
+    nose_pen = 0.0
+
+    if lighting_asymmetry > 20.0:
+        asym = min(0.3, (lighting_asymmetry - 20.0) / 50.0)
+        eye_pen = min(0.5, eye_pen + asym)
+        brow_pen = min(0.5, brow_pen + asym * 0.5)
+        nose_pen = min(0.3, nose_pen + asym * 0.3)
+
+    return {
+        "jaw": round(jaw_pen, 4),
+        "eye": round(eye_pen, 4),
+        "nose": round(nose_pen, 4),
+        "brow": round(brow_pen, 4),
+        "mouth": round(mouth_pen, 4),
+    }
+
+
 def _grade_from_score(score: float) -> str:
     for threshold, grade in GRADE_THRESHOLDS:
         if score >= threshold:
@@ -153,17 +235,26 @@ def evaluate(
     sharpness_score, blur_variance = compute_blur_score(image_bgr, landmarks) if face_ok else (0.0, 0.0)
     lighting_score, lighting_asymmetry, mean_luminance = compute_lighting(image_bgr, landmarks) if face_ok else (0.0, 0.0, 0.0)
 
-    # Placeholders — to be replaced by real detection in a future phase.
-    occlusion_score = 1.0
-    expression_score = 1.0
+    # Flag detection — landmark-based, no new packages.
+    flags = detect_flags(image_bgr, landmarks) if (face_ok and landmarks.size > 0) else {
+        "beard": False, "beard_density": 0.0, "glasses": False, "smile": False, "hair_covering": False,
+    }
+
+    # Expression/occlusion scores derived from flags.
+    occlusion_score = max(0.5, 1.0 - float(flags.get("beard_density", 0.0)) * 0.3)
+    expression_score = 0.85 if flags.get("smile") else 1.0
+
+    regional_penalties = _compute_regional_penalties(flags, lighting_asymmetry) if face_ok else {
+        "jaw": 0.0, "eye": 0.0, "nose": 0.0, "brow": 0.0, "mouth": 0.0,
+    }
 
     subscores = {
         "face_ok": face_ok,
         "pose_score": round(pose_score, 4),
         "sharpness_score": round(sharpness_score, 4),
         "lighting_score": round(lighting_score, 4),
-        "occlusion_score": occlusion_score,
-        "expression_score": expression_score,
+        "occlusion_score": round(occlusion_score, 4),
+        "expression_score": round(expression_score, 4),
     }
 
     score = float(
@@ -185,12 +276,6 @@ def evaluate(
         "mean_luminance": mean_luminance,
         "blur_variance": blur_variance,
         "recommendations": recommendations,
-        "regional_penalties": {"jaw": 0.0, "eye": 0.0, "nose": 0.0, "brow": 0.0, "mouth": 0.0},
-        "flags": {
-            "beard": False,
-            "beard_density": 0.0,
-            "glasses": False,
-            "smile": False,
-            "hair_covering": False,
-        },
+        "regional_penalties": regional_penalties,
+        "flags": flags,
     }
