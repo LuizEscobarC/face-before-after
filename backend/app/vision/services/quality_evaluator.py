@@ -18,6 +18,7 @@ SHARPNESS_FLOOR = 40.0       # Laplacian variance below this → score 0
 SHARPNESS_TARGET = 250.0     # variance >= this → score 1
 LIGHTING_TARGET_MEAN = 130.0  # ideal L mean (LAB) — middle exposure
 LIGHTING_TOLERANCE = 60.0     # |L_mean - target| above this → score 0
+LIGHTING_ASYM_WARN = 15.0     # |L_left - L_right| above this → score starts decaying
 LIGHTING_ASYM_FLOOR = 35.0    # |L_left - L_right| above this → score 0
 
 GRADE_THRESHOLDS = [
@@ -95,11 +96,17 @@ def compute_lighting(image_bgr: np.ndarray, landmarks: np.ndarray) -> tuple[floa
     else:
         exposure_score = float(1.0 - exposure_distance / LIGHTING_TOLERANCE)
 
-    # Symmetry score
+    # Symmetry score — gradual ramp from LIGHTING_ASYM_WARN to LIGHTING_ASYM_FLOOR
+    # [0, WARN] → 1.0  |  (WARN, FLOOR] → linear 1.0→0.0  |  >FLOOR → 0.0
     if lighting_asymmetry_delta >= LIGHTING_ASYM_FLOOR:
         symmetry_score = 0.0
+    elif lighting_asymmetry_delta <= LIGHTING_ASYM_WARN:
+        symmetry_score = 1.0
     else:
-        symmetry_score = float(1.0 - lighting_asymmetry_delta / LIGHTING_ASYM_FLOOR)
+        symmetry_score = float(
+            1.0 - (lighting_asymmetry_delta - LIGHTING_ASYM_WARN)
+            / (LIGHTING_ASYM_FLOOR - LIGHTING_ASYM_WARN)
+        )
 
     score = float(min(exposure_score, symmetry_score))
     return score, round(lighting_asymmetry_delta, 2), round(mean_luminance, 2)
@@ -194,8 +201,24 @@ def _grade_from_score(score: float) -> str:
     return "REJEITADA"
 
 
-def _build_recommendations(subscores: dict[str, float], pose: dict[str, float], lighting_asymmetry: float) -> list[str]:
+_SUBSCORE_LABELS = {
+    "pose_score": "Pose",
+    "sharpness_score": "Nitidez",
+    "lighting_score": "Iluminação",
+    "occlusion_score": "Oclusão",
+    "expression_score": "Expressão",
+}
+
+
+def _build_recommendations(
+    subscores: dict[str, float],
+    pose: dict[str, float],
+    lighting_asymmetry: float,
+    flags: dict | None = None,
+    overall_score: float = 1.0,
+) -> list[str]:
     """Priority order: pose > sharpness > lighting > occlusion > expression. Returns up to 3 tips."""
+    flags = flags or {}
     tips: list[str] = []
 
     if subscores["pose_score"] < 0.7:
@@ -216,8 +239,24 @@ def _build_recommendations(subscores: dict[str, float], pose: dict[str, float], 
         else:
             tips.append("Ajuste a iluminação: a foto está muito escura ou muito clara.")
 
+    # Fix #8 — Smile: communicate need for neutral expression (low priority, fits in slot)
+    if flags.get("smile") and len(tips) < 3:
+        tips.append("Mantenha expressão neutra para análise mais precisa.")
+
     if not tips:
         tips.append("Boa captura — pronto para análise.")
+
+    # Fix #7 — Identify worst subscore when overall score is critically low
+    if overall_score < 0.55 and len(tips) < 3:
+        scored_parts = {
+            k: v for k, v in subscores.items()
+            if k in _SUBSCORE_LABELS and k != "face_ok"
+        }
+        if scored_parts:
+            worst_key = min(scored_parts, key=lambda k: scored_parts[k])
+            worst_pct = int(scored_parts[worst_key] * 100)
+            label = _SUBSCORE_LABELS[worst_key]
+            tips.append(f"Fator crítico: {label} ({worst_pct}%) — melhore este ponto para liberar a análise.")
 
     return tips[:3]
 
@@ -262,7 +301,9 @@ def evaluate(
     )
     grade = _grade_from_score(score)
 
-    recommendations = _build_recommendations(subscores, pose, lighting_asymmetry) if face_ok else [
+    recommendations = _build_recommendations(
+        subscores, pose, lighting_asymmetry, flags=flags, overall_score=score
+    ) if face_ok else [
         "Nenhum rosto detectado — capture um rosto único e centralizado." if face_count == 0
         else "Mais de um rosto detectado — capture apenas um rosto na foto."
     ]
