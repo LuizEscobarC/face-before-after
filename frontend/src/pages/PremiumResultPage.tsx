@@ -1,13 +1,49 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { fetchGlossary } from "../api";
 import { MetricExplainer } from "../components/MetricExplainer";
 import { DEFAULT_OVERLAYS, HeatmapImageLayer, OverlayLayer, OverlayToggleBar } from "../components/OverlayLayer";
 import { feynmanFor } from "../data/feynman";
-import type { AnalysisResult, GlossaryTerm, PremiumMetricCategory } from "../types";
+import type { AnalysisResult, GlossaryTerm, MetricEvaluationResult, PremiumMetricCategory } from "../types";
 
 type LocationState = { result?: AnalysisResult };
-type ViewMode = "landmarks" | "ideal" | "compare" | "overlays";
+type ViewMode = "landmarks" | "ideal" | "compare" | "overlays" | "before_ideal";
+
+/**
+ * PR-42/PR-43 (M3.4) — anchor landmark per metric_id for the before/ideal composer.
+ * Mirrors IMPROVEMENT_ANCHOR in OverlayLayer.tsx (MediaPipe Mesh-478).
+ * Only metrics that emit improvement_vector_x/y are listed here.
+ * References: PLAN_M3_OVERLAYS §2 PR-41/PR-42, MediaPipe Mesh-478
+ *   https://github.com/google-ai-edge/mediapipe/blob/master/docs/solutions/face_mesh.md
+ */
+const COMPOSE_ANCHOR: Record<string, number> = {
+  midline_deviation:  1,    // P_NOSE_TIP (landmark 1)
+  chin_height_ratio:  152,  // P_MENTON (landmark 152)
+  brow_height_l:      107,  // P_BROW_LEFT_INNER
+  brow_height_r:      336,  // P_BROW_RIGHT_INNER
+};
+
+/**
+ * Build the offsets array for POST /v1/vision/compose-before-ideal from
+ * metric_evaluations that carry improvement_vector_x/y.
+ * Only metrics present in COMPOSE_ANCHOR are included.
+ */
+function buildComposeOffsets(
+  evals: MetricEvaluationResult[],
+): Array<{ landmark_index: number; dx_icu: number; dy_icu: number; metric_id: string }> {
+  return evals
+    .filter(
+      (m) =>
+        COMPOSE_ANCHOR[m.metric_id] !== undefined &&
+        (m.improvement_vector_x !== null || m.improvement_vector_y !== null),
+    )
+    .map((m) => ({
+      landmark_index: COMPOSE_ANCHOR[m.metric_id],
+      dx_icu: m.improvement_vector_x ?? 0,
+      dy_icu: m.improvement_vector_y ?? 0,
+      metric_id: m.metric_id,
+    }));
+}
 
 const RANK_EMOJI = ["🥇", "🥈", "🥉"];
 const PHASE_ICON = ["⚡", "🎯", "🏅"];
@@ -126,6 +162,12 @@ export function PremiumResultPage() {
   const [activeOverlays, setActiveOverlays] = useState<string[]>(DEFAULT_OVERLAYS);
   const [imgDims, setImgDims] = useState<{ w: number; h: number } | null>(null);
 
+  // PR-43 (M3.4) — before/ideal composition state
+  const [beforeIdealUrl, setBeforeIdealUrl] = useState<string | null>(null);
+  const [composeLoading, setComposeLoading] = useState(false);
+  const [showGuideLines, setShowGuideLines] = useState(true);
+  const [showActualWireframe, setShowActualWireframe] = useState(true);
+
   const handleOverlayToggle = (id: string) => {
     setActiveOverlays((prev) =>
       prev.includes(id) ? prev.filter((o) => o !== id) : [...prev, id]
@@ -137,6 +179,59 @@ export function PremiumResultPage() {
       .then(setGlossary)
       .catch(() => {});
   }, []);
+
+  /**
+   * PR-43 (M3.4) — Fetch the before/ideal composition PNG from
+   * POST /v1/vision/compose-before-ideal. Triggered when the user enters
+   * the "before_ideal" view, or when showGuideLines/showActualWireframe toggles.
+   *
+   * References:
+   *  - nest/src/modules/vision/vision.controller.ts (PR-42 endpoint)
+   *  - backend/app/vision/services/before_ideal_composer.py (PR-41)
+   *  - PLAN_M3_OVERLAYS §2 PR-42/PR-43, DEC-15, DEC-26
+   */
+  const fetchCompose = useCallback(async () => {
+    if (!result?.run_id || !result?.landmarks || !result?.metric_evaluations) return;
+    setComposeLoading(true);
+    // Revoke previous object URL to avoid memory leaks.
+    setBeforeIdealUrl((prev) => { if (prev) URL.revokeObjectURL(prev); return null; });
+    try {
+      const offsets = buildComposeOffsets(result.metric_evaluations);
+      const res = await fetch("/v1/vision/compose-before-ideal", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          runId: result.run_id,
+          landmarks: result.landmarks,
+          offsets,
+          showGuideLines,
+          showActualWireframe,
+        }),
+      });
+      if (!res.ok) {
+        console.error(`compose-before-ideal: HTTP ${res.status}`);
+        return;
+      }
+      const blob = await res.blob();
+      setBeforeIdealUrl(URL.createObjectURL(blob));
+    } catch (e) {
+      console.error("compose-before-ideal failed:", e);
+    } finally {
+      setComposeLoading(false);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [result?.run_id, result?.landmarks, result?.metric_evaluations, showGuideLines, showActualWireframe]);
+
+  useEffect(() => {
+    if (view === "before_ideal") {
+      void fetchCompose();
+    }
+  // Revoke object URL when component unmounts to avoid memory leak.
+  return () => {
+    if (beforeIdealUrl) URL.revokeObjectURL(beforeIdealUrl);
+  };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [view, fetchCompose]);
 
   if (!result) {
     return (
@@ -166,11 +261,24 @@ export function PremiumResultPage() {
     result.evolution_path?.phase_3,
   ];
 
+  /**
+   * PR-43 — Show before/ideal view when we have landmarks + run_id +
+   * at least one metric with an improvement vector.
+   */
+  const hasBeforeIdeal =
+    !!(result.landmarks && result.run_id) &&
+    !!(result.metric_evaluations?.some(
+      (m) =>
+        COMPOSE_ANCHOR[m.metric_id] !== undefined &&
+        (m.improvement_vector_x !== null || m.improvement_vector_y !== null),
+    ));
+
   const viewMeta: Record<ViewMode, { icon: string; label: string; sub: string }> = {
-    landmarks: { icon: "🗺", label: "Mapa de métricas", sub: "detectadas" },
-    ideal:     { icon: "📐", label: "Proporções", sub: "ideais" },
-    compare:   { icon: "⚖️", label: "Comparativo", sub: "original vs simetrizado" },
-    overlays:  { icon: "🔬", label: "Overlays", sub: "linhas de referência" },
+    landmarks:    { icon: "🗺", label: "Mapa de métricas", sub: "detectadas" },
+    ideal:        { icon: "📐", label: "Proporções", sub: "ideais" },
+    compare:      { icon: "⚖️", label: "Comparativo", sub: "original vs simetrizado" },
+    overlays:     { icon: "🔬", label: "Overlays", sub: "linhas de referência" },
+    before_ideal: { icon: "📏", label: "Comparação vetorial", sub: "antes vs ideal" },
   };
 
   return (
@@ -243,8 +351,44 @@ export function PremiumResultPage() {
             </button>
           )}
 
+          {/* PR-43 (M3.4) — Before/ideal comparison button: visible only when
+              improvement vectors exist and we have a run_id + landmarks.
+              Reference: PLAN_M3_OVERLAYS §2 PR-42/PR-43, DEC-26 */}
+          {hasBeforeIdeal && (
+            <button
+              className={`view-btn${view === "before_ideal" ? " view-btn-active" : ""}`}
+              onClick={() => setView("before_ideal")}
+            >
+              <span className="view-btn-icon">📏</span>
+              <span className="view-btn-text">
+                Vetores ideais
+                <small>antes vs ideal</small>
+              </span>
+            </button>
+          )}
+
           {view === "overlays" && result.landmarks && (
             <OverlayToggleBar activeOverlays={activeOverlays} onToggle={handleOverlayToggle} />
+          )}
+
+          {/* PR-43 — toggle controls for the before/ideal composition */}
+          {view === "before_ideal" && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 4 }}>
+              <button
+                className={`view-btn${showGuideLines ? " view-btn-active" : ""}`}
+                style={{ fontSize: 12, padding: "6px 10px" }}
+                onClick={() => setShowGuideLines((v) => !v)}
+              >
+                {showGuideLines ? "✅" : "⬜"} Linhas guia
+              </button>
+              <button
+                className={`view-btn${showActualWireframe ? " view-btn-active" : ""}`}
+                style={{ fontSize: 12, padding: "6px 10px" }}
+                onClick={() => setShowActualWireframe((v) => !v)}
+              >
+                {showActualWireframe ? "✅" : "⬜"} Wireframe atual
+              </button>
+            </div>
           )}
 
           {/* Score card */}
@@ -332,6 +476,56 @@ export function PremiumResultPage() {
                     activeOverlays={activeOverlays}
                     metricEvaluations={result.metric_evaluations}
                   />
+                </div>
+              )}
+
+              {/* PR-43 (M3.4) — Before/ideal composition view.
+                  Fetches PNG from POST /v1/vision/compose-before-ideal (Nest proxy).
+                  The Python composer (PR-41) returns a double-width image:
+                    left  = original annotated photo
+                    right = ideal wireframe overlay (ICU landmark offsets applied)
+                  Toggles: showGuideLines (midline + intercanthal), showActualWireframe.
+                  References:
+                    PLAN_M3_OVERLAYS §2 PR-42/PR-43, DEC-15, DEC-26
+                    nest/src/modules/vision/vision.controller.ts composeBeforeIdeal
+                    backend/app/vision/services/before_ideal_composer.py (PR-41)
+                    MDN URL.createObjectURL: https://developer.mozilla.org/en-US/docs/Web/API/URL/createObjectURL
+              */}
+              {view === "before_ideal" && (
+                <div
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    gap: 12,
+                    minHeight: 200,
+                  }}
+                >
+                  {composeLoading && (
+                    <div
+                      style={{
+                        color: "var(--muted)",
+                        fontSize: 14,
+                        padding: 40,
+                        textAlign: "center",
+                      }}
+                    >
+                      ⏳ Gerando comparação vetorial…
+                    </div>
+                  )}
+                  {!composeLoading && beforeIdealUrl && (
+                    <img
+                      src={beforeIdealUrl}
+                      alt="Comparação antes vs ideal com vetores"
+                      className="panel-img"
+                      style={{ width: "100%", borderRadius: "var(--radius)", display: "block" }}
+                    />
+                  )}
+                  {!composeLoading && !beforeIdealUrl && (
+                    <div style={{ color: "var(--muted)", fontSize: 13, padding: 40 }}>
+                      Clique em "Vetores ideais" para gerar a comparação.
+                    </div>
+                  )}
                 </div>
               )}
             </div>
