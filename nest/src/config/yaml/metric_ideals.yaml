@@ -1,0 +1,298 @@
+# metric_ideals.yaml
+# Versão: v1.0 — M1 (canonical, literatura aberta — Farkas adiado para M2+)
+#
+# Estrutura por entrada:
+#   ideal_central_value : float — valor alvo (na unidade da métrica)
+#   ideal_type          : canonical | population_statistical | presentation_only
+#   green_range_min/max : faixa verde (neutral/ideal)
+#   yellow_range_min/max: faixa amarela (mild/moderate)
+#   direction_label_above: { "pt-BR": "..." } — quando value > ideal_central_value
+#   direction_label_below: { "pt-BR": "..." } — quando value < ideal_central_value
+#
+# Faixas implícitas de severity_5:
+#   ideal    → [green_range_min, green_range_max]
+#   mild     → [yellow_range_min, yellow_range_min) ∪ (yellow_range_max, green_range_max]
+#              (logo além do verde, ainda no amarelo)
+#   moderate → [yellow_range_min, yellow_range_max] (fora do verde)
+#   strong   → além do amarelo até 2× o half-width do amarelo
+#   extreme  → além do forte
+# A classificação exacta é de responsabilidade do SeverityClassifier,
+# que usa deviation_normalized = (value - ideal_central) / green_half_width.
+#
+# Unidades:
+#   ratio                → eye_aperture, intercanthal, fifth ratios
+#   intercanthal_units   → interpupillary_distance, intercanthal_distance
+#   degrees              → canthal_tilt, brow angles
+#   index_0_1            → midline_deviation, asymmetry_index
+
+version: "v1.0"
+
+metrics:
+
+  # ──────────────────────────────────────────────
+  # FAMÍLIA: symmetry
+  # ──────────────────────────────────────────────
+
+  midline_deviation:
+    ideal_type: canonical
+    ideal_central_value: 0.0
+    green_range_min: -0.05
+    green_range_max:  0.05
+    yellow_range_min: -0.15
+    yellow_range_max:  0.15
+    direction_label_above:
+      pt-BR: "desvio para a direita"
+    direction_label_below:
+      pt-BR: "desvio para a esquerda"
+
+  eye_height_asymmetry:
+    ideal_type: canonical
+    ideal_central_value: 0.0
+    green_range_min: -0.05
+    green_range_max:  0.05
+    yellow_range_min: -0.15
+    yellow_range_max:  0.15
+    direction_label_above:
+      pt-BR: "olho esquerdo mais alto"
+    direction_label_below:
+      pt-BR: "olho direito mais alto"
+
+  brow_height_asymmetry:
+    ideal_type: canonical
+    ideal_central_value: 0.0
+    green_range_min: -0.05
+    green_range_max:  0.05
+    yellow_range_min: -0.15
+    yellow_range_max:  0.15
+    direction_label_above:
+      pt-BR: "sobrancelha esquerda mais alta"
+    direction_label_below:
+      pt-BR: "sobrancelha direita mais alta"
+
+  lip_canting_angle:
+    ideal_type: canonical
+    ideal_central_value: 0.0
+    green_range_min: -1.0
+    green_range_max:  1.0
+    yellow_range_min: -3.0
+    yellow_range_max:  3.0
+    direction_label_above:
+      pt-BR: "canto labial esquerdo mais alto"
+    direction_label_below:
+      pt-BR: "canto labial direito mais alto"
+
+  global_asymmetry_index:
+    ideal_type: canonical
+    ideal_central_value: 0.0
+    green_range_min: 0.0
+    green_range_max: 0.05
+    yellow_range_min: 0.0
+    yellow_range_max: 0.15
+    direction_label_above:
+      pt-BR: "assimetria global elevada"
+    direction_label_below:
+      pt-BR: "assimetria global mínima"
+
+  # ──────────────────────────────────────────────
+  # FAMÍLIA: thirds
+  # ──────────────────────────────────────────────
+
+  upper_third_ratio:
+    ideal_type: canonical
+    ideal_central_value: 0.333
+    green_range_min: 0.300
+    green_range_max: 0.367
+    yellow_range_min: 0.267
+    yellow_range_max: 0.400
+    direction_label_above:
+      pt-BR: "terço superior dominante"
+    direction_label_below:
+      pt-BR: "terço superior reduzido"
+
+  middle_third_ratio:
+    ideal_type: canonical
+    ideal_central_value: 0.333
+    green_range_min: 0.300
+    green_range_max: 0.367
+    yellow_range_min: 0.267
+    yellow_range_max: 0.400
+    direction_label_above:
+      pt-BR: "terço médio dominante"
+    direction_label_below:
+      pt-BR: "terço médio reduzido"
+
+  lower_third_ratio:
+    ideal_type: canonical
+    ideal_central_value: 0.333
+    green_range_min: 0.300
+    green_range_max: 0.367
+    yellow_range_min: 0.267
+    yellow_range_max: 0.400
+    direction_label_above:
+      pt-BR: "terço inferior dominante"
+    direction_label_below:
+      pt-BR: "terço inferior reduzido"
+
+  dominant_third:
+    ideal_type: presentation_only
+    ideal_central_value: 0.0      # não há "central" para métrica apresentacional
+    green_range_min: -0.0         # não usado em scoring
+    green_range_max:  0.0
+    yellow_range_min: -0.0
+    yellow_range_max:  0.0
+    direction_label_above:
+      pt-BR: "terço dominante pelo desvio"
+    direction_label_below:
+      pt-BR: "terço dominante pelo desvio"
+
+  # ──────────────────────────────────────────────
+  # FAMÍLIA: fifths
+  # ──────────────────────────────────────────────
+
+  fifth_1_ratio:
+    ideal_type: canonical
+    ideal_central_value: 0.20
+    green_range_min: 0.17
+    green_range_max: 0.23
+    yellow_range_min: 0.14
+    yellow_range_max: 0.26
+    direction_label_above:
+      pt-BR: "quinto lateral esquerdo largo"
+    direction_label_below:
+      pt-BR: "quinto lateral esquerdo estreito"
+
+  fifth_2_ratio:
+    ideal_type: canonical
+    ideal_central_value: 0.20
+    green_range_min: 0.17
+    green_range_max: 0.23
+    yellow_range_min: 0.14
+    yellow_range_max: 0.26
+    direction_label_above:
+      pt-BR: "quinto paramediano esquerdo largo"
+    direction_label_below:
+      pt-BR: "quinto paramediano esquerdo estreito"
+
+  fifth_3_ratio:
+    ideal_type: canonical
+    ideal_central_value: 0.20
+    green_range_min: 0.17
+    green_range_max: 0.23
+    yellow_range_min: 0.14
+    yellow_range_max: 0.26
+    direction_label_above:
+      pt-BR: "quinto central largo"
+    direction_label_below:
+      pt-BR: "quinto central estreito"
+
+  fifth_4_ratio:
+    ideal_type: canonical
+    ideal_central_value: 0.20
+    green_range_min: 0.17
+    green_range_max: 0.23
+    yellow_range_min: 0.14
+    yellow_range_max: 0.26
+    direction_label_above:
+      pt-BR: "quinto paramediano direito largo"
+    direction_label_below:
+      pt-BR: "quinto paramediano direito estreito"
+
+  fifth_5_ratio:
+    ideal_type: canonical
+    ideal_central_value: 0.20
+    green_range_min: 0.17
+    green_range_max: 0.23
+    yellow_range_min: 0.14
+    yellow_range_max: 0.26
+    direction_label_above:
+      pt-BR: "quinto lateral direito largo"
+    direction_label_below:
+      pt-BR: "quinto lateral direito estreito"
+
+  intercanthal_to_eye_width_ratio:
+    ideal_type: canonical
+    ideal_central_value: 1.0
+    green_range_min: 0.85
+    green_range_max: 1.15
+    yellow_range_min: 0.70
+    yellow_range_max: 1.30
+    direction_label_above:
+      pt-BR: "distância intercantal relativamente ampla"
+    direction_label_below:
+      pt-BR: "distância intercantal relativamente estreita"
+
+  # ──────────────────────────────────────────────
+  # FAMÍLIA: eyes
+  # ──────────────────────────────────────────────
+
+  eye_aperture_ratio_l:
+    ideal_type: canonical
+    ideal_central_value: 0.30
+    green_range_min: 0.25
+    green_range_max: 0.35
+    yellow_range_min: 0.18
+    yellow_range_max: 0.45
+    direction_label_above:
+      pt-BR: "olho esquerdo com abertura ampla"
+    direction_label_below:
+      pt-BR: "olho esquerdo com abertura reduzida"
+
+  eye_aperture_ratio_r:
+    ideal_type: canonical
+    ideal_central_value: 0.30
+    green_range_min: 0.25
+    green_range_max: 0.35
+    yellow_range_min: 0.18
+    yellow_range_max: 0.45
+    direction_label_above:
+      pt-BR: "olho direito com abertura ampla"
+    direction_label_below:
+      pt-BR: "olho direito com abertura reduzida"
+
+  interpupillary_distance:
+    ideal_type: canonical
+    ideal_central_value: 2.0
+    green_range_min: 1.8
+    green_range_max: 2.2
+    yellow_range_min: 1.5
+    yellow_range_max: 2.5
+    direction_label_above:
+      pt-BR: "olhos afastados (wide-set)"
+    direction_label_below:
+      pt-BR: "olhos próximos (close-set)"
+
+  intercanthal_distance:
+    ideal_type: canonical
+    ideal_central_value: 1.0
+    green_range_min: 0.90
+    green_range_max: 1.10
+    yellow_range_min: 0.75
+    yellow_range_max: 1.25
+    direction_label_above:
+      pt-BR: "distância intercantal dilatada"
+    direction_label_below:
+      pt-BR: "distância intercantal comprimida"
+
+  canthal_tilt_l:
+    ideal_type: canonical
+    ideal_central_value: 0.0
+    green_range_min: -1.0
+    green_range_max:  1.0
+    yellow_range_min: -5.0
+    yellow_range_max:  5.0
+    direction_label_above:
+      pt-BR: "inclinação positiva (olho de gato) — esquerdo"
+    direction_label_below:
+      pt-BR: "inclinação negativa (queda lateral) — esquerdo"
+
+  canthal_tilt_r:
+    ideal_type: canonical
+    ideal_central_value: 0.0
+    green_range_min: -1.0
+    green_range_max:  1.0
+    yellow_range_min: -5.0
+    yellow_range_max:  5.0
+    direction_label_above:
+      pt-BR: "inclinação positiva (olho de gato) — direito"
+    direction_label_below:
+      pt-BR: "inclinação negativa (queda lateral) — direito"

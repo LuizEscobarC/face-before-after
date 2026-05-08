@@ -4,6 +4,8 @@ import { VisionModule } from '#modules/vision/vision.module.js';
 import { PhotoQualityModule } from '#modules/photo-quality/photo-quality.module.js';
 import { AnalysisController } from './analysis.controller.js';
 import { AnalysisService } from './analysis.service.js';
+import { IdealComparator } from './domain/ideal-comparator.js';
+import { SeverityClassifier } from './domain/severity-classifier.js';
 import { MetricRegistryVersionEntity } from './infrastructure/entities/metric-registry-version.entity.js';
 import { MetricDefinitionEntity } from './infrastructure/entities/metric-definition.entity.js';
 import { IdealsVersionEntity } from './infrastructure/entities/ideals-version.entity.js';
@@ -33,6 +35,7 @@ import { MetricEvaluationAgainstIdealEntity } from './infrastructure/entities/me
     ]),
   ],
   controllers: [AnalysisController],
-  providers: [AnalysisService],
+  providers: [AnalysisService, IdealComparator, SeverityClassifier],
+  exports: [IdealComparator, SeverityClassifier],
 })
 export class AnalysisModule {}

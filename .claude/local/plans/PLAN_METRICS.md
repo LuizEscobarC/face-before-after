@@ -2,7 +2,7 @@
 
 > Plano mestre da expansão de métricas, ideais, overlays e diagnóstico.
 > Documento de referência permanente. Releia no início de cada sessão.
-> Última atualização: 2026-05-08 (após PR-8).
+> Última atualização: 2026-05-08 (após PR-9).
 
 ---
 
@@ -18,8 +18,8 @@
 | PR-6 | FastAPI: família terços (4 métricas) + fixtures `perfect_thirds` + 61 testes (248 total) | ✅ DONE |
 | PR-7 | FastAPI: família quintos (6 métricas: `fifth_1_ratio`…`fifth_5_ratio` + `intercanthal_to_eye_width_ratio`) + 96 testes (344 total) | ✅ DONE |
 | PR-8 | FastAPI: família olhos (6 métricas: `eye_aperture_ratio_l/r`, `interpupillary_distance`, `intercanthal_distance`, `canthal_tilt_l/r`) + 82 testes (426 total) | ✅ DONE |
-| **PR-9** | **Nest: `IdealComparator` + `SeverityClassifier` + propagação de confiança** | 🔄 **NEXT** |
-| PR-10 | Nest: `AnalysisOrchestrator` + endpoint `POST /api/analyze` + integração end-to-end | ⏳ |
+| PR-9 | Nest: `IdealComparator` + `SeverityClassifier` + `metric_ideals.yaml` + Vitest (62 testes) | ✅ DONE |
+| **PR-10** | **Nest: `AnalysisOrchestrator` + endpoint `POST /api/analyze` + integração end-to-end** | 🔄 **NEXT** |
 
 **Critério de M1 "feito"**: `POST /api/analyze` (Nest) recebe `landmarks + quality_context`, chama `/vision/metrics-v2` (Python) que devolve 20 métricas brutas, Nest aplica comparator/severity/persistência, retorna `AnalysisReport` com snapshots de versão. Sem texto de diagnóstico, sem overlay, sem score regional/global ainda (M2).
 
