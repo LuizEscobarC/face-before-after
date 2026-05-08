@@ -2,19 +2,20 @@
 
 > Backlog detalhado do **Marco 2 — calibração + expansão de métricas + scoring rico**.
 > Releia junto com `PLAN_METRICS.md` no início de cada sessão.
-> Atualização: 2026-05-08 (após PR-20).
+> Atualização: 2026-05-08 (após PR-23).
 
 ---
 
 ## 0. Contexto
 
-**✅ PRs 13–20 entregues** — catálogo de 66 métricas (`metric_definition`) com 59 ideais (`metric_ideal`) e 56 pesos (`region_metric_weight` em 9 regiões). Pytest: 1034 passed / 48 skipped. DB verificado.
+**✅ PRs 13–20 + PR-23 entregues** — catálogo de 66 métricas (`metric_definition`) com 59 ideais (`metric_ideal`) e 56 pesos (`region_metric_weight` em 9 regiões). Pytest: 1088 passed / 48 skipped. DB verificado.
 
-A expansão do catálogo (frente 1 e 2 do M2) está **concluída**. As três frentes remanescentes são:
+A expansão do catálogo (frente 1 e 2 do M2) está **concluída** e a infraestrutura de consistência longitudinal (PR-23) está entregue. As duas frentes remanescentes são:
 
 1. **Calibração com fotos reais** (PR-22) — coleta de ≥30 fotos de operador + planilha de override de faixas. Operação humana; modelo Opus para decisões de calibração.
 2. **Recalibração de pesos** (PR-21) — rebalanceia `region_metric_weight_version v2.0` + `global_weights_version v2.0` com base nos dados de PR-22. Bloqueia em PR-22. Modelo: **Opus**.
-3. **Multi-foto / consistência longitudinal** (PR-23) — `landmark_payload.capture_count > 1`, `landmark_stability_scores`, ajuste de `confidence_propagation`. Independente de fotos reais. Modelo: **Sonnet** — **próximo PR executável agora**.
+
+> PR-21 e PR-22 **requerem Opus** e PR-22 exige fotos reais (tarefa humana). Não há PR executável com Sonnet no backlog M2 atual.
 
 > **Cuidado MUITO importante (do prompt do usuário):**
 > *"M2 é calibração dos ideais. Definir faixas verde/amarelo de cada métrica envolve julgamento sobre fontes (literatura aberta vs sintético vs canônico), inconsistências entre referências, casos onde o ideal varia por sexo/idade. Opus pesa critérios melhor."*
@@ -37,11 +38,11 @@ A expansão do catálogo (frente 1 e 2 do M2) está **concluída**. As três fre
 | **PR-20** ✅ | Família **phi/golden** *(presentation_only HARD)* — **DONE** | `phi_face_height_to_width`, `phi_lower_face_segments`, `phi_eye_to_mouth`, `phi_nose_to_lip` (4 — todas `presentation_only=true`) | `metric_definition` (+4, sem `metric_ideal`, sem `region_metric_weight`) | **Sonnet** |
 | **PR-21** | **Recalibração ampla** dos `region_metric_weight` quando todas as famílias estiverem dentro | rebalanceia pesos das 6 regiões (atualmente symmetry=14, eyes=6 dominam o score) | nova `region_metric_weights_version v2.0` + `global_weights_version v2.0` (DEC-12: snapshot, mantém v1.0 ativa em histórico) | **Opus** (julgamento de balanceamento) |
 | **PR-22** | **Calibração com fotos reais** | coleta de 30–50 fotos (operador interno), planilha de override de `green_range_min/max` por métrica, `ideals_version v2.0` ativada | `ideals_version`, `metric_ideal` (rows nova versão), `metric_evaluation` re-rodada para auditoria | **Opus** (julgamento de fontes) |
-| **PR-23** | **Consistência longitudinal** (multi-foto) | `landmark_payload.capture_count > 1`, `landmark_stability_scores`, ajuste de `confidence_propagation` | `landmark_payload` (já tem coluna), pipeline Python | **Sonnet** |
+| **PR-23** ✅ | **Consistência longitudinal** (multi-foto) — **DONE** | `landmark_stability.py` (compute_stability, STABILITY_SLOPE=5.0), `QualityContext` +2 campos, `confidence_propagation` passo 4, schemas `MetricsV2Request/Response`, router post-processing, migration `1746000140000-AddLandmarkStabilityColumns`, 54 testes Python | `landmark_payload` + 2 colunas (landmark_stability_scores JSONB, normalization_applied BOOLEAN) + índice parcial | **Sonnet** |
 
-**Total após PR-20**: 21 (M1) + 6+7+7+8+5+4+4+4 = **66 métricas** ✅ — alvo de "60+" atingido. DB: 66 `metric_definition`, 59 `metric_ideal`, 56 `region_metric_weight` (9 regiões). pytest: 1034 passed / 48 skipped.
+**Total após PR-23**: 21 (M1) + 6+7+7+8+5+4+4+4 = **66 métricas** ✅ — alvo de "60+" atingido. DB: 66 `metric_definition`, 59 `metric_ideal`, 56 `region_metric_weight` (9 regiões), `landmark_payload` com colunas de estabilidade. pytest: 1088 passed / 48 skipped.
 
-**Próximo executável com Sonnet**: PR-23 (multi-foto / consistência longitudinal). PR-21 e PR-22 **requerem Opus** e PR-22 exige fotos reais (tarefa humana).
+**Próximo executável com Sonnet**: Nenhum no M2. PR-21 e PR-22 **requerem Opus** e PR-22 exige fotos reais (tarefa humana).
 
 ---
 
