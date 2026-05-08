@@ -34,6 +34,7 @@ from app.domain.landmarks_mesh import (
     P_LEFT_EYE_OUTER,
     P_LEFT_GONION,
     P_LEFT_MOUTH,
+    P_LEFT_ZYGOMATIC,
     P_MENTON,
     P_NASION,
     P_NOSE_TIP,
@@ -41,6 +42,7 @@ from app.domain.landmarks_mesh import (
     P_RIGHT_EYE_OUTER,
     P_RIGHT_GONION,
     P_RIGHT_MOUTH,
+    P_RIGHT_ZYGOMATIC,
     P_SUBNASALE,
     TOTAL_LANDMARKS,
 )
@@ -62,6 +64,13 @@ _L_MOUTH     = (_FACE_CX - 60, _FACE_CY + 140)
 _R_MOUTH     = (_FACE_CX + 60, _FACE_CY + 140)
 _L_GONION    = (_FACE_CX - 120, _FACE_CY + 180)
 _R_GONION    = (_FACE_CX + 120, _FACE_CY + 180)
+
+# Bizygomatic anchors — face left/right boundary for horizontal-fifths calculation.
+# Placed at eye level (y = _FACE_CY) so x-only math applies cleanly.
+# Distance from eye outer-canthus = 1 × ICD_PX → face width = 5 × ICD = 500 px.
+# Each fifth = 100 px = 1.0 ICU → all five fifths ratio = 0.20 (canonical ideal).
+_L_ZYGOMATIC = (_FACE_CX - _ICD_PX * 2.5, _FACE_CY)   # = (150, 300)
+_R_ZYGOMATIC = (_FACE_CX + _ICD_PX * 2.5, _FACE_CY)   # = (650, 300)
 
 # Midline landmarks (on x = _FACE_CX, so x = 0 after normalization)
 _NASION_PT      = (_FACE_CX, _FACE_CY - 55)             # forehead / top of nose bridge
@@ -156,6 +165,9 @@ def _canonical_key_points() -> dict[int, tuple[float, float]]:
         P_SUBNASALE:       _SUBNASALE_PT,
         # Forehead crown — proxy for trichion (upper thirds boundary)
         P_FOREHEAD_CROWN:  _FOREHEAD_PT,
+        # Bizygomatic anchors — face horizontal boundary for fifths calculation
+        P_LEFT_ZYGOMATIC:  _L_ZYGOMATIC,
+        P_RIGHT_ZYGOMATIC: _R_ZYGOMATIC,
     }
     # Eye and brow outline landmarks (symmetric in the canonical face)
     kp.update(_LEFT_EYE_PTS)
