@@ -60,6 +60,16 @@ P_UPPER_LIP_BOT = 312     # dlib 62
 P_LOWER_LIP_TOP = 86      # dlib 66
 P_LOWER_LIP_BOT = 17      # dlib 58
 
+# Eyelid midpoints and iris centres — used by eye-aperture and IPD metrics.
+# Top/bot points are the vertical midpoints of the palpebral fissure at the
+# horizontal centre of each eye (roughly where a slit-lamp would measure).
+P_LEFT_EYE_TOP    = 159   # upper eyelid midpoint, left eye (Mesh-478)
+P_RIGHT_EYE_TOP   = 386   # upper eyelid midpoint, right eye
+P_LEFT_EYE_BOT    = 145   # lower eyelid midpoint, left  (= LM_LEFT_EYE[4])
+P_RIGHT_EYE_BOT   = 374   # lower eyelid midpoint, right (= LM_RIGHT_EYE[4])
+P_LEFT_IRIS_CENTER  = 468  # iris centre, left  (= LM_LEFT_IRIS[0])
+P_RIGHT_IRIS_CENTER = 473  # iris centre, right (= LM_RIGHT_IRIS[0])
+
 
 # ---------------------------------------------------------------------------
 # Aliases for legacy raw-index access patterns scattered through the codebase.

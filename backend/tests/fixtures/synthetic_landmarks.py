@@ -30,17 +30,23 @@ from app.domain.landmarks_mesh import (
     P_BROW_LEFT_INNER,
     P_BROW_RIGHT_INNER,
     P_FOREHEAD_CROWN,
+    P_LEFT_EYE_BOT,
     P_LEFT_EYE_INNER,
     P_LEFT_EYE_OUTER,
+    P_LEFT_EYE_TOP,
     P_LEFT_GONION,
+    P_LEFT_IRIS_CENTER,
     P_LEFT_MOUTH,
     P_LEFT_ZYGOMATIC,
     P_MENTON,
     P_NASION,
     P_NOSE_TIP,
+    P_RIGHT_EYE_BOT,
     P_RIGHT_EYE_INNER,
     P_RIGHT_EYE_OUTER,
+    P_RIGHT_EYE_TOP,
     P_RIGHT_GONION,
+    P_RIGHT_IRIS_CENTER,
     P_RIGHT_MOUTH,
     P_RIGHT_ZYGOMATIC,
     P_SUBNASALE,
@@ -71,6 +77,22 @@ _R_GONION    = (_FACE_CX + 120, _FACE_CY + 180)
 # Each fifth = 100 px = 1.0 ICU → all five fifths ratio = 0.20 (canonical ideal).
 _L_ZYGOMATIC = (_FACE_CX - _ICD_PX * 2.5, _FACE_CY)   # = (150, 300)
 _R_ZYGOMATIC = (_FACE_CX + _ICD_PX * 2.5, _FACE_CY)   # = (650, 300)
+
+# Eyelid top/bot midpoints and iris centres (eyes family, PR-8).
+# Eye width (outer→inner) = 100 px = 1.0 ICU; height = 30 px = 0.30 ICU.
+# Aperture ratio = 0.30 / 1.0 = 0.30 for perfect_frontal.
+# Iris centres at horizontal midpoints of each eye → IPD = 200 px = 2.0 ICU.
+_EYE_H_HALF  = 15   # half of vertical eye opening (px)
+_L_EYE_CX    = (_LEFT_OUTER[0] + _LEFT_INNER[0]) / 2    # = 300 (left eye centre x)
+_R_EYE_CX    = (_RIGHT_INNER[0] + _RIGHT_OUTER[0]) / 2  # = 500 (right eye centre x)
+_EYE_APERTURE_PTS: dict[int, tuple[float, float]] = {
+    P_LEFT_EYE_TOP:        (_L_EYE_CX, _FACE_CY - _EYE_H_HALF),   # (300, 285)
+    P_LEFT_EYE_BOT:        (_L_EYE_CX, _FACE_CY + _EYE_H_HALF),   # (300, 315) overrides LM_LEFT_EYE[4]
+    P_RIGHT_EYE_TOP:       (_R_EYE_CX, _FACE_CY - _EYE_H_HALF),   # (500, 285)
+    P_RIGHT_EYE_BOT:       (_R_EYE_CX, _FACE_CY + _EYE_H_HALF),   # (500, 315) overrides LM_RIGHT_EYE[4]
+    P_LEFT_IRIS_CENTER:    (_L_EYE_CX, _FACE_CY),                   # (300, 300)
+    P_RIGHT_IRIS_CENTER:   (_R_EYE_CX, _FACE_CY),                   # (500, 300)
+}
 
 # Midline landmarks (on x = _FACE_CX, so x = 0 after normalization)
 _NASION_PT      = (_FACE_CX, _FACE_CY - 55)             # forehead / top of nose bridge
@@ -174,6 +196,9 @@ def _canonical_key_points() -> dict[int, tuple[float, float]]:
     kp.update(_RIGHT_EYE_PTS)
     kp.update(_LEFT_BROW_PTS)
     kp.update(_RIGHT_BROW_PTS)
+    # Eyelid top/bot and iris centres applied LAST to override any conflicting
+    # eye-outline entries (e.g., P_LEFT_EYE_BOT=145 = LM_LEFT_EYE[4]).
+    kp.update(_EYE_APERTURE_PTS)
     return kp
 
 
