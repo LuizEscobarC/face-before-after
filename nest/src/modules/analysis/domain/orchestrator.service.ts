@@ -249,6 +249,9 @@ export class AnalysisOrchestratorService {
         against.severity3 = severity3;
         against.directionLabel = directionLabel;
         against.metricEvaluationGeneratedAt = generatedAt;
+        // Improvement vector from Python calculator (PR-34, M3.2)
+        against.improvementVectorX = raw.improvement_vector?.[0] ?? null;
+        against.improvementVectorY = raw.improvement_vector?.[1] ?? null;
         // metricEvaluationId set after eval_ is saved
         againstIdealEntities.push(against);
       } else {
@@ -270,6 +273,8 @@ export class AnalysisOrchestratorService {
         severity_5: severity5,
         severity_3: severity3,
         direction_label: directionLabel,
+        improvement_vector_x: raw.improvement_vector?.[0] ?? null,
+        improvement_vector_y: raw.improvement_vector?.[1] ?? null,
       });
     }
 

@@ -44,6 +44,7 @@ class MetricValue:
     direction: str
     dependency_landmarks: tuple[int, ...]
     presentation_only: bool = False
+    improvement_vector: tuple[float, float] | None = None
 
     def to_dict(self) -> dict:
         return {
@@ -59,4 +60,5 @@ class MetricValue:
             "direction": self.direction,
             "dependency_landmarks": list(self.dependency_landmarks),
             "presentation_only": self.presentation_only,
+            "improvement_vector": list(self.improvement_vector) if self.improvement_vector is not None else None,
         }

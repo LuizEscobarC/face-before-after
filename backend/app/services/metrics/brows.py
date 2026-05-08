@@ -236,6 +236,10 @@ class BrowHeightLeftCalculator(MetricCalculator):
         cr = _conf_raw(v, _IDEAL_HEIGHT, _MAX_DEV_HEIGHT)
         cf = propagate(cr, ctx.quality_score, self.region, ctx.regional_penalties,
                        ctx.get_yaw(), ctx.get_pitch(), BROW_POSE_PARAMS)
+        # improvement vector: brow moves up (dy<0) if low_brow, down (dy>0) if high_brow
+        deviation_from_ideal = v - _IDEAL_HEIGHT
+        vec_y = float(max(-0.3, min(0.3, -deviation_from_ideal)))
+        brow_improvement_vector = (0.0, vec_y)
         return MetricValue(
             metric_id=self.metric_id, region=self.region, family=self.family,
             unit=self.unit, value=v, error=0.03,
@@ -243,6 +247,7 @@ class BrowHeightLeftCalculator(MetricCalculator):
             is_low_confidence=cf < LOW_CONF_THRESHOLD,
             direction=_height_direction(v),
             dependency_landmarks=_DEP_HEIGHT_L,
+            improvement_vector=brow_improvement_vector,
         )
 
 
@@ -263,6 +268,10 @@ class BrowHeightRightCalculator(MetricCalculator):
         cr = _conf_raw(v, _IDEAL_HEIGHT, _MAX_DEV_HEIGHT)
         cf = propagate(cr, ctx.quality_score, self.region, ctx.regional_penalties,
                        ctx.get_yaw(), ctx.get_pitch(), BROW_POSE_PARAMS)
+        # improvement vector: brow moves up (dy<0) if low_brow, down (dy>0) if high_brow
+        deviation_from_ideal = v - _IDEAL_HEIGHT
+        vec_y = float(max(-0.3, min(0.3, -deviation_from_ideal)))
+        brow_improvement_vector = (0.0, vec_y)
         return MetricValue(
             metric_id=self.metric_id, region=self.region, family=self.family,
             unit=self.unit, value=v, error=0.03,
@@ -270,6 +279,7 @@ class BrowHeightRightCalculator(MetricCalculator):
             is_low_confidence=cf < LOW_CONF_THRESHOLD,
             direction=_height_direction(v),
             dependency_landmarks=_DEP_HEIGHT_R,
+            improvement_vector=brow_improvement_vector,
         )
 
 

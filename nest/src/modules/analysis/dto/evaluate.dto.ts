@@ -99,6 +99,10 @@ export interface MetricEvaluationResultDto {
   severity_5: string | null;
   severity_3: string | null;
   direction_label: Record<string, string>;
+  /** Improvement vector X in normalised intercanthal units (ICU). Null when N/A. */
+  improvement_vector_x: number | null;
+  /** Improvement vector Y in normalised intercanthal units (ICU). Positive = downward. Null when N/A. */
+  improvement_vector_y: number | null;
 }
 
 export interface EvaluateVersionsDto {
@@ -162,6 +166,8 @@ export interface RawMetricV2 {
   direction: string;
   dependency_landmarks: number[];
   presentation_only: boolean;
+  /** Improvement vector [dx, dy] in normalised ICU, or null when N/A. Emitted by Python calculators (PR-34). */
+  improvement_vector?: [number, number] | null;
 }
 
 export interface MetricsV2ResponseDto {

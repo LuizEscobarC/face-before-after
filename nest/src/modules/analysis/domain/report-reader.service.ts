@@ -164,6 +164,8 @@ export class ReportReaderService {
         severity_5: against?.severity5 ?? null,
         severity_3: against?.severity3 ?? null,
         direction_label: against?.directionLabel ?? {},
+        improvement_vector_x: against?.improvementVectorX ?? null,
+        improvement_vector_y: against?.improvementVectorY ?? null,
       };
     });
 

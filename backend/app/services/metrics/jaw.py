@@ -318,6 +318,8 @@ class ChinHeightRatioCalculator(MetricCalculator):
     family = "jaw"
     unit = "ratio"
 
+    _IV_SCALE = 0.8
+
     def compute(self, lm: NormalizedLandmarks, ctx: QualityContext) -> MetricValue:
         sn_y = float(lm.xy(P_SUBNASALE)[1])
         ll_y = float(lm.xy(P_LOWER_LIP_BOT)[1])
@@ -328,6 +330,10 @@ class ChinHeightRatioCalculator(MetricCalculator):
         cr = _conf_raw(v, _IDEAL_CHIN_HEIGHT, _MAX_DEV_CHIN_HEIGHT)
         cf = propagate(cr, ctx.quality_score, self.region, ctx.regional_penalties,
                        ctx.get_yaw(), ctx.get_pitch(), JAW_POSE_PARAMS)
+        # improvement vector: menton moves up (dy<0) if long chin, down (dy>0) if short chin
+        deviation = v - _IDEAL_CHIN_HEIGHT
+        vec_y = float(max(-0.3, min(0.3, -deviation * self._IV_SCALE)))
+        chin_improvement_vector = (0.0, vec_y)
         return MetricValue(
             metric_id=self.metric_id, region=self.region, family=self.family,
             unit=self.unit, value=v, error=0.02,
@@ -335,4 +341,5 @@ class ChinHeightRatioCalculator(MetricCalculator):
             is_low_confidence=cf < LOW_CONF_THRESHOLD,
             direction=_chin_height_direction(v),
             dependency_landmarks=_DEP_CHIN_HEIGHT,
+            improvement_vector=chin_improvement_vector,
         )

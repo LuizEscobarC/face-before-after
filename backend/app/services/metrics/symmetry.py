@@ -118,14 +118,16 @@ class MidlineDeviationCalculator(MetricCalculator):
     unit = "intercanthal_units"
     _DEP_LM: tuple[int, ...] = _MIDLINE_POINTS
 
+    _IMPROVEMENT_VECTOR_CAP = 0.3  # ICU
+
     def compute(self, lm: NormalizedLandmarks, ctx: QualityContext) -> MetricValue:
-        value, error, mean_x = _midline_components(lm)
+        value, error, mean_signed_x = _midline_components(lm)
         # Confidence saturates when deviation reaches 0.5 ICU (extreme).
         confidence_raw = max(0.0, 1.0 - value / 0.5)
         direction = (
             "neutral"
             if value < 0.01
-            else ("right_deviation" if mean_x > 0 else "left_deviation")
+            else ("right_deviation" if mean_signed_x > 0 else "left_deviation")
         )
         confidence_final = propagate(
             confidence_raw, ctx.quality_score, self.region,
@@ -133,6 +135,9 @@ class MidlineDeviationCalculator(MetricCalculator):
             yaw_deg=ctx.get_yaw(), pitch_deg=ctx.get_pitch(),
             pose_params=SYMMETRY_POSE_PARAMS,
         )
+        # improvement vector: push midline toward center (x = 0)
+        vec_x = float(max(-self._IMPROVEMENT_VECTOR_CAP, min(self._IMPROVEMENT_VECTOR_CAP, -mean_signed_x)))
+        improvement_vector = (vec_x, 0.0)
         return MetricValue(
             metric_id=self.metric_id, region=self.region, family=self.family,
             unit=self.unit, value=value, error=error,
@@ -141,6 +146,7 @@ class MidlineDeviationCalculator(MetricCalculator):
             direction=direction,
             dependency_landmarks=self._DEP_LM,
             presentation_only=self.presentation_only,
+            improvement_vector=improvement_vector,
         )
 
 
