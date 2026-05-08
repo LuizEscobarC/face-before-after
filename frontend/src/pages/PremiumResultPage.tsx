@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { fetchGlossary } from "../api";
 import { MetricExplainer } from "../components/MetricExplainer";
-import { DEFAULT_OVERLAYS, OverlayLayer, OverlayToggleBar } from "../components/OverlayLayer";
+import { DEFAULT_OVERLAYS, HeatmapImageLayer, OverlayLayer, OverlayToggleBar } from "../components/OverlayLayer";
 import { feynmanFor } from "../data/feynman";
 import type { AnalysisResult, GlossaryTerm, PremiumMetricCategory } from "../types";
 
@@ -315,6 +315,15 @@ export function PremiumResultPage() {
                       const img = e.currentTarget;
                       setImgDims({ w: img.naturalWidth, h: img.naturalHeight });
                     }}
+                  />
+                  {/* z=30 heatmap layer (PR-40, M3.3) — server-rendered PNG.
+                      heatmapAssetUrls is wired by the caller once Nest exposes a
+                      /v1/overlays/:reportId/render call for heatmap_* overlay_ids;
+                      until then the toggle is visible but the layer is a no-op. */}
+                  <HeatmapImageLayer
+                    imageWidth={imgDims?.w ?? 640}
+                    imageHeight={imgDims?.h ?? 480}
+                    activeOverlays={activeOverlays}
                   />
                   <OverlayLayer
                     landmarks={result.landmarks}

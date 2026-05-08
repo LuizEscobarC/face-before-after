@@ -1,11 +1,19 @@
 /**
- * OverlayLayer — SVG facial overlay renderer (PR-31, M3.1; improvement vectors PR-36, M3.2).
+ * OverlayLayer — SVG facial overlay renderer (PR-31, M3.1; improvement vectors PR-36, M3.2;
+ * heatmap toggles + image layer PR-40, M3.3).
  *
  * Renders geometric overlay lines and improvement-vector arrows over a face photo.
- * Overlay IDs and styles match overlay_definition seed v1.0 (PR-30).
+ * Heatmaps (heatmap_asymmetry, heatmap_ideal_adherence) are server-rendered PNGs and
+ * displayed via the sibling ``HeatmapImageLayer`` component (caller fetches the PNG
+ * URL via POST /v1/overlays/:reportId/render and passes it in via heatmapAssetUrls).
+ * Overlay IDs and styles match overlay_definition seed v1.0 (PR-30 + PR-39).
  *
- * References: Naini 2011 §4-6, Powell & Humphreys 1984, Farkas 1994.
- * Improvement vector spec: PLAN_M3_OVERLAYS §2, DEC-25.
+ * References:
+ *  - Naini 2011 §4-6, Powell & Humphreys 1984, Farkas 1994 (line overlays).
+ *  - Improvement vector spec: PLAN_M3_OVERLAYS §2, DEC-25.
+ *  - Heatmap renderer: backend/app/vision/services/heatmap_renderer.py (PR-37/38).
+ *  - Z-order DEC-25: heatmap (z=30) renders BELOW lines (z=10/20) and vectors (z=40)
+ *    so user can read both simultaneously.
  */
 
 import type { MetricEvaluationResult } from "../types";
@@ -40,29 +48,40 @@ const SEVERITY_ARROW_COLORS: Record<string, string> = {
   extreme:  "#ef4444",
 };
 
-// Rendering styles (mirrors overlay_definition.rendering_hints from PR-30 seed)
+// Rendering styles (mirrors overlay_definition.rendering_hints from PR-30 + PR-39 seed)
 const OVERLAY_STYLES: Record<string, {
   stroke: string;
   strokeWidth: number;
   strokeDasharray?: string;
 }> = {
-  axis_vertical:       { stroke: "#22d3ee", strokeWidth: 1.5, strokeDasharray: "4 2" },
-  axis_intercanthal:   { stroke: "#22d3ee", strokeWidth: 1.5 },
-  grid_thirds:         { stroke: "#a5b4fc", strokeWidth: 1,   strokeDasharray: "6 3" },
-  grid_fifths:         { stroke: "#a5b4fc", strokeWidth: 1,   strokeDasharray: "6 3" },
-  outline_face:        { stroke: "#67e8f9", strokeWidth: 1.5 },
-  improvement_vectors: { stroke: "#f97316", strokeWidth: 2 },  // swatch colour only; arrows use per-severity colours
+  axis_vertical:           { stroke: "#22d3ee", strokeWidth: 1.5, strokeDasharray: "4 2" },
+  axis_intercanthal:       { stroke: "#22d3ee", strokeWidth: 1.5 },
+  grid_thirds:             { stroke: "#a5b4fc", strokeWidth: 1,   strokeDasharray: "6 3" },
+  grid_fifths:             { stroke: "#a5b4fc", strokeWidth: 1,   strokeDasharray: "6 3" },
+  outline_face:            { stroke: "#67e8f9", strokeWidth: 1.5 },
+  improvement_vectors:     { stroke: "#f97316", strokeWidth: 2 },  // swatch colour only; arrows use per-severity colours
+  // Heatmaps (PR-37/38, M3.3) — swatch colour reflects the colormap mid-tone.
+  heatmap_asymmetry:       { stroke: "#b40426", strokeWidth: 8 },  // coolwarm hot end
+  heatmap_ideal_adherence: { stroke: "#3cb45a", strokeWidth: 8 },  // sequential ideal end
 };
 
 // Human-readable labels for toggle buttons
 const OVERLAY_LABELS: Record<string, string> = {
-  axis_vertical:       "Eixo vertical",
-  axis_intercanthal:   "Eixo intercantal",
-  grid_thirds:         "Terços faciais",
-  grid_fifths:         "Quintos faciais",
-  outline_face:        "Contorno facial",
-  improvement_vectors: "Vetores de melhoria",
+  axis_vertical:           "Eixo vertical",
+  axis_intercanthal:       "Eixo intercantal",
+  grid_thirds:             "Terços faciais",
+  grid_fifths:             "Quintos faciais",
+  outline_face:            "Contorno facial",
+  improvement_vectors:     "Vetores de melhoria",
+  heatmap_asymmetry:       "Mapa de calor — assimetria",
+  heatmap_ideal_adherence: "Mapa de calor — aderência",
 };
+
+// Heatmap overlay IDs — rendered as <img> layers (PNG fetched from Nest), not SVG.
+const HEATMAP_OVERLAY_IDS = new Set([
+  "heatmap_asymmetry",
+  "heatmap_ideal_adherence",
+]);
 
 // Default toggle state
 const DEFAULT_OVERLAYS = ["axis_vertical", "axis_intercanthal"];
@@ -76,6 +95,65 @@ export interface OverlayLayerProps {
   activeOverlays: string[];
   /** Metric evaluations with improvement_vector_x/y (from Nest M1 pipeline, PR-34). Required for improvement_vectors overlay. */
   metricEvaluations?: MetricEvaluationResult[];
+}
+
+/**
+ * Props for HeatmapImageLayer (PR-40, M3.3).
+ *
+ * The heatmap is a server-rendered PNG returned by POST /v1/overlays/:reportId/render
+ * with overlay_id in {heatmap_asymmetry, heatmap_ideal_adherence}. The caller is
+ * responsible for triggering the render call and supplying the resulting URL via
+ * ``heatmapAssetUrls`` keyed by overlay_id.
+ */
+export interface HeatmapImageLayerProps {
+  imageWidth: number;
+  imageHeight: number;
+  activeOverlays: string[];
+  /** Map of overlay_id → presigned PNG URL (returned by Nest after render). */
+  heatmapAssetUrls?: Record<string, string>;
+}
+
+/**
+ * HeatmapImageLayer — server-rendered heatmap PNG overlay (PR-40, M3.3).
+ *
+ * Sits BETWEEN the base annotated image and the SVG OverlayLayer so that
+ * lines/grids/vectors stay readable on top of the heatmap (DEC-25 z-order:
+ * heatmap z=30, lines z=10/20, vectors z=40 — visually heatmap is "below"
+ * the line overlays in the rendering stack so the user can read both at once).
+ *
+ * Only one heatmap is ever active at a time; if both toggles are on we render
+ * the asymmetry one and ignore ideal_adherence (caller should enforce
+ * single-selection in the UI).
+ */
+export function HeatmapImageLayer({
+  imageWidth,
+  imageHeight,
+  activeOverlays,
+  heatmapAssetUrls,
+}: HeatmapImageLayerProps) {
+  if (!heatmapAssetUrls) return null;
+  const active = activeOverlays.find((id) => HEATMAP_OVERLAY_IDS.has(id));
+  if (!active) return null;
+  const url = heatmapAssetUrls[active];
+  if (!url) return null;
+  return (
+    <img
+      src={url}
+      alt={OVERLAY_LABELS[active] ?? "heatmap"}
+      width={imageWidth}
+      height={imageHeight}
+      style={{
+        position: "absolute",
+        top: 0,
+        left: 0,
+        width: imageWidth,
+        height: imageHeight,
+        pointerEvents: "none",
+        // alpha is already baked into the PNG by the renderer (alpha=0.55 default)
+      }}
+      aria-hidden="true"
+    />
+  );
 }
 
 function lm(landmarks: Array<[number, number]>, idx: number): [number, number] {
