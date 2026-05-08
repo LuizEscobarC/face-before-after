@@ -1,0 +1,17 @@
+# Global score dimension weights — v1.0 (PR-12 / M2 first slice)
+#
+# Per PLAN_METRICS.md DEC-8 the long-term split is 35/35/20/10 across
+# (symmetry, proportion, definition, photo_stability). M1 only has two
+# regions populated (symmetry, eyes), so M1 weights collapse to a binary
+# split that emphasises symmetry — eyes is largely a refinement signal.
+# Sequels (M2) will reintroduce the 4-dimension layout once nose/mouth/
+# jaw/forehead regions exist.
+version: v1.0
+description: "M1 binary split (symmetry-dominant). 4-dimension model returns in M2."
+is_active: true
+# Critical regions per DEC-8: if any has confidence_aggregate < 0.5,
+# global score becomes null (is_displayable=false).
+critical_regions: [symmetry, eyes]
+weights:
+  symmetry: 0.65
+  eyes: 0.35

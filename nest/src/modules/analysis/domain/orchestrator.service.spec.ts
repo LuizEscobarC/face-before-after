@@ -14,6 +14,9 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { AnalysisOrchestratorService } from './orchestrator.service.js';
 import { IdealComparator } from './ideal-comparator.js';
 import { SeverityClassifier, DEFAULT_COLLAPSE_MAPPING } from './severity-classifier.js';
+import { RegionalScorer } from './regional-scorer.js';
+import { GlobalScorer } from './global-scorer.js';
+import { ScoreBander } from './score-bander.js';
 import type { EvaluateRequestDto, RawMetricV2 } from '../dto/evaluate.dto.js';
 
 // ---------------------------------------------------------------------------
@@ -113,6 +116,9 @@ describe('AnalysisOrchestratorService', () => {
     dataSource = makeDataSource();
     const comparator = new IdealComparator();
     const classifier = new SeverityClassifier();
+    const bander = new ScoreBander();
+    const regionalScorer = new RegionalScorer();
+    const globalScorer = new GlobalScorer(bander);
 
     const registryVersionRepo = hasVersions
       ? { findOne: vi.fn().mockResolvedValue({ version: 'v1.0', isActive: true }) }
@@ -124,16 +130,56 @@ describe('AnalysisOrchestratorService', () => {
     const collapseRepo = makeEmptyRepo();
     const idealRepo = makeIdealRepo(idealEntity);
 
+    // PR-12 weight repos: empty by default → defaults applied (weight=1.0).
+    const regionWeightsVersionRepo = hasVersions
+      ? {
+          findOne: vi.fn().mockResolvedValue({
+            version: 'v1.0',
+            isActive: true,
+            criticalRegions: ['symmetry', 'eyes'],
+          }),
+        }
+      : makeEmptyRepo();
+    const regionWeightRepo = hasVersions
+      ? {
+          find: vi.fn().mockResolvedValue([
+            { version: 'v1.0', region: 'eyes', metricId: 'eye_aperture_ratio_l', weight: 1.0 },
+          ]),
+        }
+      : makeEmptyRepo();
+    const globalWeightsVersionRepo = hasVersions
+      ? {
+          findOne: vi.fn().mockResolvedValue({
+            version: 'v1.0',
+            isActive: true,
+            criticalRegions: ['eyes'],
+          }),
+        }
+      : makeEmptyRepo();
+    const globalWeightRepo = hasVersions
+      ? {
+          find: vi.fn().mockResolvedValue([
+            { version: 'v1.0', region: 'eyes', weight: 1.0 },
+          ]),
+        }
+      : makeEmptyRepo();
+
     svc = new AnalysisOrchestratorService(
       vision as never,
       comparator,
       classifier,
+      regionalScorer,
+      globalScorer,
       dataSource as never,
       idealRepo as never,
       registryVersionRepo as never,
       idealsVersionRepo as never,
       thresholdRepo as never,
       collapseRepo as never,
+      regionWeightsVersionRepo as never,
+      regionWeightRepo as never,
+      globalWeightsVersionRepo as never,
+      globalWeightRepo as never,
     );
   };
 
@@ -274,5 +320,54 @@ describe('AnalysisOrchestratorService', () => {
     const result = await svc.evaluate(req);
     // session_id will be null in response (we pass undefined → null)
     expect(result.session_id === null || typeof result.session_id === 'string').toBe(true);
+  });
+
+  // -------------------------------------------------------------------------
+  // PR-12: scoring fields in response
+  // -------------------------------------------------------------------------
+
+  it('includes regional_scores and global_score in response', async () => {
+    buildSvc({ hasActiveVersions: true, hasIdeal: true });
+    const result = await svc.evaluate(makeRequest());
+    expect(Array.isArray(result.regional_scores)).toBe(true);
+    expect(result.global_score).toBeDefined();
+    expect(result.global_score).toHaveProperty('score_0_100');
+    expect(result.global_score).toHaveProperty('is_displayable');
+    expect(result.global_score).toHaveProperty('band');
+    expect(result.global_score).toHaveProperty('regional_breakdown');
+    expect(result.versions).toHaveProperty('region_metric_weights_version');
+    expect(result.versions).toHaveProperty('global_weights_version');
+  });
+
+  it('produces a regional_score for the eyes region with the seeded weight', async () => {
+    buildSvc({ hasActiveVersions: true, hasIdeal: true });
+    const result = await svc.evaluate(makeRequest());
+    const eyes = result.regional_scores.find((r) => r.region === 'eyes');
+    expect(eyes).toBeDefined();
+    // value matches ideal central value → score should be 100.
+    expect(eyes!.score_0_100).toBe(100);
+    expect(eyes!.contributing_metric_ids).toContain('eye_aperture_ratio_l');
+  });
+
+  it('global score is displayable & high band when only-region (eyes) is perfect', async () => {
+    buildSvc({ hasActiveVersions: true, hasIdeal: true });
+    const result = await svc.evaluate(makeRequest());
+    expect(result.global_score.is_displayable).toBe(true);
+    expect(result.global_score.score_0_100).toBe(100);
+    expect(result.global_score.band).toBe('high');
+  });
+
+  it('omits presentation_only metrics from regional scoring inputs', async () => {
+    buildSvc({
+      hasActiveVersions: true,
+      hasIdeal: true,
+      metrics: [
+        makeRawMetric(),
+        makeRawMetric({ metric_id: 'phi_ratio', region: 'eyes', presentation_only: true }),
+      ],
+    });
+    const result = await svc.evaluate(makeRequest());
+    const eyes = result.regional_scores.find((r) => r.region === 'eyes');
+    expect(eyes!.contributing_metric_ids).not.toContain('phi_ratio');
   });
 });

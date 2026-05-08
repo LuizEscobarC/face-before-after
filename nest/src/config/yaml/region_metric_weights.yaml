@@ -1,0 +1,39 @@
+# Region metric weights — v1.0 (PR-12 / M2 first slice)
+#
+# Per DEC-6: presentation_only metrics MUST NOT appear here. The scorer
+# enforces this by hard assertion, but we also exclude them from the YAML.
+# Per DEC-1: weights are unitless multipliers applied to (1 - |deviation_normalized|)
+# inside the regional aggregator (see RegionalScorer).
+#
+# In M1 only two regions are populated: 'symmetry' and 'eyes' (15 + 6 metrics).
+# Other regions enter in M2 sequels.
+version: v1.0
+description: "M1 baseline weights — single-photo, intercanthal-normalized."
+is_active: true
+weights:
+  symmetry:
+    # core symmetry family
+    midline_deviation: 1.5
+    eye_height_asymmetry: 1.0
+    brow_height_asymmetry: 1.0
+    lip_canting_angle: 1.0
+    global_asymmetry_index: 2.0
+    # vertical thirds (proportion sub-family living under symmetry region in M1)
+    upper_third_ratio: 1.0
+    middle_third_ratio: 1.0
+    lower_third_ratio: 1.0
+    # dominant_third intentionally omitted — presentation_only/categorical
+    # horizontal fifths
+    fifth_1_ratio: 0.8
+    fifth_2_ratio: 0.8
+    fifth_3_ratio: 0.8
+    fifth_4_ratio: 0.8
+    fifth_5_ratio: 0.8
+    intercanthal_to_eye_width_ratio: 1.0
+  eyes:
+    eye_aperture_ratio_l: 1.0
+    eye_aperture_ratio_r: 1.0
+    interpupillary_distance: 1.5
+    intercanthal_distance: 0.5  # sanity-check metric — kept low
+    canthal_tilt_l: 1.0
+    canthal_tilt_r: 1.0

@@ -25,6 +25,9 @@ import { VisionClient } from '#modules/vision/vision.client.js';
 import { IdealComparator } from './ideal-comparator.js';
 import { SeverityClassifier } from './severity-classifier.js';
 import { DEFAULT_COLLAPSE_MAPPING } from './severity-classifier.js';
+import { RegionalScorer } from './regional-scorer.js';
+import type { RegionalScorerMetricInput, RegionalScoreResult } from './regional-scorer.js';
+import { GlobalScorer } from './global-scorer.js';
 import { AnalysisReportEntity } from '../infrastructure/entities/analysis-report.entity.js';
 import { LandmarkPayloadEntity } from '../infrastructure/entities/landmark-payload.entity.js';
 import { MetricEvaluationEntity } from '../infrastructure/entities/metric-evaluation.entity.js';
@@ -35,10 +38,18 @@ import { IdealsVersionEntity } from '../infrastructure/entities/ideals-version.e
 import { AnalysisThresholdConfigEntity } from '../infrastructure/entities/analysis-threshold-config.entity.js';
 import { SeverityCollapsePolicyEntity } from '../infrastructure/entities/severity-collapse-policy.entity.js';
 import type { SeverityCollapseMapping } from '../infrastructure/entities/severity-collapse-policy.entity.js';
+import { RegionMetricWeightsVersionEntity } from '../infrastructure/entities/region-metric-weights-version.entity.js';
+import { RegionMetricWeightEntity } from '../infrastructure/entities/region-metric-weight.entity.js';
+import { GlobalWeightsVersionEntity } from '../infrastructure/entities/global-weights-version.entity.js';
+import { GlobalWeightEntity } from '../infrastructure/entities/global-weight.entity.js';
+import { RegionalScoreEntity } from '../infrastructure/entities/regional-score.entity.js';
+import { GlobalScoreEntity } from '../infrastructure/entities/global-score.entity.js';
 import type {
   EvaluateRequestDto,
   EvaluateResponseDto,
   MetricEvaluationResultDto,
+  RegionalScoreResultDto,
+  GlobalScoreResultDto,
   RawMetricV2,
 } from '../dto/evaluate.dto.js';
 
@@ -56,6 +67,8 @@ export class AnalysisOrchestratorService {
     private readonly vision: VisionClient,
     private readonly comparator: IdealComparator,
     private readonly classifier: SeverityClassifier,
+    private readonly regionalScorer: RegionalScorer,
+    private readonly globalScorer: GlobalScorer,
     private readonly dataSource: DataSource,
     @InjectRepository(MetricIdealEntity)
     private readonly idealRepo: Repository<MetricIdealEntity>,
@@ -67,6 +80,14 @@ export class AnalysisOrchestratorService {
     private readonly thresholdRepo: Repository<AnalysisThresholdConfigEntity>,
     @InjectRepository(SeverityCollapsePolicyEntity)
     private readonly collapseRepo: Repository<SeverityCollapsePolicyEntity>,
+    @InjectRepository(RegionMetricWeightsVersionEntity)
+    private readonly regionWeightsVersionRepo: Repository<RegionMetricWeightsVersionEntity>,
+    @InjectRepository(RegionMetricWeightEntity)
+    private readonly regionWeightRepo: Repository<RegionMetricWeightEntity>,
+    @InjectRepository(GlobalWeightsVersionEntity)
+    private readonly globalWeightsVersionRepo: Repository<GlobalWeightsVersionEntity>,
+    @InjectRepository(GlobalWeightEntity)
+    private readonly globalWeightRepo: Repository<GlobalWeightEntity>,
   ) {}
 
   async evaluate(dto: EvaluateRequestDto): Promise<EvaluateResponseDto> {
@@ -94,23 +115,34 @@ export class AnalysisOrchestratorService {
     // -----------------------------------------------------------------------
     // 2. Load active DB versions (graceful degradation when DB is empty)
     // -----------------------------------------------------------------------
-    const [registryVersion, idealsVersion, thresholdConfig, collapsePolicy] =
-      await Promise.all([
-        this.registryVersionRepo.findOne({ where: { isActive: true } }),
-        this.idealsVersionRepo.findOne({ where: { isActive: true } }),
-        this.thresholdRepo.findOne({ where: { isActive: true } }),
-        this.collapseRepo.findOne({ where: { isActive: true } }),
-      ]);
+    const [
+      registryVersion,
+      idealsVersion,
+      thresholdConfig,
+      collapsePolicy,
+      regionWeightsVersion,
+      globalWeightsVersion,
+    ] = await Promise.all([
+      this.registryVersionRepo.findOne({ where: { isActive: true } }),
+      this.idealsVersionRepo.findOne({ where: { isActive: true } }),
+      this.thresholdRepo.findOne({ where: { isActive: true } }),
+      this.collapseRepo.findOne({ where: { isActive: true } }),
+      this.regionWeightsVersionRepo.findOne({ where: { isActive: true } }),
+      this.globalWeightsVersionRepo.findOne({ where: { isActive: true } }),
+    ]);
 
     const metricRegistryVer = registryVersion?.version ?? null;
     const idealsVer = idealsVersion?.version ?? null;
     const thresholdVer = thresholdConfig?.version ?? null;
     const collapseVer = collapsePolicy?.version ?? null;
+    const regionWeightsVer = regionWeightsVersion?.version ?? null;
+    const globalWeightsVer = globalWeightsVersion?.version ?? null;
+    const criticalRegions: string[] = globalWeightsVersion?.criticalRegions ?? [];
     const collapseMapping: SeverityCollapseMapping =
       collapsePolicy?.mapping ?? DEFAULT_COLLAPSE_MAPPING;
 
     // -----------------------------------------------------------------------
-    // 3. Load metric ideals in bulk for the active ideals version
+    // 3. Load metric ideals + weights in bulk for the active versions
     // -----------------------------------------------------------------------
     const idealsByMetricId = new Map<string, MetricIdealEntity>();
     if (idealsVer) {
@@ -121,6 +153,37 @@ export class AnalysisOrchestratorService {
         idealsByMetricId.set(ideal.metricId, ideal);
       }
       this.logger.log(`Loaded ${ideals.length} ideals for version ${idealsVer}`);
+    }
+
+    const regionWeightsByRegion = new Map<string, Map<string, number>>();
+    if (regionWeightsVer) {
+      const rows = await this.regionWeightRepo.find({
+        where: { version: regionWeightsVer },
+      });
+      for (const r of rows) {
+        let inner = regionWeightsByRegion.get(r.region);
+        if (!inner) {
+          inner = new Map<string, number>();
+          regionWeightsByRegion.set(r.region, inner);
+        }
+        inner.set(r.metricId, r.weight);
+      }
+      this.logger.log(
+        `Loaded ${rows.length} region_metric_weight rows for version ${regionWeightsVer}`,
+      );
+    }
+
+    const globalWeightsByRegion = new Map<string, number>();
+    if (globalWeightsVer) {
+      const rows = await this.globalWeightRepo.find({
+        where: { version: globalWeightsVer },
+      });
+      for (const r of rows) {
+        globalWeightsByRegion.set(r.region, r.weight);
+      }
+      this.logger.log(
+        `Loaded ${rows.length} global_weight rows for version ${globalWeightsVer}`,
+      );
     }
 
     // -----------------------------------------------------------------------
@@ -211,6 +274,59 @@ export class AnalysisOrchestratorService {
     }
 
     // -----------------------------------------------------------------------
+    // 4b. Score per region + global (PR-12)
+    // -----------------------------------------------------------------------
+    const metricsByRegion = new Map<string, RegionalScorerMetricInput[]>();
+    for (const r of metricResults) {
+      // DEC-6: presentation_only metrics never feed scoring.
+      const raw = rawMetrics.find((m) => m.metric_id === r.metric_id);
+      if (raw?.presentation_only) continue;
+      const list = metricsByRegion.get(r.region) ?? [];
+      list.push({
+        metricId: r.metric_id,
+        region: r.region,
+        value: r.value,
+        deviationNormalized: r.deviation_normalized,
+        confidenceFinal: r.confidence_final,
+        presentationOnly: false,
+      });
+      metricsByRegion.set(r.region, list);
+    }
+
+    const regionalResults: RegionalScoreResult[] = [];
+    for (const [region, items] of metricsByRegion) {
+      const weightsMap = regionWeightsByRegion.get(region) ?? new Map();
+      const weights = Array.from(weightsMap.entries()).map(([metricId, weight]) => ({
+        metricId,
+        weight,
+      }));
+      const result = this.regionalScorer.score(region, items, weights);
+      regionalResults.push(result);
+    }
+
+    const globalWeightsArr = Array.from(globalWeightsByRegion.entries()).map(
+      ([region, weight]) => ({ region, weight }),
+    );
+    const globalResult = this.globalScorer.score(
+      regionalResults,
+      globalWeightsArr,
+      criticalRegions,
+    );
+
+    const regionalScoresDto: RegionalScoreResultDto[] = regionalResults.map((r) => ({
+      region: r.region,
+      score_0_100: r.score0to100,
+      confidence_aggregate: r.confidenceAggregate,
+      contributing_metric_ids: r.contributingMetricIds,
+    }));
+    const globalScoreDto: GlobalScoreResultDto = {
+      score_0_100: globalResult.score0to100,
+      is_displayable: globalResult.isDisplayable,
+      band: globalResult.band,
+      regional_breakdown: globalResult.regionalBreakdown,
+    };
+
+    // -----------------------------------------------------------------------
     // 5. Persist in a single transaction
     // -----------------------------------------------------------------------
     let reportId: string;
@@ -227,6 +343,8 @@ export class AnalysisOrchestratorService {
         idealsVersion: idealsVer,
         thresholdConfigVersion: thresholdVer,
         severityCollapseVersion: collapseVer,
+        regionMetricWeightsVersion: regionWeightsVer,
+        globalWeightsVersion: globalWeightsVer,
         locale: dto.locale ?? 'pt-BR',
         disclaimerTextSnapshot: DISCLAIMER_TEXT,
         status: 'complete',
@@ -260,6 +378,32 @@ export class AnalysisOrchestratorService {
           await manager.save(MetricEvaluationAgainstIdealEntity, against);
         }
       }
+
+      // 5d. RegionalScores (PR-12)
+      for (const r of regionalResults) {
+        const rs = manager.create(RegionalScoreEntity, {
+          analysisReportId: reportId,
+          analysisReportGeneratedAt: generatedAt,
+          region: r.region as RegionalScoreEntity['region'],
+          score0to100: r.score0to100,
+          confidenceAggregate: r.confidenceAggregate,
+          contributingMetricIds: r.contributingMetricIds,
+          weightsVersion: regionWeightsVer,
+        });
+        await manager.save(RegionalScoreEntity, rs);
+      }
+
+      // 5e. GlobalScore (PR-12)
+      const gs = manager.create(GlobalScoreEntity, {
+        analysisReportId: reportId,
+        analysisReportGeneratedAt: generatedAt,
+        score0to100: globalResult.score0to100,
+        isDisplayable: globalResult.isDisplayable,
+        band: globalResult.band,
+        regionalBreakdown: globalResult.regionalBreakdown,
+        globalWeightsVersion: globalWeightsVer,
+      });
+      await manager.save(GlobalScoreEntity, gs);
     });
 
     // -----------------------------------------------------------------------
@@ -273,11 +417,15 @@ export class AnalysisOrchestratorService {
       quality_score: dto.quality_context.quality_score,
       metric_count: rawMetrics.length,
       metrics: metricResults,
+      regional_scores: regionalScoresDto,
+      global_score: globalScoreDto,
       versions: {
         metric_registry_version: metricRegistryVer,
         ideals_version: idealsVer,
         threshold_config_version: thresholdVer,
         severity_collapse_version: collapseVer,
+        region_metric_weights_version: regionWeightsVer,
+        global_weights_version: globalWeightsVer,
       },
     };
   }

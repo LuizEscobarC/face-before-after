@@ -2,7 +2,7 @@
 
 > Plano mestre da expansão de métricas, ideais, overlays e diagnóstico.
 > Documento de referência permanente. Releia no início de cada sessão.
-> Última atualização: 2026-05-08 (após PR-9).
+> Última atualização: 2026-05-08 (após PR-12).
 
 ---
 
@@ -20,8 +20,12 @@
 | PR-8 | FastAPI: família olhos (6 métricas: `eye_aperture_ratio_l/r`, `interpupillary_distance`, `intercanthal_distance`, `canthal_tilt_l/r`) + 82 testes (426 total) | ✅ DONE |
 | PR-9 | Nest: `IdealComparator` + `SeverityClassifier` + `metric_ideals.yaml` + Vitest (62 testes) | ✅ DONE |
 | **PR-10** | **Nest: `AnalysisOrchestrator` + endpoint `POST /v1/analysis/evaluate` + Python `/vision/metrics-v2`** | ✅ DONE |
+| **PR-11** | **Migration `0004_SeedMetricCatalogV1`: 21 `metric_definition` + 20 `metric_ideal` rows (ideals_version=v1.0)** | ✅ DONE |
+| **PR-12** | **M2 first slice: `RegionalScorer` + `GlobalScorer` + `ScoreBander` + 6 entidades + migration `0005_RegionalAndGlobalScoring` + YAMLs `region_metric_weights.yaml`/`global_weights.yaml` + 42 testes Vitest novos** | ✅ DONE |
 
-**Critério de M1 "feito"**: `POST /api/analyze` (Nest) recebe `landmarks + quality_context`, chama `/vision/metrics-v2` (Python) que devolve 20 métricas brutas, Nest aplica comparator/severity/persistência, retorna `AnalysisReport` com snapshots de versão. Sem texto de diagnóstico, sem overlay, sem score regional/global ainda (M2).
+**M1 completo**: `POST /v1/analysis/evaluate` recebe landmarks + quality_context, chama Python `/vision/metrics-v2`, compara contra ideais do banco, persiste `AnalysisReport` + `MetricEvaluation[]` + `MetricEvaluationAgainstIdeal[]` em transação única.
+
+**M2 (em andamento)**: PR-12 entregou a primeira fatia — score regional + global + banding (DEC-9) + gating crítico (DEC-8). Total: 116 testes Vitest (74 anteriores + 42 novos), 426 testes Python. DB com 6 novas tabelas + 21 region_metric_weight rows + 2 global_weight rows. Próximas fatias do M2: novas famílias de métricas (mandíbula, nariz, boca, sobrancelhas, maçãs, testa, formato global).
 
 ---
 

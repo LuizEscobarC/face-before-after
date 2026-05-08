@@ -106,6 +106,30 @@ export interface EvaluateVersionsDto {
   ideals_version: string | null;
   threshold_config_version: string | null;
   severity_collapse_version: string | null;
+  region_metric_weights_version: string | null;
+  global_weights_version: string | null;
+}
+
+export interface RegionalScoreResultDto {
+  region: string;
+  score_0_100: number | null;
+  confidence_aggregate: number | null;
+  contributing_metric_ids: string[];
+}
+
+export interface RegionalBreakdownDto {
+  region: string;
+  score_0_100: number | null;
+  weight: number;
+  confidence_aggregate: number | null;
+  contributed: boolean;
+}
+
+export interface GlobalScoreResultDto {
+  score_0_100: number | null;
+  is_displayable: boolean;
+  band: 'no_number' | 'refine' | 'good' | 'high' | null;
+  regional_breakdown: RegionalBreakdownDto[];
 }
 
 export interface EvaluateResponseDto {
@@ -116,6 +140,8 @@ export interface EvaluateResponseDto {
   quality_score: number | null;
   metric_count: number;
   metrics: MetricEvaluationResultDto[];
+  regional_scores: RegionalScoreResultDto[];
+  global_score: GlobalScoreResultDto;
   versions: EvaluateVersionsDto;
 }
 

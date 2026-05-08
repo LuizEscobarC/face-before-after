@@ -91,6 +91,14 @@ export class AnalysisReportEntity {
   @ManyToOne(() => SeverityCollapsePolicyEntity)
   severityCollapseVersionRef!: Relation<SeverityCollapsePolicyEntity> | null;
 
+  /** Snapshot of region_metric_weights_version active at evaluation time (PR-12). */
+  @Column({ name: 'region_metric_weights_version', type: 'text', nullable: true })
+  regionMetricWeightsVersion!: string | null;
+
+  /** Snapshot of global_weights_version active at evaluation time (PR-12). */
+  @Column({ name: 'global_weights_version', type: 'text', nullable: true })
+  globalWeightsVersion!: string | null;
+
   @Column({ name: 'locale', type: 'text', default: 'pt-BR' })
   locale!: string;
 

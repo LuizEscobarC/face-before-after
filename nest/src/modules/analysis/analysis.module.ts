@@ -7,6 +7,9 @@ import { AnalysisService } from './analysis.service.js';
 import { IdealComparator } from './domain/ideal-comparator.js';
 import { SeverityClassifier } from './domain/severity-classifier.js';
 import { AnalysisOrchestratorService } from './domain/orchestrator.service.js';
+import { RegionalScorer } from './domain/regional-scorer.js';
+import { GlobalScorer } from './domain/global-scorer.js';
+import { ScoreBander } from './domain/score-bander.js';
 import { MetricRegistryVersionEntity } from './infrastructure/entities/metric-registry-version.entity.js';
 import { MetricDefinitionEntity } from './infrastructure/entities/metric-definition.entity.js';
 import { IdealsVersionEntity } from './infrastructure/entities/ideals-version.entity.js';
@@ -17,6 +20,12 @@ import { AnalysisReportEntity } from './infrastructure/entities/analysis-report.
 import { LandmarkPayloadEntity } from './infrastructure/entities/landmark-payload.entity.js';
 import { MetricEvaluationEntity } from './infrastructure/entities/metric-evaluation.entity.js';
 import { MetricEvaluationAgainstIdealEntity } from './infrastructure/entities/metric-evaluation-against-ideal.entity.js';
+import { RegionMetricWeightsVersionEntity } from './infrastructure/entities/region-metric-weights-version.entity.js';
+import { RegionMetricWeightEntity } from './infrastructure/entities/region-metric-weight.entity.js';
+import { GlobalWeightsVersionEntity } from './infrastructure/entities/global-weights-version.entity.js';
+import { GlobalWeightEntity } from './infrastructure/entities/global-weight.entity.js';
+import { RegionalScoreEntity } from './infrastructure/entities/regional-score.entity.js';
+import { GlobalScoreEntity } from './infrastructure/entities/global-score.entity.js';
 
 @Module({
   imports: [
@@ -33,10 +42,31 @@ import { MetricEvaluationAgainstIdealEntity } from './infrastructure/entities/me
       LandmarkPayloadEntity,
       MetricEvaluationEntity,
       MetricEvaluationAgainstIdealEntity,
+      RegionMetricWeightsVersionEntity,
+      RegionMetricWeightEntity,
+      GlobalWeightsVersionEntity,
+      GlobalWeightEntity,
+      RegionalScoreEntity,
+      GlobalScoreEntity,
     ]),
   ],
   controllers: [AnalysisController],
-  providers: [AnalysisService, IdealComparator, SeverityClassifier, AnalysisOrchestratorService],
-  exports: [IdealComparator, SeverityClassifier, AnalysisOrchestratorService],
+  providers: [
+    AnalysisService,
+    IdealComparator,
+    SeverityClassifier,
+    RegionalScorer,
+    GlobalScorer,
+    ScoreBander,
+    AnalysisOrchestratorService,
+  ],
+  exports: [
+    IdealComparator,
+    SeverityClassifier,
+    RegionalScorer,
+    GlobalScorer,
+    ScoreBander,
+    AnalysisOrchestratorService,
+  ],
 })
 export class AnalysisModule {}
