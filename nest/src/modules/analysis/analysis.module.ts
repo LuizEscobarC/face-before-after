@@ -26,6 +26,7 @@ import { GlobalWeightsVersionEntity } from './infrastructure/entities/global-wei
 import { GlobalWeightEntity } from './infrastructure/entities/global-weight.entity.js';
 import { RegionalScoreEntity } from './infrastructure/entities/regional-score.entity.js';
 import { GlobalScoreEntity } from './infrastructure/entities/global-score.entity.js';
+import { ReportReaderService } from './domain/report-reader.service.js';
 
 @Module({
   imports: [
@@ -59,6 +60,7 @@ import { GlobalScoreEntity } from './infrastructure/entities/global-score.entity
     GlobalScorer,
     ScoreBander,
     AnalysisOrchestratorService,
+    ReportReaderService,
   ],
   exports: [
     IdealComparator,
