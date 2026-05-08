@@ -1,0 +1,14 @@
+"""Metrics service package.
+
+Import this package to populate the registry with all metric families.
+Each sub-module uses the @register decorator to register its calculators.
+
+Usage::
+
+    import app.services.metrics  # triggers all @register decorators
+    from app.services.metrics.registry import compute_all, list_metric_ids
+"""
+
+from app.services.metrics import symmetry as _symmetry  # noqa: F401 — triggers @register
+
+__all__ = ["symmetry"]
