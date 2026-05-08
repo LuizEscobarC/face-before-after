@@ -1,0 +1,148 @@
+# PLAN_PR21_V15_TO_V20_PROMOTION.md
+
+> Roadmap para promover `region_metric_weights` e `global_weights` de **v1.5 (provisório, este PR)** para **v2.0 (produção, validado empiricamente)**.
+> Pré-requisito obrigatório: **PR-22 concluído** (ver [`PLAN_PR22_REAL_PHOTOS.md`](./PLAN_PR22_REAL_PHOTOS.md)).
+> Última atualização: 2026-05-08.
+
+---
+
+## 0. Por que v1.5 é provisório
+
+PR-21 v1.5 (entregue agora) corrige um problema **estrutural** identificado por inspeção do catálogo:
+
+- v1.0 atribui `weight ≈ 1.0` por métrica → contagem de métricas dita o peso da região no score global.
+- Resultado: `symmetry` (14 métricas) + `eyes` (6) somam 20 das 56 entradas em `region_metric_weight`. Antes de qualquer normalização, essas duas regiões respondem por **35% do score global** apenas por contagem.
+- v1.5 introduz **normalização per-região** (`global_weights` define quanto cada região vale; soma intra-região é renormalizada para 1.0) + **rebalanceamento de `global_weights`** baseado em literatura (Naini, Bashour) — não em dados empíricos.
+
+v1.5 é defensável academicamente (toda decisão tem citação), mas **não foi validada em fotos reais**. Por isso `is_provisional=TRUE`.
+
+---
+
+## 1. Critérios para promover v1.5 → v2.0
+
+Todos obrigatórios:
+
+| # | Critério | Validação |
+|---|----------|-----------|
+| 1 | PR-22 executado (≥30 fotos reais analisadas) | `calibration_session` row existe com `n_photos >= 30` |
+| 2 | Distribuição de score global cobre ≥3 das 4 bandas (DEC-9) | Gráfico de barras no notebook de calibração |
+| 3 | Para cada região, ≥1 métrica tem σ > 0 na coorte (não é constante) | Análise no notebook |
+| 4 | Operador validou que ranking subjetivo de fotos correlaciona com score global v1.5 (Spearman ρ > 0.3) | Validação manual top-10/bottom-10 |
+| 5 | Pesos finais discutidos com produto e justificados | PR description com tabela "v1.5 vs v2.0" + razão |
+
+Se algum critério falhar → não promover, **manter v1.5 ativa** e rodar nova iteração de PR-22.
+
+---
+
+## 2. Como executar a promoção (passo a passo)
+
+### Passo A — Pré-requisito: rodar PR-22
+
+Ver [`PLAN_PR22_REAL_PHOTOS.md`](./PLAN_PR22_REAL_PHOTOS.md). Output esperado:
+- `calibration/results.csv` com N×M linhas (N fotos × M métricas)
+- `calibration/overrides.csv` com decisões manuais
+- `calibration_session` row na DB
+
+### Passo B — Comparar v1.5 vs distribuição empírica
+
+Notebook `backend/scripts/compare_v15_vs_empirical.ipynb` (a criar):
+
+```python
+# Pseudocódigo
+v15_weights = load_yaml('region_metric_weights.yaml', version='v1_5')
+empirical = load_csv('calibration/results.csv')
+
+for region in regions:
+    metrics = [m for m in empirical if m.region == region]
+    discriminative_score = sum(metric.std() * v15_weights[m] for m in metrics)
+    print(f"{region}: v1.5_weight={v15_weights[region]}, discriminative_power={discriminative_score:.3f}")
+```
+
+### Passo C — Decisão (humano + Opus)
+
+Para cada região:
+1. Se v1.5 weight × discriminative_power ≈ ranking subjetivo → manter peso v1.5 em v2.0.
+2. Se região domina score sem justificativa empírica → reduzir peso 20–30%.
+3. Se região tem alto discriminative_power mas baixo peso → aumentar peso.
+
+Regra de ouro: variação total entre v1.5 e v2.0 não deve exceder ±30% em nenhum peso, **a menos que** haja sinal empírico forte (Spearman ρ região-vs-overall > 0.5).
+
+### Passo D — Migration `1746000170000-PromoteWeightsV2_0.ts`
+
+```typescript
+// Pseudocódigo
+- INSERT INTO region_metric_weights_version (version='v2.0', is_provisional=FALSE, is_active=FALSE);
+- INSERT INTO region_metric_weight (...);  // novos pesos
+- INSERT INTO global_weights_version (version='v2.0', is_provisional=FALSE, is_active=FALSE);
+- INSERT INTO global_weight (...);  // novos pesos por região
+
+// Não ativar ainda — só após smoke test
+```
+
+### Passo E — Smoke test em staging
+
+Re-rodar 30 análises da coorte de PR-22 com v2.0 ativa em staging:
+- Score global em todas as 30 fotos deve estar dentro de ±5 pontos do v1.5.
+- Nenhuma `regional_score` deve cair pra `null` que antes não era.
+- Vitest: rodar `RegionalScorer` + `GlobalScorer` sob v2.0 com fixtures sintéticas → mesmas relações ordinais.
+
+### Passo F — Ativação
+
+Migration `1746000180000-ActivateWeightsV2_0.ts`:
+
+```sql
+UPDATE region_metric_weights_version SET is_active=FALSE WHERE version='v1_5';
+UPDATE region_metric_weights_version SET is_active=TRUE  WHERE version='v2_0';
+UPDATE global_weights_version SET is_active=FALSE WHERE version='v1_5';
+UPDATE global_weights_version SET is_active=TRUE  WHERE version='v2_0';
+-- v1.0 fica desativada também se ainda estiver ativa.
+```
+
+### Passo G — Atualizar PLAN_METRICS.md + PLAN_M2_BACKLOG.md
+- Marcar PR-21 como ✅ DONE em **v2.0** (e remover qualquer "provisório" do texto).
+- Marcar M2 como ✅ DONE → desbloquear M3 (overlays).
+
+---
+
+## 3. Reversão / rollback
+
+Se v2.0 produzir comportamento estranho em produção:
+
+```sql
+-- Rollback rápido (1 SQL):
+UPDATE region_metric_weights_version SET is_active=TRUE  WHERE version='v1_5';
+UPDATE region_metric_weights_version SET is_active=FALSE WHERE version='v2_0';
+UPDATE global_weights_version SET is_active=TRUE  WHERE version='v1_5';
+UPDATE global_weights_version SET is_active=FALSE WHERE version='v2_0';
+```
+
+Análises antigas continuam consistentes (cada `analysis_report` carrega snapshot da versão usada — DEC-12).
+
+---
+
+## 4. Histórico futuro a registrar
+
+Após promoção, adicionar seção em `PLAN_M2_BACKLOG.md` §6:
+
+```
+### PR-21 v2.0 promotion (DONE)
+
+**Data**: YYYY-MM-DD. **Modelo**: Opus.
+**N fotos calibração**: NN.
+**Maiores ajustes vs v1.5**:
+- region X: weight A → B (razão: ...)
+- ...
+**Fontes empíricas**: ./calibration/results.csv (hash: ...)
+**Fontes acadêmicas**: ver PLAN_PR22_REAL_PHOTOS.md §7
+```
+
+---
+
+## 5. Resumo executivo (TL;DR para você executar depois)
+
+1. Ler `PLAN_PR22_REAL_PHOTOS.md` → executar PR-22.
+2. Rodar notebook `compare_v15_vs_empirical.ipynb`.
+3. Decidir ajustes (Opus ajuda).
+4. Gerar 2 migrations: `PromoteWeightsV2_0` (cria) + `ActivateWeightsV2_0` (ativa).
+5. Smoke test 30 fotos.
+6. Atualizar plans → fecha M2.

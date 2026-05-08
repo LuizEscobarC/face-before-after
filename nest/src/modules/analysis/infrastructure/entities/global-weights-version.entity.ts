@@ -19,6 +19,17 @@ export class GlobalWeightsVersionEntity {
   @Column({ name: 'is_active', type: 'boolean', default: false })
   isActive!: boolean;
 
+  /**
+   * TRUE when this version is a candidate awaiting empirical validation
+   * (PR-22 real-photo calibration). Production runtime selection uses
+   * is_active=TRUE; is_provisional is documentation/UX only and does
+   * NOT affect the orchestrator's version lookup.
+   *
+   * Added in migration 1746000150000-RebalanceWeightsV15 (PR-21).
+   */
+  @Column({ name: 'is_provisional', type: 'boolean', default: false })
+  isProvisional!: boolean;
+
   /** Snapshot of region names that gate the global score per DEC-8. */
   @Column({
     name: 'critical_regions',

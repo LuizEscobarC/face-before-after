@@ -1,0 +1,60 @@
+# Global score region weights — v1.5 (PR-21 PROVISIONAL)
+#
+# STATUS: provisional. is_active=FALSE. v1.0 (symmetry=0.65, eyes=0.35)
+# remains the production version.
+#
+# v1.5 IS THE STRUCTURAL FIX:
+#   - v1.0 only seeded 2 of 9 regions in global_weight, so jaw/nose/
+#     mouth/brows/cheekbones/forehead/global contributed ZERO to the
+#     global_score (despite having region_metric_weight rows).
+#   - v1.5 seeds ALL 9 regions with literature-backed allocation
+#     summing to 1.0.
+#
+# Allocation by tier:
+#   Tier S — primary aesthetic signal:
+#     symmetry  0.18  (Bashour 2006: most-cited single factor)
+#     eyes      0.16  (Naini 2011 §6: eye region attention dominance)
+#   Tier A — central facial features:
+#     jaw       0.14  (Naini §10: lower-third proportion dominance)
+#     nose      0.12  (Naini §8: central feature)
+#     mouth     0.12  (Sarver & Ackerman 2003: smile dynamics)
+#   Tier B — periorbital + lateral:
+#     brows     0.10  (Naini §5: frame for eyes)
+#     cheekbones 0.08 (Edler 2001: midface contour)
+#   Tier C — secondary:
+#     forehead  0.05  (Edler 2001: often hair-occluded)
+#     global    0.05  (Bashour 2006: face-shape category)
+#   ─────────────────────────────────────────────
+#   TOTAL      1.00
+#
+# Critical regions (DEC-8) extended from {symmetry, eyes} to
+# {symmetry, eyes, jaw, nose} — Naini §10 (jaw lower-third) +
+# Bashour 2006 (nose central importance).
+#
+# REFERENCES:
+#   - Naini FB (2011). Facial Aesthetics: Concepts and Clinical
+#     Diagnosis. Wiley-Blackwell. ISBN 978-1-4051-8192-7.
+#   - Bashour M (2006). Plast Reconstr Surg 118(3):757-774.
+#     DOI: 10.1097/01.prs.0000232980.81704.83
+#   - Sarver DM, Ackerman MB (2003). Am J Orthod Dentofacial Orthop
+#     124(2):116-127. DOI: 10.1016/S0889-5406(03)00307-X
+#   - Edler RJ (2001). J Orthod 28(2):159-168.
+#     DOI: 10.1093/ortho/28.2.159
+#
+# Promotion to v2.0 requires PR-22 empirical calibration (≥30 photos).
+# See PLAN_PR21_V15_TO_V20_PROMOTION.md.
+version: v1.5
+description: "PR-21 provisional. 9-region literature-backed allocation. Replaces v1.0 binary split. NOT empirically validated."
+is_active: false
+is_provisional: true
+critical_regions: [symmetry, eyes, jaw, nose]
+weights:
+  symmetry: 0.18
+  eyes: 0.16
+  jaw: 0.14
+  nose: 0.12
+  mouth: 0.12
+  brows: 0.10
+  cheekbones: 0.08
+  forehead: 0.05
+  global: 0.05
