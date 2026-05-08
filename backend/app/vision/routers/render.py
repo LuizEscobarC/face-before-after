@@ -1,15 +1,21 @@
-"""POST /vision/render — draw overlay lines on a face photo (PR-32, M3.1).
+"""POST /vision/render — draw overlays on a face photo (PR-32 + PR-37/38, M3.1+M3.3).
 
 Supported overlays (v1.0):
-  axis_vertical     — vertical midline through inner-canthus midpoint (#22d3ee, dashed)
-  axis_intercanthal — horizontal line through inner-canthus mean y   (#22d3ee, solid)
-  grid_thirds       — 2 horizontal lines at brow-midline and subnasale (#a5b4fc, dashed)
-  grid_fifths       — 4 vertical lines at outer/inner canthus x-positions (#a5b4fc, dashed)
-  outline_face      — jawline polyline (17 pts, #67e8f9, solid)
+  axis_vertical          — vertical midline through inner-canthus midpoint (#22d3ee, dashed)
+  axis_intercanthal      — horizontal line through inner-canthus mean y   (#22d3ee, solid)
+  grid_thirds            — 2 horizontal lines at brow-midline and subnasale (#a5b4fc, dashed)
+  grid_fifths            — 4 vertical lines at outer/inner canthus x-positions (#a5b4fc, dashed)
+  outline_face           — jawline polyline (17 pts, #67e8f9, solid)
+  heatmap_asymmetry      — Marquardt mirror-distance heatmap (PR-37, coolwarm, alpha=0.55)
+  heatmap_ideal_adherence — Per-region adherence heatmap (PR-38, green→amber→red, alpha=0.55)
 
-No heatmaps — that is PR-37/38 (requires Opus).
+Heatmap dispatch is delegated to ``backend.app.vision.services.heatmap_renderer``.
+The line overlays continue to draw onto a PIL canvas via ``_DRAW_FN`` dispatch;
+the heatmap overlays return a fully-blended RGBA image which we then composite
+under any subsequent line overlays so the lines stay readable on top.
 
-References: Naini 2011 §4-6, Powell & Humphreys 1984, Farkas 1994.
+References: Naini 2011 §4-6, Powell & Humphreys 1984, Farkas 1994,
+PLAN_M3_OVERLAYS §1.1 (density cascade), §3 (DEC-21..26).
 """
 from __future__ import annotations
 
@@ -22,7 +28,21 @@ from fastapi import APIRouter, File, Form, HTTPException, UploadFile
 from fastapi.responses import StreamingResponse
 from PIL import Image, ImageDraw
 
+from app.vision.services.heatmap_renderer import (
+    DEFAULT_ALPHA as HEATMAP_DEFAULT_ALPHA,
+    HeatmapSuppressedError,
+    RegionAdherenceSample,
+    render_asymmetry_heatmap,
+    render_ideal_adherence_heatmap,
+)
+
 router = APIRouter()
+
+# Heatmap overlay IDs — dispatched separately from line overlays.
+_HEATMAP_OVERLAYS: frozenset[str] = frozenset({
+    "heatmap_asymmetry",
+    "heatmap_ideal_adherence",
+})
 
 # ---------------------------------------------------------------------------
 # Landmark index constants (MediaPipe Mesh-478)
@@ -46,7 +66,7 @@ _OVERLAY_STYLES: dict[str, dict] = {
     "outline_face":      {"stroke": "#67e8f9", "stroke_width": 1.5, "dash": None},
 }
 
-SUPPORTED_OVERLAYS = frozenset(_OVERLAY_STYLES)
+SUPPORTED_OVERLAYS = frozenset(_OVERLAY_STYLES) | _HEATMAP_OVERLAYS
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -146,6 +166,43 @@ _DRAW_FN: dict[str, ...] = {
     "outline_face":      _draw_outline_face,
 }
 
+
+def _parse_region_adherence(raw: str | None) -> list[RegionAdherenceSample]:
+    """Parse the optional ``region_adherence_json`` form field for PR-38."""
+    if not raw:
+        return []
+    try:
+        data = json.loads(raw)
+    except (ValueError, TypeError) as exc:
+        raise HTTPException(
+            status_code=422,
+            detail=f"region_adherence_json is not valid JSON: {exc}",
+        ) from exc
+    if not isinstance(data, list):
+        raise HTTPException(
+            status_code=422,
+            detail="region_adherence_json must be a JSON array of objects",
+        )
+    samples: list[RegionAdherenceSample] = []
+    for i, item in enumerate(data):
+        if not isinstance(item, dict):
+            raise HTTPException(
+                status_code=422,
+                detail=f"region_adherence_json[{i}] must be an object",
+            )
+        try:
+            samples.append(RegionAdherenceSample(
+                region=str(item["region"]),
+                adherence=float(item["adherence"]),
+                confidence=float(item["confidence"]),
+            ))
+        except (KeyError, TypeError, ValueError) as exc:
+            raise HTTPException(
+                status_code=422,
+                detail=f"region_adherence_json[{i}] missing/invalid field: {exc}",
+            ) from exc
+    return samples
+
 # ---------------------------------------------------------------------------
 # Endpoint
 # ---------------------------------------------------------------------------
@@ -155,6 +212,13 @@ async def render_overlay(
     image: UploadFile = File(..., description="Face photo (JPEG or PNG)"),
     landmarks_json: str = Form(..., description="JSON array of [x, y] pixel pairs, length 478"),
     overlay_ids_json: str = Form(..., description='JSON array of overlay IDs, e.g. ["axis_vertical"]'),
+    region_adherence_json: str | None = Form(
+        None,
+        description=(
+            "Required only when 'heatmap_ideal_adherence' is requested. "
+            'JSON array of {"region": str, "adherence": float, "confidence": float}.'
+        ),
+    ),
 ) -> StreamingResponse:
     """Draw facial overlay lines on a photo and return a PNG.
 
@@ -217,7 +281,33 @@ async def render_overlay(
             detail=f"Landmark array has {lm.shape[0]} points; need at least {required_max + 1}",
         )
 
-    # --- draw overlays in z-order ---
+    # --- heatmaps first (z=30, drawn beneath line overlays so lines stay readable) ---
+    requested_heatmaps = [oid for oid in overlay_ids if oid in _HEATMAP_OVERLAYS]
+    for oid in requested_heatmaps:
+        try:
+            if oid == "heatmap_asymmetry":
+                img = render_asymmetry_heatmap(img, lm, alpha=HEATMAP_DEFAULT_ALPHA)
+            elif oid == "heatmap_ideal_adherence":
+                samples = _parse_region_adherence(region_adherence_json)
+                if not samples:
+                    raise HTTPException(
+                        status_code=422,
+                        detail=(
+                            "heatmap_ideal_adherence requested but region_adherence_json "
+                            "is missing or empty"
+                        ),
+                    )
+                img = render_ideal_adherence_heatmap(
+                    img, lm, samples, alpha=HEATMAP_DEFAULT_ALPHA,
+                )
+        except HeatmapSuppressedError as exc:
+            # L2 suppression — return 422 so caller emits processing_note.
+            raise HTTPException(
+                status_code=422,
+                detail={"overlay_id": oid, "suppressed": exc.reason, "samples": exc.sample_count},
+            ) from exc
+
+    # --- draw line overlays in z-order on top of any heatmap ---
     draw = ImageDraw.Draw(img, "RGBA")
     # z-order: axes (10) < grids (10, but after axes) < contours (20)
     z_order = ["axis_vertical", "axis_intercanthal", "grid_thirds", "grid_fifths", "outline_face"]
