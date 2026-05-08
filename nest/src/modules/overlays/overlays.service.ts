@@ -110,7 +110,7 @@ export class RenderedAssetService {
       const formData = new FormData();
       formData.append(
         'image',
-        new Blob([imageBuffer], { type: 'image/png' }),
+        new Blob([new Uint8Array(imageBuffer)], { type: 'image/png' }),
         'photo.png',
       );
       formData.append('landmarks_json', JSON.stringify(landmarkPixels));
@@ -153,7 +153,7 @@ export class RenderedAssetService {
     const asset = this.assetRepo.create({
       analysisReportId: reportId,
       analysisReportGeneratedAt: generatedAt,
-      assetType: 'overlay_composite',
+      assetType: 'single_annotated',
       region: null,
       overlayIdsApplied: overlayIds,
       overlayCatalogVersion,
@@ -166,7 +166,7 @@ export class RenderedAssetService {
       processingNotes: null,
     });
 
-    const saved = await this.assetRepo.save(asset);
+    const saved = await this.assetRepo.save(asset) as RenderedAssetEntity;
     this.logger.log(
       `Rendered asset ${saved.id} for report ${reportId} (${overlayIds.join(',')})`,
     );
