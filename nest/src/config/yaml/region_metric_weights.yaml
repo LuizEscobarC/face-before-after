@@ -103,3 +103,7 @@ weights:
     # e_line_deviation excluded — requires_pixel_analysis=true stub (DEC-10).
     face_height_to_width_ratio: 1.3
     total_facial_convexity: 0.8
+    # FAMÍLIA: phi — EXCLUÍDA INTENCIONALMENTE (presentation_only=True, DEC-6)
+    # phi_face_height_to_width, phi_lower_face_segments, phi_eye_to_mouth,
+    # phi_nose_to_lip são overlays decorativos áureos e NÃO recebem pesos.
+    # φ ≠ média populacional (Farkas 1994); ver migration 1746000130000-SeedPhiGoldenFamily.ts.

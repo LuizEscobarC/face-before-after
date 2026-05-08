@@ -778,3 +778,20 @@ metrics:
       pt-BR: "região temporal cheia"
     direction_label_below:
       pt-BR: "afundamento temporal"
+
+# FAMÍLIA: phi (PR-20)
+# ──────────────────────────────────────────────────────────────────────────
+# Todas as métricas phi/golden-ratio são presentation_only=True (DEC-6).
+# NENHUM metric_ideal row foi criado para esta família.
+# As métricas phi aparecem apenas como overlays decorativos mostrando a razão
+# áurea φ≈1.618 — NÃO entram em regional_score ou global_score.
+#
+# Métricas phi: phi_face_height_to_width, phi_lower_face_segments,
+#               phi_eye_to_mouth, phi_nose_to_lip
+#
+# Referências: Marquardt SR (2002) https://www.beautyanalysis.com;
+#              Livio M (2002) The Golden Ratio, Broadway Books ISBN 0-7679-0816-X;
+#              Ricketts RM (1982) Am J Orthod 81(5):351-370;
+#              Edler RJ (2001) J Orthod 28(2):159-168 DOI: 10.1093/ortho/28.2.159.
+# Ressalva: φ NÃO é a média antropométrica populacional para nenhuma destas medidas.
+#           Farkas (1994) reporta H/W≈1.35, boca:alar≈1.47. Ver 1746000130000-SeedPhiGoldenFamily.ts.

@@ -829,3 +829,129 @@ def temporal_hollow_face() -> np.ndarray:
     kp[P_BROW_RIGHT_OUTER] = _GLOBAL_HOLLOW_BROW_R
     grid = _base_grid()
     return _set_key_points(grid, kp)
+
+
+# ---------------------------------------------------------------------------
+# Phi/golden-ratio fixtures (PR-20)
+# ---------------------------------------------------------------------------
+# All four phi metrics measure ratios compared to φ = (1+√5)/2 ≈ 1.6180339887.
+# All are presentation_only=True — no ideal rows in DB, never scored.
+#
+# perfect_phi_face — all four phi ratios ≈ φ.
+#
+#   Coordinate derivation (pixel space, _FACE_CX=400, _FACE_CY=300, _ICD_PX=100):
+#
+#   phi_face_height_to_width = face_height_ICU / bizygomatic_ICU = φ
+#     bizygomatic  = (600 − 200) px = 400 px = 4.0 ICU
+#     face_height  = φ × 4.0 ICU × 100 = 647.2 px
+#     crown_y  = 100 px  → y_ICU = (100−300)/100 = −2.0
+#     menton_y = 747.2 px → y_ICU = (747.2−300)/100 = +4.472
+#     ratio = (4.472 − (−2.0)) / 4.0 = 6.472 / 4.0 = 1.618 ✓
+#
+#   phi_lower_face_segments = (lower_lip_y − subnasale_y) / (menton_y − lower_lip_y) = φ
+#     subnasale_y   = 500 px → y_ICU = 2.0
+#     menton_y      = 747.2 px → y_ICU = 4.472
+#     Solving: lower_lip_ICU = (2.0 + φ×4.472) / (1+φ) = 9.235/2.618 = 3.528
+#     lower_lip_y   = 300 + 352.8 = 652.8 px
+#     ratio = (3.528−2.0) / (4.472−3.528) = 1.528/0.944 ≈ 1.619 ≈ φ ✓
+#
+#   phi_eye_to_mouth = (mouth_y − iris_y) / (menton_y − mouth_y) = φ
+#     iris_y    = 310 px → y_ICU = 0.10
+#     menton_y  = 747.2 px → y_ICU = 4.472
+#     Solving: mouth_ICU = (0.1 + φ×4.472) / (1+φ) = 7.336/2.618 = 2.802
+#     mouth_y   = 300 + 280.2 = 580.2 px
+#     ratio = (2.802−0.10) / (4.472−2.802) = 2.702/1.670 ≈ 1.618 ✓
+#
+#   phi_nose_to_lip = mouth_width / nose_width = φ
+#     mouth_l = (325, 580.2), mouth_r = (475, 580.2) → mouth_width = 150 px = 1.5 ICU
+#     nose_width = 150 / φ = 92.72 px → nose_l_x = 353.64, nose_r_x = 446.36
+#     ratio = 150 / 92.72 = 1.618 ✓
+#
+# Pixel constants:
+_PHI_ZYG_L         = (200.0, _FACE_CY)       # bizygomatic = 4.0 ICU
+_PHI_ZYG_R         = (600.0, _FACE_CY)
+_PHI_CROWN_Y       = 100.0                   # y_ICU = −2.0 (above eye line)
+_PHI_MENTON_Y      = 747.2                   # y_ICU = +4.472 (face_height = 6.472 ICU)
+_PHI_IRIS_Y        = 310.0                   # y_ICU = 0.1 (iris centres slightly below inner canthus)
+_PHI_MOUTH_Y       = 580.2                   # y_ICU = 2.802 (phi_eye_to_mouth denominator)
+_PHI_SUBNASALE_Y   = 500.0                   # y_ICU = 2.0
+_PHI_LOWER_LIP_Y   = 652.8                   # y_ICU = 3.528 (phi_lower_face_segments)
+# Horizontal nose width = mouth_width / φ  (mouth_width = 150 px = 1.5 ICU)
+_PHI_NOSE_HALF_W   = 150.0 / ((1.0 + math.sqrt(5.0)) / 2.0) / 2.0  # ≈ 46.36 px half-width
+_PHI_MOUTH_HALF_W  = 75.0                    # mouth half-width → full width = 150 px
+
+
+def perfect_phi_face() -> np.ndarray:
+    """(478, 3) — face where all four phi/golden-ratio metrics ≈ φ.
+
+    All four metrics are presentation_only=True (DEC-6 — never scored).
+    After normalization (ICD = 100 px):
+
+      phi_face_height_to_width  ≈ 1.618  (face_height/bizygomatic)
+      phi_lower_face_segments   ≈ 1.618  ((lower_lip−subnasale)/(menton−lower_lip))
+      phi_eye_to_mouth          ≈ 1.618  ((mouth−iris)/(menton−mouth))
+      phi_nose_to_lip           ≈ 1.618  (mouth_width/nose_width)
+
+    Geometry (pixel space, _FACE_CX=400, _FACE_CY=300):
+      bizygomatic  = (600−200) px = 400 px = 4.0 ICU
+      crown y      = 100 px  →  y_ICU = −2.0 (above inner canthus line)
+      menton y     = 747.2 px →  y_ICU = +4.472
+      face_height  = 6.472 ICU  →  ratio = 6.472/4.0 = 1.618 ✓
+      iris y       = 310 px → y_ICU = 0.1  (slightly below inner canthus)
+      mouth y      = 580.2 px → y_ICU = 2.802
+      subnasale y  = 500 px → y_ICU = 2.0
+      lower_lip y  = 652.8 px → y_ICU = 3.528
+      mouth width  = 150 px = 1.5 ICU
+      nose width   = 92.7 px ≈ 0.927 ICU  →  ratio = 1.5/0.927 = 1.618 ✓
+    """
+    _phi = (1.0 + math.sqrt(5.0)) / 2.0
+    kp = _canonical_key_points()
+    # Bizygomatic (4.0 ICU)
+    kp[P_LEFT_ZYGOMATIC]   = _PHI_ZYG_L
+    kp[P_RIGHT_ZYGOMATIC]  = _PHI_ZYG_R
+    # Crown and menton
+    kp[P_FOREHEAD_CROWN]   = (_FACE_CX, _PHI_CROWN_Y)
+    kp[P_MENTON]           = (_FACE_CX, _PHI_MENTON_Y)
+    # Iris centres (eye midpoints)
+    kp[P_LEFT_IRIS_CENTER] = (_L_EYE_CX, _PHI_IRIS_Y)   # (300, 310)
+    kp[P_RIGHT_IRIS_CENTER]= (_R_EYE_CX, _PHI_IRIS_Y)   # (500, 310)
+    # Mouth corners (at phi_eye_to_mouth y level)
+    kp[P_LEFT_MOUTH]       = (_FACE_CX - _PHI_MOUTH_HALF_W, _PHI_MOUTH_Y)   # (325, 580.2)
+    kp[P_RIGHT_MOUTH]      = (_FACE_CX + _PHI_MOUTH_HALF_W, _PHI_MOUTH_Y)   # (475, 580.2)
+    # Subnasale and lower lip (phi_lower_face_segments)
+    kp[P_SUBNASALE]        = (_FACE_CX, _PHI_SUBNASALE_Y)
+    kp[P_LOWER_LIP]        = (_FACE_CX, _PHI_LOWER_LIP_Y)
+    # Nose laterals: width = mouth_width / φ
+    kp[P_NOSE_LEFT]        = (_FACE_CX - _PHI_NOSE_HALF_W, 480.0)
+    kp[P_NOSE_RIGHT]       = (_FACE_CX + _PHI_NOSE_HALF_W, 480.0)
+    # Upper lip at same y as mouth for consistency
+    kp[P_UPPER_LIP]        = (_FACE_CX, _PHI_MOUTH_Y)
+    grid = _base_grid()
+    return _set_key_points(grid, kp)
+
+
+def wide_face_non_phi() -> np.ndarray:
+    """(478, 3) — face where phi ratios are < φ (below_phi direction).
+
+    A short, wide face: face_height = 3.0 ICU, bizygomatic = 4.0 ICU.
+    phi_face_height_to_width = 3.0 / 4.0 = 0.75 → direction 'below_phi'
+
+    All other landmarks kept at canonical positions (not phi-calibrated).
+    Used to verify 'below_phi' direction classification.
+    """
+    kp = _canonical_key_points()
+    kp[P_LEFT_ZYGOMATIC]   = _PHI_ZYG_L
+    kp[P_RIGHT_ZYGOMATIC]  = _PHI_ZYG_R
+    kp[P_FOREHEAD_CROWN]   = (_FACE_CX, 150.0)   # y_ICU = −1.5 → face_height = 3.0 ICU
+    kp[P_MENTON]           = (_FACE_CX, 450.0)   # y_ICU = +1.5
+    # Keep mouth/iris/nose at canonical values so other phi metrics are computable
+    kp[P_LEFT_IRIS_CENTER] = (_L_EYE_CX, _FACE_CY)
+    kp[P_RIGHT_IRIS_CENTER]= (_R_EYE_CX, _FACE_CY)
+    kp[P_LEFT_MOUTH]       = _L_MOUTH
+    kp[P_RIGHT_MOUTH]      = _R_MOUTH
+    kp[P_SUBNASALE]        = _SUBNASALE_PT
+    kp[P_LOWER_LIP]        = (_FACE_CX, _FACE_CY + 140)   # just below mouth
+    kp[P_NOSE_LEFT]        = (_FACE_CX - 50, _FACE_CY + 50)
+    kp[P_NOSE_RIGHT]       = (_FACE_CX + 50, _FACE_CY + 50)
+    grid = _base_grid()
+    return _set_key_points(grid, kp)

@@ -156,6 +156,20 @@ GLOBAL_SHAPE_POSE_PARAMS = PosePenaltyParams(
     floor=0.20,
 )
 
+# Phi/golden-ratio metrics (PR-20) blend horizontal ratios (phi_nose_to_lip,
+# phi_face_height_to_width) with vertical ratios (phi_lower_face_segments,
+# phi_eye_to_mouth). Since 3 of 4 metrics have a significant vertical component,
+# pitch weight is slightly higher than yaw. Thresholds are more relaxed than
+# single-region families because these are presentation_only overlays — they
+# should remain displayable under mild pose variation. Floor is higher (0.25)
+# so the phi overlay stays visible in slightly turned photos.
+PHI_POSE_PARAMS = PosePenaltyParams(
+    yaw_soft_deg=8.0, yaw_hard_deg=22.0,
+    pitch_soft_deg=7.0, pitch_hard_deg=20.0,
+    yaw_weight=0.45, pitch_weight=0.55,
+    floor=0.25,
+)
+
 
 def _axis_penalty(angle_deg: float, soft: float, hard: float, floor: float) -> float:
     """Piecewise linear penalty for a single rotation axis."""
