@@ -2,7 +2,7 @@
 
 > Plano mestre da expansão de métricas, ideais, overlays e diagnóstico.
 > Documento de referência permanente. Releia no início de cada sessão.
-> Última atualização: 2026-05-08 (após PR-3).
+> Última atualização: 2026-05-08 (após PR-5).
 
 ---
 
@@ -13,9 +13,9 @@
 | PR-1 | Postgres no compose + TypeORM no Nest + DataSource standalone + scripts CLI | ✅ DONE |
 | PR-2 | Migrations `0000_extensions`, `0001_catalogs`, `0002_seed_initial_catalogs` + 6 entidades + seed v1.0 | ✅ DONE |
 | PR-3 | Migration `0003_evaluations_and_root` + 4 entidades particionadas + FKs compósitas | ✅ DONE |
-| **PR-4** | **FastAPI: camada de normalização (`services/normalization/`) + 3 fixtures sintéticas + testes** | 🔄 **NEXT** |
-| PR-5 | FastAPI: família simetria (5 métricas) + ideais YAML no Nest + testes | ⏳ |
-| PR-6 | FastAPI: família terços (4 métricas) + ideais + testes | ⏳ |
+| PR-4 | FastAPI: camada de normalização (`services/normalization/`) + 3 fixtures sintéticas + 32 testes | ✅ DONE |
+| PR-5 | FastAPI: `MetricValue` domain + `MetricCalculator` ABC + registry + `confidence_propagation` + família simetria (5 métricas) + 68 testes | ✅ DONE |
+| **PR-6** | **FastAPI: família terços (4 métricas) + ideais + testes** | 🔄 **NEXT** |
 | PR-7 | FastAPI: família quintos (5 métricas) + ideais + testes | ⏳ |
 | PR-8 | FastAPI: família olhos (6 métricas) + ideais + testes | ⏳ |
 | PR-9 | Nest: `IdealComparator` + `SeverityClassifier` + propagação de confiança | ⏳ |

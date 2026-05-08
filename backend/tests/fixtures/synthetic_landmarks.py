@@ -1,24 +1,19 @@
-"""Synthetic landmark fixtures for normalization tests.
+"""Synthetic landmark fixtures for normalisation + metric tests.
 
-Three canonical test cases, each returning a (478, 3) NumPy array:
+Canonical test cases, each returning a (478, 3) NumPy array:
 
-1. ``perfect_frontal``  — idealized frontal face, eyes perfectly level,
-   no roll, no yaw, no pitch. Inner canthi at (350, 300) and (450, 300)
-   — intercanthal distance = 100 px.
+1. ``perfect_frontal``   — idealized frontal face, eyes perfectly level,
+   ICD = 100 px. Thirds are NOT equal (upper-dominant).
 
-2. ``known_asymmetric`` — same structure but with visible left/right facial
-   asymmetry (nose tip and chin shifted 8 px to the right of the midline).
-   Useful to verify that metric calculators detect the asymmetry even after
-   normalization does NOT remove asymmetry (it only handles pose/scale/roll).
+2. ``known_asymmetric``  — same but nose + chin shifted 8 px right.
 
-3. ``posed_yaw15``      — same as perfect_frontal but with a 15° yaw
-   (turned right) baked in: right-side landmarks are horizontally
-   compressed by cos(15°) ≈ 0.966.
+3. ``posed_yaw15``       — right-side landmarks compressed for 15° yaw.
 
-All fixtures use pixel coordinates roughly matching a 800×600 image.
-Only the anatomically relevant indices (inner/outer canthi, nose tip, menton,
-gonions, mouth corners) are set to meaningful values; the remaining 470+
-points are scattered in a plausible grid so array indexing never raises.
+4. ``perfect_thirds``    — frontal face where all three vertical thirds
+   equal 0.333. Uses the same brow/eye geometry as perfect_frontal but
+   places forehead crown and menton so thirds are balanced.
+
+All fixtures use pixel coordinates for an 800×600 image.
 """
 
 from __future__ import annotations
@@ -32,6 +27,9 @@ from app.domain.landmarks_mesh import (
     LM_LEFT_EYE,
     LM_RIGHT_BROW,
     LM_RIGHT_EYE,
+    P_BROW_LEFT_INNER,
+    P_BROW_RIGHT_INNER,
+    P_FOREHEAD_CROWN,
     P_LEFT_EYE_INNER,
     P_LEFT_EYE_OUTER,
     P_LEFT_GONION,
@@ -66,8 +64,20 @@ _L_GONION    = (_FACE_CX - 120, _FACE_CY + 180)
 _R_GONION    = (_FACE_CX + 120, _FACE_CY + 180)
 
 # Midline landmarks (on x = _FACE_CX, so x = 0 after normalization)
-_NASION_PT   = (_FACE_CX, _FACE_CY - 55)                # forehead / top of nose bridge
-_SUBNASALE_PT = (_FACE_CX, _FACE_CY + 60)               # philtrum base
+_NASION_PT      = (_FACE_CX, _FACE_CY - 55)             # forehead / top of nose bridge
+_SUBNASALE_PT   = (_FACE_CX, _FACE_CY + 60)             # philtrum base
+_FOREHEAD_PT    = (_FACE_CX, _FACE_CY - 200)            # forehead crown, 200 px above eye line
+
+# Geometry for a *balanced thirds* face.
+# Brow inner y = _FACE_CY - 28 (from _LEFT_BROW_PTS / _RIGHT_BROW_PTS above).
+# Middle third length = subnasale_y - brow_inner_y = 60 - (-28) = 88 px.
+# Equal thirds requires: forehead crown at brow - 88, menton at subnasale + 88.
+_THIRDS_BROW_Y   = _FACE_CY - 28   # y of both inner brow peaks (from _*_BROW_PTS)
+_THIRDS_LENGTH   = _SUBNASALE_PT[1] - _FACE_CY - (-28)  # 60 - (-28) = 88 px per third... wait
+# Middle = subnasale_y - brow_inner_y = (_FACE_CY+60) - (_FACE_CY-28) = 88
+_THIRDS_SEG      = 88.0             # pixels per third when balanced
+_FOREHEAD_THIRDS_PT = (_FACE_CX, _FACE_CY - 28 - _THIRDS_SEG)  # = (400, 184)
+_MENTON_THIRDS_PT   = (_FACE_CX, _FACE_CY + 60 + _THIRDS_SEG)  # = (400, 448)
 
 # Eye outline landmarks — all at y = _FACE_CY so both eyes share the same y.
 # Left eye: 6 points spanning x ≈ [250, 340].  Indices: LM_LEFT_EYE = [33, 7, 163, 144, 145, 153]
@@ -144,6 +154,8 @@ def _canonical_key_points() -> dict[int, tuple[float, float]]:
         # Midline points (x = _FACE_CX → x = 0 after normalization)
         P_NASION:          _NASION_PT,
         P_SUBNASALE:       _SUBNASALE_PT,
+        # Forehead crown — proxy for trichion (upper thirds boundary)
+        P_FOREHEAD_CROWN:  _FOREHEAD_PT,
     }
     # Eye and brow outline landmarks (symmetric in the canonical face)
     kp.update(_LEFT_EYE_PTS)
@@ -199,5 +211,25 @@ def posed_yaw15() -> np.ndarray:
     for idx in LM_RIGHT_BROW:
         kp[idx] = compress_right(*kp[idx])
 
+    grid = _base_grid()
+    return _set_key_points(grid, kp)
+
+
+def perfect_thirds() -> np.ndarray:
+    """(478, 3) — face where vertical thirds are perfectly balanced (each ≈ 0.333).
+
+    Geometry in pixel space:
+      Forehead crown (P_FOREHEAD_CROWN=10): y = 184  (116 px above eye line)
+      Brow inner midline:                   y = 272  ( 28 px above eye line)
+      Subnasale (P_SUBNASALE=2):            y = 360  ( 60 px below eye line)
+      Menton (P_MENTON=152):               y = 448  (148 px below eye line)
+
+    Each third = 88 px, total = 264 px → upper = middle = lower = 0.333.
+    Note: Menton here is at y=448 (not 500 as in perfect_frontal).
+    """
+    kp = _canonical_key_points()
+    # Override the two vertical anchors that define thirds balance.
+    kp[P_FOREHEAD_CROWN] = _FOREHEAD_THIRDS_PT   # (400, 184)
+    kp[P_MENTON]         = _MENTON_THIRDS_PT     # (400, 448)
     grid = _base_grid()
     return _set_key_points(grid, kp)

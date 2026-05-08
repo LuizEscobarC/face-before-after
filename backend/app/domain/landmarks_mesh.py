@@ -81,6 +81,15 @@ P_RIGHT_CHEEK = LM_JAWLINE[13]                # dlib 13
 P_BROW_LEFT_OUTER = LM_LEFT_BROW[0]           # dlib 17
 P_BROW_RIGHT_OUTER = LM_RIGHT_BROW[-1]        # dlib 26
 
+# Brow inner anchors (used as thirds upper/middle boundary).
+# These are the innermost brow landmarks closest to the nose bridge.
+P_BROW_LEFT_INNER = LM_LEFT_BROW[4]           # dlib 21 — left inner brow (idx 107)
+P_BROW_RIGHT_INNER = LM_RIGHT_BROW[0]         # dlib 22 — right inner brow (idx 336)
+
+# Forehead crown — Mesh-478 point 10, top-center of the forehead.
+# Used as a proxy for the trichion (hairline) in vertical-thirds calculation.
+P_FOREHEAD_CROWN = 10
+
 # Jaw mid-pair anchors used in masculinity gonial-angle helpers
 # (dlib 2, 6 around left gonion 4; dlib 14, 10 around right gonion 12).
 P_JAW_LEFT_2 = LM_JAWLINE[2]                  # dlib 2
