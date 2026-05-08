@@ -2,7 +2,7 @@
 
 > Plano mestre da expansão de métricas, ideais, overlays e diagnóstico.
 > Documento de referência permanente. Releia no início de cada sessão.
-> Última atualização: 2026-05-08 (após PR-14).
+> Última atualização: 2026-05-08 (após PR-15).
 
 ---
 
@@ -24,10 +24,11 @@
 | **PR-12** | **M2 first slice: `RegionalScorer` + `GlobalScorer` + `ScoreBander` + 6 entidades + migration `0005_RegionalAndGlobalScoring` + YAMLs `region_metric_weights.yaml`/`global_weights.yaml` + 42 testes Vitest novos** | ✅ DONE |
 | **PR-13** | **Família `jaw` (mandíbula): 6 métricas (`jaw_width_ratio`, `gonial_angle_l/r`, `gonial_angle_asymmetry`, `mandibular_plane_angle`, `chin_height_ratio`) + `JAW_POSE_PARAMS` (yaw-sensitive) + migration `0006_SeedJawFamily` + 53 testes Python novos + YAMLs atualizados** | ✅ DONE |
 | **PR-14** | **Família `nose`: 7 métricas (`nose_length_to_icd`, `nose_width_to_icd`, `alar_to_face_width_ratio`, `nose_to_mouth_width_ratio`, `dorsum_deviation`, `nasal_tip_deviation`, `alar_base_asymmetry`) + `NOSE_POSE_PARAMS` + migration `0007_SeedNoseFamily` + 63 testes Python novos + YAMLs atualizados. Substituições vs plano original: `nasal_tip_projection` e `nasolabial_angle` (sagital) movidas para PR-23 (multi-foto)** | ✅ DONE |
+| **PR-15** | **Família `mouth/lips`: 7 métricas (`mouth_width_to_icd`, `mouth_to_face_width_ratio`, `upper_lip_height_ratio`, `lower_lip_height_ratio`, `vermilion_height_total`, `lip_corner_canting`, `mouth_midline_deviation`) + `MOUTH_POSE_PARAMS` + migration `0008_SeedMouthFamily` + 64 testes Python novos + YAMLs atualizados. Substituições: `cupids_bow_definition` → `mouth_midline_deviation`; `philtrum_width_ratio` adiada para PR-23** | ✅ DONE |
 
 **M1 completo**: `POST /v1/analysis/evaluate` recebe landmarks + quality_context, chama Python `/vision/metrics-v2`, compara contra ideais do banco, persiste `AnalysisReport` + `MetricEvaluation[]` + `MetricEvaluationAgainstIdeal[]` em transação única.
 
-**M2 (em andamento)**: PR-12 entregou scoring infra; PR-13 (`jaw`, 6 métricas) e PR-14 (`nose`, 7 métricas) já entregues. Total: 116 testes Vitest, 542 testes Python (53 jaw + 63 nose desde PR-12). DB com 34 metric_definitions, 33 metric_ideals, region_metric_weight (jaw=6, eyes=6, symmetry=14, nose=7). Próximas fatias do M2: PR-15 (mouth), PR-16 (brows), PR-17 (cheekbones), PR-18 (forehead), PR-19 (global_shape), PR-20 (phi/golden presentation_only), PR-21 (recalibração v2.0), PR-22 (calibração com fotos reais), PR-23 (multi-foto + perfil sagital). Detalhe em [`PLAN_M2_BACKLOG.md`](./PLAN_M2_BACKLOG.md).
+**M2 (em andamento)**: PR-12 entregou scoring infra; PR-13 (`jaw`, 6 métricas), PR-14 (`nose`, 7 métricas) e PR-15 (`mouth/lips`, 7 métricas) já entregues. Total: 116 testes Vitest, 606 testes Python (53 jaw + 63 nose + 64 mouth desde PR-12). DB com 41 metric_definitions, 40 metric_ideals, region_metric_weight (jaw=6, eyes=6, symmetry=14, nose=7, mouth=7). Próximas fatias do M2: PR-16 (brows), PR-17 (cheekbones), PR-18 (forehead), PR-19 (global_shape), PR-20 (phi/golden presentation_only), PR-21 (recalibração v2.0), PR-22 (calibração com fotos reais), PR-23 (multi-foto + perfil sagital + philtrum). Detalhe em [`PLAN_M2_BACKLOG.md`](./PLAN_M2_BACKLOG.md).
 
 ---
 

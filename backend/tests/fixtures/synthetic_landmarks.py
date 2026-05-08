@@ -38,6 +38,7 @@ from app.domain.landmarks_mesh import (
     P_LEFT_IRIS_CENTER,
     P_LEFT_MOUTH,
     P_LEFT_ZYGOMATIC,
+    P_LOWER_LIP,
     P_LOWER_LIP_BOT,
     P_MENTON,
     P_NASION,
@@ -53,6 +54,8 @@ from app.domain.landmarks_mesh import (
     P_RIGHT_MOUTH,
     P_RIGHT_ZYGOMATIC,
     P_SUBNASALE,
+    P_UPPER_LIP,
+    P_UPPER_LIP_TOP,
     TOTAL_LANDMARKS,
 )
 
@@ -393,5 +396,70 @@ def deviated_nose_face() -> np.ndarray:
     kp[P_NOSE_RIGHT]   = _NOSE_ALAR_R
     kp[P_LEFT_MOUTH]   = _NOSE_MOUTH_L
     kp[P_RIGHT_MOUTH]  = _NOSE_MOUTH_R
+    grid = _base_grid()
+    return _set_key_points(grid, kp)
+
+
+# ---------------------------------------------------------------------------
+# Mouth fixture (PR-15)
+# ---------------------------------------------------------------------------
+# Canonical mouth geometry (after normalisation to ICU = 1.0):
+#   mouth_width_to_icd        = 150 / 100 = 1.50 ICU
+#   mouth_to_face_width_ratio = 150 / 500 = 0.30
+#   upper_lip_height_ratio    = 22 / 55 = 0.40
+#   lower_lip_height_ratio    = 33 / 55 = 0.60
+#   vermilion_height_total    = 55 / 100 = 0.55 ICU
+#   lip_corner_canting        = 0
+#   mouth_midline_deviation   = 0
+#
+# Pixel layout (ICD = 100 px, _FACE_CX=400, _FACE_CY=300):
+#   stomion line (where lips meet) at y = _FACE_CY + 152 = 452
+#   upper vermilion top         at y = _FACE_CY + 130 = 430  (height 22 px)
+#   lower vermilion bottom      at y = _FACE_CY + 185 = 485  (height 33 px)
+_MOUTH_LEFT_PT       = (_FACE_CX - 75, _FACE_CY + 152)   # (325, 452)
+_MOUTH_RIGHT_PT      = (_FACE_CX + 75, _FACE_CY + 152)   # (475, 452) → width 150
+_MOUTH_UPPER_LIP_TOP = (_FACE_CX,      _FACE_CY + 130)   # P_UPPER_LIP_TOP=82
+_MOUTH_UPPER_LIP     = (_FACE_CX,      _FACE_CY + 152)   # P_UPPER_LIP=13 (stomion)
+_MOUTH_LOWER_LIP     = (_FACE_CX,      _FACE_CY + 152)   # P_LOWER_LIP=14 (stomion, touching)
+_MOUTH_LOWER_LIP_BOT = (_FACE_CX,      _FACE_CY + 185)   # P_LOWER_LIP_BOT=17
+
+
+def perfect_mouth_face() -> np.ndarray:
+    """(478, 3) — face with canonical mouth geometry.
+
+    All seven mouth metrics fall within their green range:
+      mouth_width_to_icd        = 1.50 (ideal)
+      mouth_to_face_width_ratio = 0.30 (ideal)
+      upper_lip_height_ratio    = 0.40 (ideal)
+      lower_lip_height_ratio    = 0.60 (ideal)
+      vermilion_height_total    = 0.55 (ideal)
+      lip_corner_canting        = 0.00 (ideal)
+      mouth_midline_deviation   = 0.00 (ideal)
+    """
+    kp = _canonical_key_points()
+    kp[P_LEFT_MOUTH]      = _MOUTH_LEFT_PT
+    kp[P_RIGHT_MOUTH]     = _MOUTH_RIGHT_PT
+    kp[P_UPPER_LIP_TOP]   = _MOUTH_UPPER_LIP_TOP
+    kp[P_UPPER_LIP]       = _MOUTH_UPPER_LIP
+    kp[P_LOWER_LIP]       = _MOUTH_LOWER_LIP
+    kp[P_LOWER_LIP_BOT]   = _MOUTH_LOWER_LIP_BOT
+    grid = _base_grid()
+    return _set_key_points(grid, kp)
+
+
+def deviated_mouth_face() -> np.ndarray:
+    """(478, 3) — mouth fixture with deliberate corner canting + midline shift.
+
+    Left mouth corner shifted +12 px down (image coords) → corner_canting = 0.12 ICU
+    (yellow). Both corners also shifted +10 px right → midline_deviation = 0.10 ICU
+    (yellow).
+    """
+    kp = _canonical_key_points()
+    kp[P_LEFT_MOUTH]      = (_FACE_CX - 75 + 10, _FACE_CY + 152 + 12)
+    kp[P_RIGHT_MOUTH]     = (_FACE_CX + 75 + 10, _FACE_CY + 152)
+    kp[P_UPPER_LIP_TOP]   = _MOUTH_UPPER_LIP_TOP
+    kp[P_UPPER_LIP]       = _MOUTH_UPPER_LIP
+    kp[P_LOWER_LIP]       = _MOUTH_LOWER_LIP
+    kp[P_LOWER_LIP_BOT]   = _MOUTH_LOWER_LIP_BOT
     grid = _base_grid()
     return _set_key_points(grid, kp)

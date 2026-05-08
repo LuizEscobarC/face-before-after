@@ -460,3 +460,91 @@ metrics:
       pt-BR: "asa esquerda mais baixa"
     direction_label_below:
       pt-BR: "asa direita mais baixa"
+
+  # ──────────────────────────────────────────────
+  # FAMÍLIA: mouth (PR-15 / M2)
+  # ──────────────────────────────────────────────
+
+  mouth_width_to_icd:
+    ideal_type: population_statistical
+    ideal_central_value: 1.50
+    green_range_min: 1.35
+    green_range_max: 1.65
+    yellow_range_min: 1.20
+    yellow_range_max: 1.80
+    direction_label_above:
+      pt-BR: "boca larga"
+    direction_label_below:
+      pt-BR: "boca estreita"
+
+  mouth_to_face_width_ratio:
+    ideal_type: population_statistical
+    ideal_central_value: 0.30
+    green_range_min: 0.26
+    green_range_max: 0.34
+    yellow_range_min: 0.22
+    yellow_range_max: 0.38
+    direction_label_above:
+      pt-BR: "boca larga em relação à face"
+    direction_label_below:
+      pt-BR: "boca estreita em relação à face"
+
+  upper_lip_height_ratio:
+    ideal_type: population_statistical
+    ideal_central_value: 0.40
+    green_range_min: 0.35
+    green_range_max: 0.45
+    yellow_range_min: 0.30
+    yellow_range_max: 0.50
+    direction_label_above:
+      pt-BR: "lábio superior espesso"
+    direction_label_below:
+      pt-BR: "lábio superior fino"
+
+  lower_lip_height_ratio:
+    ideal_type: population_statistical
+    ideal_central_value: 0.60
+    green_range_min: 0.55
+    green_range_max: 0.65
+    yellow_range_min: 0.50
+    yellow_range_max: 0.70
+    direction_label_above:
+      pt-BR: "lábio inferior espesso"
+    direction_label_below:
+      pt-BR: "lábio inferior fino"
+
+  vermilion_height_total:
+    ideal_type: population_statistical
+    ideal_central_value: 0.55
+    green_range_min: 0.45
+    green_range_max: 0.65
+    yellow_range_min: 0.35
+    yellow_range_max: 0.75
+    direction_label_above:
+      pt-BR: "lábios espessos"
+    direction_label_below:
+      pt-BR: "lábios finos"
+
+  lip_corner_canting:
+    ideal_type: canonical
+    ideal_central_value: 0.0
+    green_range_min: 0.0
+    green_range_max: 0.03
+    yellow_range_min: 0.0
+    yellow_range_max: 0.07
+    direction_label_above:
+      pt-BR: "canto esquerdo mais baixo"
+    direction_label_below:
+      pt-BR: "canto direito mais baixo"
+
+  mouth_midline_deviation:
+    ideal_type: canonical
+    ideal_central_value: 0.0
+    green_range_min: 0.0
+    green_range_max: 0.03
+    yellow_range_min: 0.0
+    yellow_range_max: 0.07
+    direction_label_above:
+      pt-BR: "boca deslocada para a esquerda"
+    direction_label_below:
+      pt-BR: "boca deslocada para a direita"

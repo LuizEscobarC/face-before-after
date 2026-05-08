@@ -29,7 +29,7 @@ A partir daqui, M2 tem três frentes paralelas, sequenciadas em PRs:
 |----|--------|---------------------|-----------------|--------------------|
 | **PR-13** ✅ | Família **jaw** (mandíbula) — **DONE** | `jaw_width_ratio`, `gonial_angle_l/r`, `gonial_angle_asymmetry`, `mandibular_plane_angle`, `chin_height_ratio` (6) | `metric_definition`, `metric_ideal`, `region_metric_weight (region=jaw)` | **Sonnet** com contexto |
 | **PR-14** ✅ | Família **nose** — **DONE** | `nose_length_to_icd`, `nose_width_to_icd`, `alar_to_face_width_ratio`, `nose_to_mouth_width_ratio`, `dorsum_deviation`, `nasal_tip_deviation`, `alar_base_asymmetry` (7) | idem (region=nose) | **Sonnet** |
-| **PR-15** | Família **mouth/lips** | `mouth_width_ratio`, `lip_height_ratio_upper`, `lip_height_ratio_lower`, `cupids_bow_definition`, `philtrum_width_ratio`, `lip_corner_canting`, `vermilion_height_total` (7) | idem (region=mouth) | **Sonnet** |
+| **PR-15** ✅ | Família **mouth/lips** — **DONE** | `mouth_width_to_icd`, `mouth_to_face_width_ratio`, `upper_lip_height_ratio`, `lower_lip_height_ratio`, `vermilion_height_total`, `lip_corner_canting`, `mouth_midline_deviation` (7) | idem (region=mouth) | **Sonnet** |
 | **PR-16** | Família **brows** | `brow_height_l/r`, `brow_arch_peak_x_l/r`, `brow_thickness_l/r` *(presentation_only)*, `brow_tail_drop_l/r`, `interbrow_distance_ratio` (8 — 2 presentation_only) | idem + flag `presentation_only` | **Sonnet** |
 | **PR-17** | Família **cheekbones / midface** | `zygomatic_width_ratio`, `malar_projection_index`, `midface_height_ratio`, `cheekbone_to_jaw_ratio`, `submalar_hollow_index` (5) | idem | **Sonnet** |
 | **PR-18** | Família **forehead** | `forehead_height_ratio`, `forehead_width_ratio`, `temporal_width_ratio`, `hairline_curvature_index` *(M frontal pixel-dep)* (4 — 1 `requires_pixel_analysis=true`) | idem + DEC-10 (skip pipeline) | **Sonnet** |
@@ -196,4 +196,44 @@ Após isso → **abrir M3** (overlays). Ver `PLAN_M3_OVERLAYS.md`.
 
 **Validações**: pytest 542 passed (+63 nose), vitest 116 passed, migration aplicada. DB: 34 metric_definitions, 33 metric_ideals, region_metric_weight (jaw=6, eyes=6, symmetry=14, nose=7).
 
-**Próximo PR**: PR-15 (mouth/lips family — 7 métricas).
+**Próximo PR**: PR-16 (brows family).
+
+### PR-15 — mouth/lips family (DONE)
+
+**Data**: 2026-05-08. **Modelo**: Sonnet com contexto.
+
+**Métricas entregues (7)**: `mouth_width_to_icd`, `mouth_to_face_width_ratio`, `upper_lip_height_ratio`, `lower_lip_height_ratio`, `vermilion_height_total`, `lip_corner_canting`, `mouth_midline_deviation`.
+
+**Desvio do plano original** (frontal-only + Mesh-478 landmark availability):
+- `mouth_width_ratio` desdobrado em `mouth_width_to_icd` (Naini ~1.5×ICD) + `mouth_to_face_width_ratio` (Naini ~0.30×bizygomatic). Mesmo padrão de PR-14 (mesmo numerador, denominadores diferentes).
+- `lip_height_ratio_upper` / `_lower` renomeados para `upper_lip_height_ratio` / `lower_lip_height_ratio` (consistência com nomenclatura PR-14).
+- `cupids_bow_definition` (requer picos do cupid's bow, instáveis em Mesh-478) → `mouth_midline_deviation` (assimetria frontal: |centro da boca − linha média|).
+- `philtrum_width_ratio` (requer landmarks de pilares filtrais não disponíveis em Mesh-478 estável) → **DEFERIDO para PR-23** (multi-foto / detector refinado).
+
+**Calibração**:
+- `mouth_width_to_icd = 1.50 (±0.15 verde)` — Naini (2011).
+- `mouth_to_face_width_ratio = 0.30 (±0.04 verde)` — Naini.
+- `upper_lip_height_ratio = 0.40 (±0.05 verde)` — Naini U:L = 1:1.6 → 0.385; arredondado.
+- `lower_lip_height_ratio = 0.60 (±0.05 verde)` — complemento.
+- `vermilion_height_total = 0.55 (±0.10 verde) ICU` — Naini ~17 mm em ICD ~32 mm = 0.53; adotado 0.55.
+- `lip_corner_canting = 0 (±0.03 ICU verde)` — canonical.
+- `mouth_midline_deviation = 0 (±0.03 ICU verde)` — canonical.
+
+**Pesos (region_metric_weight v1.0)**: lip_corner_canting=1.3, mouth_midline_deviation=1.2, vermilion_height_total=1.1, demais=1.0. Pesos elevados em assimetrias (DEC-8).
+
+**Pose params (`MOUTH_POSE_PARAMS`)**: yaw_soft=6°, hard=16°, pitch_soft=8°, hard=20°, yaw_weight=0.6, pitch_weight=0.4, floor=0.18. Mais relaxado que nose — landmarks de boca em Mesh-478 são bem definidos e centrais.
+
+**Versão**: estendeu `region_metric_weights_version v1.0` (não bumpou).
+
+**Artefatos**:
+- backend/app/services/metrics/mouth.py (~340 linhas, 7 calculators).
+- backend/tests/fixtures/synthetic_landmarks.py (`perfect_mouth_face`, `deviated_mouth_face`).
+- backend/tests/unit/test_mouth.py (64 tests, todos passing).
+- backend/app/services/metrics/confidence_propagation.py (`MOUTH_POSE_PARAMS`).
+- nest/src/database/migrations/1746000080000-SeedMouthFamily.ts.
+- nest/src/config/yaml/metric_ideals.yaml (+mouth section).
+- nest/src/config/yaml/region_metric_weights.yaml (+mouth region).
+
+**Validações**: pytest 606 passed (+64 mouth), vitest 116 passed, migration aplicada. DB: 41 metric_definitions, 40 metric_ideals, region_metric_weight (jaw=6, eyes=6, symmetry=14, nose=7, mouth=7).
+
+**Próximo PR**: PR-16 (brows family — sobrancelhas).

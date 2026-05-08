@@ -56,3 +56,13 @@ weights:
     dorsum_deviation: 1.3
     nasal_tip_deviation: 1.3
     alar_base_asymmetry: 1.2
+  mouth:
+    # PR-15 (M2 mouth family). Higher weight on canting + midline_deviation
+    # (asymmetry signals carry strong perceptual weight per DEC-8 rationale).
+    mouth_width_to_icd: 1.0
+    mouth_to_face_width_ratio: 1.0
+    upper_lip_height_ratio: 1.0
+    lower_lip_height_ratio: 1.0
+    vermilion_height_total: 1.1
+    lip_corner_canting: 1.3
+    mouth_midline_deviation: 1.2
