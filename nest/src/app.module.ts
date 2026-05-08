@@ -7,6 +7,7 @@ import { VisionModule } from './modules/vision/vision.module.js';
 import { PhotoQualityModule } from './modules/photo-quality/photo-quality.module.js';
 import { AnalysisModule } from './modules/analysis/analysis.module.js';
 import { CatalogModule } from './modules/catalog/catalog.module.js';
+import { OverlaysModule } from './modules/overlays/overlays.module.js';
 import { DiagnosisModule } from './modules/diagnosis/diagnosis.module.js';
 import { DecisionModule } from './modules/decision/decision.module.js';
 import { ExecutionModule } from './modules/execution/execution.module.js';
@@ -23,6 +24,7 @@ import { IdentityModule } from './modules/identity/identity.module.js';
     PhotoQualityModule,
     AnalysisModule,
     CatalogModule,
+    OverlaysModule,
     DiagnosisModule,
     DecisionModule,
     ExecutionModule,

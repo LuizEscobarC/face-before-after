@@ -84,11 +84,19 @@ function toIdealDto(e: MetricIdealEntity): MetricIdealDto {
 }
 
 function toVersionEntry(
-  e: { version: string; description: string | null; isActive: boolean; createdAt: Date; isProvisional?: boolean },
+  // ``description`` is optional because not every version table carries one
+  // (e.g. AnalysisThresholdConfigEntity, SeverityCollapsePolicyEntity).
+  e: {
+    version: string;
+    description?: string | null;
+    isActive: boolean;
+    createdAt: Date;
+    isProvisional?: boolean;
+  },
 ): VersionEntryDto {
   return {
     version: e.version,
-    description: e.description,
+    description: e.description ?? null,
     is_active: e.isActive,
     ...(e.isProvisional !== undefined ? { is_provisional: e.isProvisional } : {}),
     created_at: e.createdAt.toISOString(),
