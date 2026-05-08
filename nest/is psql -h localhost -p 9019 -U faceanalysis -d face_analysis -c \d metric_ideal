@@ -1,0 +1,27 @@
+                                   Table "public.metric_ideal"
+          Column           |           Type           | Collation | Nullable |      Default      
+---------------------------+--------------------------+-----------+----------+-------------------
+ id                        | uuid                     |           | not null | gen_random_uuid()
+ metric_id                 | text                     |           | not null | 
+ metric_definition_version | text                     |           | not null | 
+ ideals_version            | text                     |           | not null | 
+ ideal_type                | ideal_type_enum          |           | not null | 
+ ideal_central_value       | numeric(10,6)            |           |          | 
+ green_range_min           | numeric(10,6)            |           |          | 
+ green_range_max           | numeric(10,6)            |           |          | 
+ yellow_range_min          | numeric(10,6)            |           |          | 
+ yellow_range_max          | numeric(10,6)            |           |          | 
+ direction_label_above     | jsonb                    |           | not null | '{}'::jsonb
+ direction_label_below     | jsonb                    |           | not null | '{}'::jsonb
+ population_reference_note | text                     |           |          | 
+ created_at                | timestamp with time zone |           | not null | now()
+Indexes:
+    "metric_ideal_pkey" PRIMARY KEY, btree (id)
+    "idx_metric_ideal_version" btree (ideals_version)
+    "metric_ideal_metric_id_metric_definition_version_ideals_ver_key" UNIQUE CONSTRAINT, btree (metric_id, metric_definition_version, ideals_version)
+Foreign-key constraints:
+    "metric_ideal_ideals_version_fkey" FOREIGN KEY (ideals_version) REFERENCES ideals_version(version)
+    "metric_ideal_metric_id_metric_definition_version_fkey" FOREIGN KEY (metric_id, metric_definition_version) REFERENCES metric_definition(metric_id, version)
+Referenced by:
+    TABLE "metric_evaluation_against_ideal" CONSTRAINT "metric_evaluation_against_ideal_metric_ideal_id_fkey" FOREIGN KEY (metric_ideal_id) REFERENCES metric_ideal(id)
+

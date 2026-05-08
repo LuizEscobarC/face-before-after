@@ -31,7 +31,7 @@ A partir daqui, M2 tem três frentes paralelas, sequenciadas em PRs:
 | **PR-14** ✅ | Família **nose** — **DONE** | `nose_length_to_icd`, `nose_width_to_icd`, `alar_to_face_width_ratio`, `nose_to_mouth_width_ratio`, `dorsum_deviation`, `nasal_tip_deviation`, `alar_base_asymmetry` (7) | idem (region=nose) | **Sonnet** |
 | **PR-15** ✅ | Família **mouth/lips** — **DONE** | `mouth_width_to_icd`, `mouth_to_face_width_ratio`, `upper_lip_height_ratio`, `lower_lip_height_ratio`, `vermilion_height_total`, `lip_corner_canting`, `mouth_midline_deviation` (7) | idem (region=mouth) | **Sonnet** |
 | **PR-16** ✅ | Família **brows** — **DONE** | `brow_height_l/r`, `brow_arch_peak_l/r`, `brow_thickness_l/r` *(presentation_only)*, `brow_tail_drop_l`, `interbrow_distance_ratio` (8 — 2 presentation_only). `brow_tail_drop_r` adiada para PR-21. | idem + flag `presentation_only` | **Sonnet** |
-| **PR-17** | Família **cheekbones / midface** | `zygomatic_width_ratio`, `malar_projection_index`, `midface_height_ratio`, `cheekbone_to_jaw_ratio`, `submalar_hollow_index` (5) | idem | **Sonnet** |
+| **PR-17** ✅ | Família **cheekbones / midface** — **DONE** | `zygomatic_width_ratio`, `malar_projection_index`, `midface_height_ratio`, `cheekbone_to_jaw_ratio`, `submalar_hollow_index` (5) | idem + `ALTER TYPE metric_region_enum ADD VALUE 'cheekbones'` (migration split para contornar PG commit constraint) | **Sonnet** |
 | **PR-18** | Família **forehead** | `forehead_height_ratio`, `forehead_width_ratio`, `temporal_width_ratio`, `hairline_curvature_index` *(M frontal pixel-dep)* (4 — 1 `requires_pixel_analysis=true`) | idem + DEC-10 (skip pipeline) | **Sonnet** |
 | **PR-19** | Família **global_shape** | `face_height_to_width_ratio`, `face_shape_classification` *(categórica: oval/round/square/heart/oblong)*, `total_facial_convexity`, `e_line_deviation` (4) | idem (region=global) | **Sonnet** |
 | **PR-20** | Família **phi/golden** *(presentation_only HARD)* | `phi_face_height_to_width`, `phi_lower_face_segments`, `phi_eye_to_mouth`, `phi_nose_to_lip` (4 — todas `presentation_only=true`) | `metric_definition` (sem `metric_ideal`, sem peso) | **Sonnet** |
@@ -273,6 +273,26 @@ Após isso → **abrir M3** (overlays). Ver `PLAN_M3_OVERLAYS.md`.
 - `nest/src/config/yaml/metric_ideals.yaml` (+brows section).
 - `nest/src/config/yaml/region_metric_weights.yaml` (+brows region).
 
-**Validações**: pytest 714 passed (+108 brows), vitest 116 passed, migration **pendente** (Docker não estava rodando).
+**Validações**: pytest 714 passed (+108 brows), vitest 116 passed, migration aplicada.
 
-**Próximo PR**: PR-17 (cheekbones/midface family).
+---
+
+### PR-17 — cheekbones/midface (5 métricas) ✅ DONE
+
+**Arquivos modificados/criados**:
+- `backend/app/services/metrics/confidence_propagation.py` (CHEEKBONE_POSE_PARAMS).
+- `backend/app/services/metrics/cheekbones.py` (5 calculators).
+- `backend/app/services/metrics/__init__.py` (registro do módulo).
+- `backend/tests/fixtures/synthetic_landmarks.py` (`perfect_cheekbone_face`, `square_jaw_cheekbone_face`).
+- `backend/tests/unit/test_cheekbones.py` (79 testes).
+- `nest/src/database/migrations/1746000095000-AddCheekbonesEnumValue.ts` (ALTER TYPE, transaction=false).
+- `nest/src/database/migrations/1746000100000-SeedCheekbonesFamily.ts` (5 defs + 5 ideals + 5 weights).
+- `nest/src/database/data-source.ts` (migrationsTransactionMode: 'each').
+- `nest/src/config/yaml/metric_ideals.yaml` (+cheekbones section).
+- `nest/src/config/yaml/region_metric_weights.yaml` (+cheekbones region).
+
+**Lição aprendida**: `metric_region_enum` não incluía 'cheekbones'. `ALTER TYPE ADD VALUE` precisa ser committed antes de ser usado → split em dois migrations (0095000 enum, 0100000 seed). `migrationsTransactionMode: 'each'` permite `transaction=false` por migration.
+
+**Validações**: pytest 793 passed (+79 cheekbones), vitest 116 passed, migration aplicada. DB: 54 definitions, 53 ideals, cheekbones=5 weights.
+
+**Próximo PR**: PR-18 (forehead family).

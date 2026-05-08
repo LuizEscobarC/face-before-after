@@ -647,3 +647,62 @@ metrics:
       pt-BR: "sobrancelhas muito afastadas"
     direction_label_below:
       pt-BR: "sobrancelhas muito próximas"
+
+# ──────────────────────────────────────────────
+# FAMÍLIA: cheekbones
+# ──────────────────────────────────────────────
+  zygomatic_width_ratio:
+    ideal_type: population_statistical
+    ideal_central_value: 4.00
+    green_range_min: 3.70
+    green_range_max: 4.30
+    yellow_range_min: 3.40
+    yellow_range_max: 4.60
+    direction_label_above:
+      pt-BR: "rosto muito largo nas maçãs"
+    direction_label_below:
+      pt-BR: "rosto estreito nas maçãs"
+  malar_projection_index:
+    ideal_type: canonical
+    ideal_central_value: 1.33
+    green_range_min: 1.23
+    green_range_max: 1.43
+    yellow_range_min: 1.13
+    yellow_range_max: 1.53
+    direction_label_above:
+      pt-BR: "maçãs proeminentes"
+    direction_label_below:
+      pt-BR: "maçãs planas"
+  midface_height_ratio:
+    ideal_type: population_statistical
+    ideal_central_value: 1.50
+    green_range_min: 1.30
+    green_range_max: 1.70
+    yellow_range_min: 1.10
+    yellow_range_max: 1.90
+    direction_label_above:
+      pt-BR: "terço médio longo"
+    direction_label_below:
+      pt-BR: "terço médio curto"
+  cheekbone_to_jaw_ratio:
+    ideal_type: population_statistical
+    ideal_central_value: 1.25
+    green_range_min: 1.17
+    green_range_max: 1.33
+    yellow_range_min: 1.10
+    yellow_range_max: 1.40
+    direction_label_above:
+      pt-BR: "maçãs muito proeminentes"
+    direction_label_below:
+      pt-BR: "mandíbula quadrada"
+  submalar_hollow_index:
+    ideal_type: canonical
+    ideal_central_value: 0.10
+    green_range_min: 0.03
+    green_range_max: 0.17
+    yellow_range_min: -0.05
+    yellow_range_max: 0.25
+    direction_label_above:
+      pt-BR: "submalar côncavo"
+    direction_label_below:
+      pt-BR: "submalar muito cheio"

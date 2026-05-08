@@ -29,7 +29,7 @@
 
 **M1 completo**: `POST /v1/analysis/evaluate` recebe landmarks + quality_context, chama Python `/vision/metrics-v2`, compara contra ideais do banco, persiste `AnalysisReport` + `MetricEvaluation[]` + `MetricEvaluationAgainstIdeal[]` em transação única.
 
-**M2 (em andamento)**: PR-12 entregou scoring infra; PR-13 (`jaw`, 6 métricas), PR-14 (`nose`, 7 métricas), PR-15 (`mouth/lips`, 7 métricas) e PR-16 (`brows`, 8 métricas) já entregues. Total: 116 testes Vitest, 714 testes Python (53 jaw + 63 nose + 64 mouth + 108 brows desde PR-12). DB com 49 metric_definitions, 48 metric_ideals, region_metric_weight (jaw=6, eyes=6, symmetry=14, nose=7, mouth=7, brows=6) — **pendente aplicar migration 0009 quando Docker estiver rodando**. Próximas fatias do M2: PR-17 (cheekbones), PR-18 (forehead), PR-19 (global_shape), PR-20 (phi/golden presentation_only), PR-21 (recalibração v2.0), PR-22 (calibração com fotos reais), PR-23 (multi-foto + perfil sagital + philtrum). Detalhe em [`PLAN_M2_BACKLOG.md`](./PLAN_M2_BACKLOG.md).
+**M2 (em andamento)**: PR-12 entregou scoring infra; PR-13 (`jaw`, 6 métricas), PR-14 (`nose`, 7 métricas), PR-15 (`mouth/lips`, 7 métricas), PR-16 (`brows`, 8 métricas) e PR-17 (`cheekbones`, 5 métricas) já entregues. Total: 116 testes Vitest, 793 testes Python. DB com 54 metric_definitions, 53 metric_ideals, region_metric_weight (jaw=6, eyes=6, symmetry=14, nose=7, mouth=7, brows=6, cheekbones=5). Próximas fatias do M2: PR-18 (forehead), PR-19 (global_shape), PR-20 (phi/golden presentation_only), PR-21 (recalibração v2.0), PR-22 (calibração com fotos reais), PR-23 (multi-foto + perfil sagital + philtrum). Detalhe em [`PLAN_M2_BACKLOG.md`](./PLAN_M2_BACKLOG.md).
 
 ---
 

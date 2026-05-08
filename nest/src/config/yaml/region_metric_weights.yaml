@@ -76,3 +76,13 @@ weights:
     brow_arch_peak_r: 1.0
     brow_tail_drop_l: 1.2
     interbrow_distance_ratio: 1.1
+
+  cheekbones:
+    # PR-17 (M2 cheekbones family). malar_projection_index weighted higher
+    # (main lateral prominence signal). cheekbone_to_jaw carries aesthetic
+    # importance for facial contour (taper signal).
+    zygomatic_width_ratio: 1.0
+    malar_projection_index: 1.2
+    midface_height_ratio: 1.0
+    cheekbone_to_jaw_ratio: 1.1
+    submalar_hollow_index: 1.0

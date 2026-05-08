@@ -112,6 +112,19 @@ BROW_POSE_PARAMS = PosePenaltyParams(
     floor=0.17,
 )
 
+# Cheekbone / midface metrics are highly sensitive to yaw — bizygomatic width
+# collapses strongly when the head rotates (lateral projection foreshortens).
+# Pitch affects midface_height_ratio (vertical distances distort with tilt)
+# but less severely. Similar to jaw in sensitivity; slightly less strict on
+# soft threshold because zygomatic landmarks (LM_JAWLINE[1/15]) are contour
+# points and less approximate than gonion on Mesh-478. Floor matches brow.
+CHEEKBONE_POSE_PARAMS = PosePenaltyParams(
+    yaw_soft_deg=5.0, yaw_hard_deg=15.0,
+    pitch_soft_deg=6.0, pitch_hard_deg=18.0,
+    yaw_weight=0.75, pitch_weight=0.25,
+    floor=0.17,
+)
+
 
 def _axis_penalty(angle_deg: float, soft: float, hard: float, floor: float) -> float:
     """Piecewise linear penalty for a single rotation axis."""

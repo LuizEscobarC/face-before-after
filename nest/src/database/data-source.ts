@@ -32,6 +32,7 @@ export const dataSourceOptions: DataSourceOptions = {
   migrationsTableName: 'typeorm_migrations',
   synchronize: false,
   migrationsRun: false,
+  migrationsTransactionMode: 'each',   // allows transaction=false override on individual migrations
   // Local/dev: ssl=false. Managed hosts (Render/Railway/Supabase): set DB_SSL=true.
   ssl:
     process.env.DB_SSL === 'true'

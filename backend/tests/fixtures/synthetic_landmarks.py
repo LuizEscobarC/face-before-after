@@ -30,6 +30,7 @@ from app.domain.landmarks_mesh import (
     P_BROW_LEFT_INNER,
     P_BROW_RIGHT_INNER,
     P_FOREHEAD_CROWN,
+    P_LEFT_CHEEK,
     P_LEFT_EYE_BOT,
     P_LEFT_EYE_INNER,
     P_LEFT_EYE_OUTER,
@@ -52,6 +53,7 @@ from app.domain.landmarks_mesh import (
     P_RIGHT_GONION,
     P_RIGHT_IRIS_CENTER,
     P_RIGHT_MOUTH,
+    P_RIGHT_CHEEK,
     P_RIGHT_ZYGOMATIC,
     P_SUBNASALE,
     P_UPPER_LIP,
@@ -543,5 +545,77 @@ def drooping_brow_face() -> np.ndarray:
     kp.update(_CANONICAL_BROW_PTS)
     # Override only the left outer brow (tail) to create droop
     kp[LM_LEFT_BROW[0]] = (_BROW_L_OUTER[0], _BROW_L_OUTER[1] + 20.0)  # (250, 280)
+    grid = _base_grid()
+    return _set_key_points(grid, kp)
+
+
+# ---------------------------------------------------------------------------
+# Cheekbone / midface fixtures (PR-17)
+# ---------------------------------------------------------------------------
+# Canonical cheekbone geometry. After normalisation (ICD = 100 px → 1.0 ICU):
+#   P_LEFT_ZYGOMATIC  (338) at (200, 300) → x = −2.0 ICU
+#   P_RIGHT_ZYGOMATIC (378) at (600, 300) → x = +2.0 ICU → bizygomatic = 4.0 ICU
+#   P_LEFT_GONION     (58)  at (240, 480) → x = −1.6 ICU
+#   P_RIGHT_GONION    (288) at (560, 480) → x = +1.6 ICU → bigonial    = 3.2 ICU
+#   P_LEFT_EYE_OUTER  (33)  kept at (250, 300) via canonical kp → biocular = 3.0 ICU
+#   P_SUBNASALE       (2)   at (400, 450) → y = +1.5 ICU (midface height)
+#   P_LEFT_CHEEK      (332) at (220, 400) → x = −1.8 ICU
+#   P_RIGHT_CHEEK     (365) at (580, 400) → x = +1.8 ICU → bicheek     = 3.6 ICU
+#
+# Metric values (ideal in brackets):
+#   zygomatic_width_ratio   = 4.0 ICU  [4.00]
+#   malar_projection_index  = 4.0/3.0 ≈ 1.333  [1.33]
+#   midface_height_ratio    = 1.5 ICU  [1.50]
+#   cheekbone_to_jaw_ratio  = 4.0/3.2 = 1.25   [1.25]
+#   submalar_hollow_index   = 1−(3.6/4.0) = 0.10  [0.10]
+
+_CHEEK_ZYG_L     = (200.0, _FACE_CY)        # bizygomatic = 400 px = 4.0 ICU total
+_CHEEK_ZYG_R     = (600.0, _FACE_CY)
+_CHEEK_GON_L     = (240.0, 480.0)           # bigonial = 320 px = 3.2 ICU
+_CHEEK_GON_R     = (560.0, 480.0)
+_CHEEK_SUBNASALE = (_FACE_CX, 450.0)        # midface height = 150 px = 1.5 ICU
+_CHEEK_CHEEK_L   = (220.0, 400.0)           # bicheek = 360 px = 3.6 ICU
+_CHEEK_CHEEK_R   = (580.0, 400.0)
+
+
+def perfect_cheekbone_face() -> np.ndarray:
+    """(478, 3) — face with canonical cheekbone / midface geometry.
+
+    All five cheekbone metrics fall at or very near ideal:
+      zygomatic_width_ratio   ≈ 4.00 ICU   (ideal 4.00)
+      malar_projection_index  ≈ 1.333       (ideal 1.33, conf_raw > 0.99)
+      midface_height_ratio    ≈ 1.50 ICU   (ideal 1.50)
+      cheekbone_to_jaw_ratio  ≈ 1.25        (ideal 1.25)
+      submalar_hollow_index   ≈ 0.10        (ideal 0.10)
+    """
+    kp = _canonical_key_points()
+    kp[P_LEFT_ZYGOMATIC]  = _CHEEK_ZYG_L
+    kp[P_RIGHT_ZYGOMATIC] = _CHEEK_ZYG_R
+    kp[P_LEFT_GONION]     = _CHEEK_GON_L
+    kp[P_RIGHT_GONION]    = _CHEEK_GON_R
+    kp[P_SUBNASALE]       = _CHEEK_SUBNASALE
+    kp[P_LEFT_CHEEK]      = _CHEEK_CHEEK_L
+    kp[P_RIGHT_CHEEK]     = _CHEEK_CHEEK_R
+    grid = _base_grid()
+    return _set_key_points(grid, kp)
+
+
+def square_jaw_cheekbone_face() -> np.ndarray:
+    """(478, 3) — cheekbone fixture with a wide jaw (square-jaw phenotype).
+
+    Gonions moved outward so bigonial ≈ bizygomatic:
+      P_LEFT_GONION  at (160, 480) → x = −2.4 ICU
+      P_RIGHT_GONION at (640, 480) → x = +2.4 ICU → bigonial = 4.8 ICU
+      cheekbone_to_jaw_ratio = 4.0 / 4.8 ≈ 0.833 → 'square_jaw' direction
+    All other metrics remain at canonical values.
+    """
+    kp = _canonical_key_points()
+    kp[P_LEFT_ZYGOMATIC]  = _CHEEK_ZYG_L
+    kp[P_RIGHT_ZYGOMATIC] = _CHEEK_ZYG_R
+    kp[P_LEFT_GONION]     = (160.0, 480.0)
+    kp[P_RIGHT_GONION]    = (640.0, 480.0)
+    kp[P_SUBNASALE]       = _CHEEK_SUBNASALE
+    kp[P_LEFT_CHEEK]      = _CHEEK_CHEEK_L
+    kp[P_RIGHT_CHEEK]     = _CHEEK_CHEEK_R
     grid = _base_grid()
     return _set_key_points(grid, kp)
