@@ -10,6 +10,10 @@ import { IdealsVersionEntity } from './infrastructure/entities/ideals-version.en
 import { MetricIdealEntity } from './infrastructure/entities/metric-ideal.entity.js';
 import { AnalysisThresholdConfigEntity } from './infrastructure/entities/analysis-threshold-config.entity.js';
 import { SeverityCollapsePolicyEntity } from './infrastructure/entities/severity-collapse-policy.entity.js';
+import { AnalysisReportEntity } from './infrastructure/entities/analysis-report.entity.js';
+import { LandmarkPayloadEntity } from './infrastructure/entities/landmark-payload.entity.js';
+import { MetricEvaluationEntity } from './infrastructure/entities/metric-evaluation.entity.js';
+import { MetricEvaluationAgainstIdealEntity } from './infrastructure/entities/metric-evaluation-against-ideal.entity.js';
 
 @Module({
   imports: [
@@ -22,6 +26,10 @@ import { SeverityCollapsePolicyEntity } from './infrastructure/entities/severity
       MetricIdealEntity,
       AnalysisThresholdConfigEntity,
       SeverityCollapsePolicyEntity,
+      AnalysisReportEntity,
+      LandmarkPayloadEntity,
+      MetricEvaluationEntity,
+      MetricEvaluationAgainstIdealEntity,
     ]),
   ],
   controllers: [AnalysisController],

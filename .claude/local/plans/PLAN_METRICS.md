@@ -1,257 +1,492 @@
-Visão geral do que será adicionado
-Você vai construir quatro camadas novas sobre o pipeline atual:
+# PLAN_METRICS.md
 
-Um catálogo expandido de métricas atômicas — saindo de poucas medidas para uma biblioteca densa de proporção, simetria, definição estrutural e fotogenia geométrica, cada uma com metadados que tornam a métrica auto-descritiva.
-Uma engine de comparação com ideais — que pega cada métrica atômica, compara com faixas de referência, calcula desvio direcional, percentil populacional e produz scores por região e um score global ponderado.
-Um catálogo de overlays visuais — cada métrica relevante vira uma camada SVG sobreponível na foto do usuário (linhas, ângulos, máscaras, vetores, heatmaps), com regras de composição e suporte a renderização cliente e exportação server-side.
-Uma engine de diagnóstico textual e plano de ação — que traduz métricas e desvios em linguagem natural, prioriza recomendações por impacto percebido e gera o relatório final.
+> Plano mestre da expansão de métricas, ideais, overlays e diagnóstico.
+> Documento de referência permanente. Releia no início de cada sessão.
+> Última atualização: 2026-05-08 (após PR-3).
 
-A ordem importa. Não pule para a Fase 3 antes da Fase 1 e 2 estarem maduras, porque overlay sem ideal calibrado é decoração, e diagnóstico sem score por região é texto genérico.
+---
 
-Fase 1 — Catálogo expandido de métricas atômicas
-1.1 Princípios que regem toda métrica
-Antes de listar as métricas, defina no projeto a "carteira de identidade" obrigatória de cada uma. Isso é o que vai permitir que a Fase 2 (ideais) e a Fase 3 (overlays) funcionem sem acoplamento direto. Toda métrica precisa carregar:
+## 0. Estado atual do projeto
 
-Um metric_id único, em snake_case, estável (não muda mesmo se o cálculo for refatorado).
-Uma region semântica (eyes, brows, nose, mouth, jaw, chin, midface, cheeks, forehead, global, symmetry, photo_quality).
-Um unit declarado (px, mm normalizado, ratio adimensional, graus, percentual, índice 0–1).
-Um value numérico bruto.
-Um error estimado de propagação (incerteza vinda da qualidade da foto, da pose, e da estabilidade do landmark).
-Um confidence final (entre 0 e 1) já com penalidades regionais aplicadas.
-Um direction opcional (neutro, left_dominant, right_dominant, longer, shorter, wider, narrower, etc.) — usado pelo diagnóstico.
-Um dependency_set — quais landmarks foram consumidos para calcular essa métrica. Isso permite invalidar métricas automaticamente se um landmark for marcado como não confiável.
+| PR | Escopo | Status |
+|----|--------|--------|
+| PR-1 | Postgres no compose + TypeORM no Nest + DataSource standalone + scripts CLI | ✅ DONE |
+| PR-2 | Migrations `0000_extensions`, `0001_catalogs`, `0002_seed_initial_catalogs` + 6 entidades + seed v1.0 | ✅ DONE |
+| PR-3 | Migration `0003_evaluations_and_root` + 4 entidades particionadas + FKs compósitas | ✅ DONE |
+| **PR-4** | **FastAPI: camada de normalização (`services/normalization/`) + 3 fixtures sintéticas + testes** | 🔄 **NEXT** |
+| PR-5 | FastAPI: família simetria (5 métricas) + ideais YAML no Nest + testes | ⏳ |
+| PR-6 | FastAPI: família terços (4 métricas) + ideais + testes | ⏳ |
+| PR-7 | FastAPI: família quintos (5 métricas) + ideais + testes | ⏳ |
+| PR-8 | FastAPI: família olhos (6 métricas) + ideais + testes | ⏳ |
+| PR-9 | Nest: `IdealComparator` + `SeverityClassifier` + propagação de confiança | ⏳ |
+| PR-10 | Nest: `AnalysisOrchestrator` + endpoint `POST /api/analyze` + integração end-to-end | ⏳ |
 
-A regra de ouro: nenhuma métrica retorna apenas um número. Ela retorna o número e o contexto suficiente para que outro módulo decida se confia nela.
-1.2 Normalização obrigatória antes de qualquer cálculo
-Toda métrica trabalha sobre landmarks já normalizados. Crie uma etapa fixa de pré-processamento que:
+**Critério de M1 "feito"**: `POST /api/analyze` (Nest) recebe `landmarks + quality_context`, chama `/vision/metrics-v2` (Python) que devolve 20 métricas brutas, Nest aplica comparator/severity/persistência, retorna `AnalysisReport` com snapshots de versão. Sem texto de diagnóstico, sem overlay, sem score regional/global ainda (M2).
 
-Aplica head pose correction usando os ângulos yaw/pitch/roll já estimados pelo Módulo 0.
-Centraliza o rosto pelo centroide facial.
-Escala usando uma referência interna estável — recomendado: distância intercanthal (canto interno do olho esquerdo ao canto interno do olho direito), porque ela é menos afetada por expressão do que distâncias de boca ou queixo.
-Roda o rosto para alinhar a linha intercanthal com o eixo horizontal (corrige roll residual).
+---
 
-Métricas em pixels viram métricas adimensionais (ratios) ou em "unidades intercanthais". Essa decisão tem que ser documentada e congelada cedo, porque mudar a base de normalização depois invalida todo o histórico longitudinal do usuário.
-1.3 Famílias de métricas — o que implementar
-Cada subfamília abaixo deve virar um módulo Python isolado dentro de services/metrics/, com testes próprios e um arquivo de schema declarando as métricas que produz. Ordene a implementação por valor percebido — eu sugeri uma ordem ao final desta seção.
-Família simetria. Cobre desvio bilateral em cada região. Métricas a calcular: desvio do midline (distância média entre ponto da testa, ponta do nariz, philtrum e queixo em relação à linha vertical ideal); assimetria de altura dos olhos; assimetria de altura das sobrancelhas; canting dos lábios (inclinação da linha que une os cantos da boca em relação à horizontal); assimetria horizontal do queixo; assimetria de largura mandibular; assimetria de altura das maçãs do rosto; índice de assimetria global (média ponderada das anteriores); mapa de assimetria ponto-a-ponto (vetor que pode alimentar heatmap depois).
-Família proporções verticais (terços). Divide o rosto em testa, nariz e boca-queixo. Métricas: comprimento absoluto de cada terço, ratio de cada terço sobre o comprimento total, desvio em relação à divisão ideal de 33-33-33, identificação do terço dominante, ratio terço-superior/terço-inferior.
-Família proporções horizontais (quintos). Divide o rosto em cinco colunas verticais usando os cantos externos dos olhos como divisores principais. Métricas: largura de cada quinto, desvio em relação ao ideal (cada quinto deve ter aproximadamente a largura de um olho), ratio espaçamento intercanthal sobre largura ocular.
-Família olhos. Largura ocular (canto a canto), altura ocular (pálpebra superior à inferior), aperture ratio (altura sobre largura), distância interpupilar, distância intercanthal, canthal tilt aproximado (ângulo da linha que une canto interno e externo em relação à horizontal), tilt absoluto e tilt relativo entre os dois olhos, posição do tear duct, indicador de hooded eyes (cobertura da pálpebra superior sobre o globo).
-Família sobrancelhas. Altura média da sobrancelha sobre o olho, posição do pico (peak position) da sobrancelha em fração da largura, inclinação da sobrancelha (ângulo cabeça-cauda), espessura aproximada (precisa de processamento de imagem além de landmark — ver nota abaixo), simetria entre direita e esquerda, distância entre as sobrancelhas (glabela).
-Família nariz. Comprimento nasal (raiz à ponta), largura nasal (alar a alar), ratio largura-nasal sobre intercanthal (regra clássica: largura do nariz aproximadamente igual à intercanthal), desvio do eixo nasal em relação ao midline, simetria das narinas visíveis frontalmente, ratio comprimento sobre largura, posição da ponta em relação aos terços.
-Família boca e lábios. Largura da boca, largura da boca sobre largura do nariz (ratio harmônico), largura da boca sobre distância entre pupilas (regra: cantos da boca aproximadamente sob as íris), comprimento do philtrum, ratio lábio superior sobre inferior, definição do arco de cupido (curvatura da linha vermelhão superior), simetria dos cantos da boca, smile line aproximada se a foto for sorrindo (mas marcar como degradada).
-Família mandíbula e queixo. Largura mandibular bigonial, ratio largura mandibular sobre largura zigomática (jawline-to-cheekbone — métrica forte para definição masculina), ângulo gonial aproximado em 2D (ângulo formado pela linha mandíbula-orelha e mandíbula-queixo), projeção do queixo (estimativa frontal usando a posição relativa da ponta do queixo ao centroide labial — limitada, marcar como aproximação), largura do queixo, simetria mandibular esquerda-direita, definição lateral (curvatura/retidão da linha mandibular).
-Família maçãs do rosto. Largura zigomática (ponto mais lateral da bochecha), altura da maçã (posição vertical do ponto zigomático em relação aos olhos), prominência aproximada (limitada em 2D — depende muito de iluminação, marcar com confiança baixa por padrão).
-Família testa. Altura da testa (sobrancelha à linha do cabelo — só funciona se o cabelo não cobre, então depende da flag hair_covering do Módulo 0), distância sobrancelha ao olho.
-Família global e formato facial. Largura facial sobre altura facial (compactness), classificação do formato facial (oval, redondo, quadrado, retangular, coração, diamante, oblongo) baseada em ratios entre largura zigomática, largura mandibular, largura de testa e altura total, perímetro da silhueta facial, fator de "compactness" (área inscrita sobre área do bounding box).
-Família phi/golden ratio (opcional, baixa prioridade). Lista de razões clássicas que historicamente foram associadas ao phi (1.618). Implemente, mas marque essas métricas como presentation_only no metadata — elas servem para overlays vistosos ao usuário, não devem entrar no score global porque a base científica é fraca.
-Família fotogenia geométrica. Métricas que avaliam quão "fotogênico" o ângulo está, independente do rosto: alinhamento da câmera, correção de pose residual, presença de sombra forte unilateral (vem do Módulo 0 mas reaproveite). São úteis no diagnóstico para sugerir "tire de novo melhor" antes de dar conselho estético.
-1.4 Métricas que dependem de pixel além de landmark
-Algumas avaliações citadas nos anexos (acne, olheiras, qualidade de pele, espessura de sobrancelha real, densidade de barba) não são extraíveis só de landmarks. Para a Fase 1, não tente implementá-las. Crie placeholders no schema marcados como requires_pixel_analysis: true e deixe-os retornando null com confidence: 0. Isso reserva o espaço no contrato sem te forçar a entregar agora. Volta nelas só depois da Fase 4, com um módulo dedicado de análise de pele rodando em paralelo no FastAPI.
-1.5 Sistema de propagação de confiança
-Cada métrica recebe penalidades em cascata:
+## 1. Separação Python ↔ Nest (regra dura — NÃO QUEBRAR)
 
-A quality_context que vem do Módulo 0 traz quality_score global e regional_penalties.
-A região da métrica determina qual penalidade aplicar (uma métrica de jaw é multiplicada por regional_penalties.jaw).
-A pose do rosto aplica penalidade adicional não-linear: pequenos desvios (até ~5°) quase não penalizam, mas a partir de ~10° a penalidade cresce rápido. Defina uma curva (sugiro sigmóide invertida) e ajuste por região — métricas frontais (terços) sofrem menos com yaw do que métricas que dependem de simetria.
-A estabilidade dos landmarks daquela região (variância em uma micro-rajada de capturas, se você fizer captura múltipla) entra como um terceiro fator. Para MVP da Fase 1, capture única basta — deixa o multi-capture na Fase 2.
+A separação correta entre os dois serviços é a coisa mais importante deste plano. Quebrar em qualquer PR é defeito grave que vai contaminar tudo a jusante.
 
-A confidence final é o produto desses três fatores, clipada em [0, 1]. Métricas com confidence < 0.4 não devem aparecer em diagnóstico nem em overlay; apenas no JSON cru, marcadas como low_confidence: true.
-1.6 Ordem de implementação dentro da Fase 1
-Não tente implementar tudo de uma vez. A ordem que traz mais valor cedo é: simetria → terços → quintos → olhos → mandíbula → nariz → boca → sobrancelhas → maçãs → testa → globais → phi. As primeiras quatro famílias já permitem montar uma versão funcional do score.
+### FastAPI (Python) — só o que precisa de numpy/scipy/OpenCV
 
-Fase 2 — Engine de comparação com ideais e desvio populacional
-2.1 Conceito de "ideal"
-A primeira decisão arquitetural aqui é existencial: o que é "ideal"? Você tem três caminhos e precisa escolher um e documentar:
+- Detecção de landmarks (fallback server-side via MediaPipe — já existe parcialmente)
+- Normalização de landmarks (matrizes, geometria) — PR-4
+- Cálculo das métricas atômicas (geometria com numpy) — PR-5..8
+- Propagação de confiança (acoplada ao cálculo das métricas)
+- Futuro (M3): renderização de overlays/heatmaps com Pillow/OpenCV
+- **Não toca no Postgres. Não tem ORM. Não conhece nenhum YAML de configuração.**
 
-Ideal estatístico populacional. Para cada métrica, você define a média e o desvio-padrão da população humana adulta saudável. Um valor "ideal" é o que está dentro de uma faixa central (por exemplo, ±0.5 desvios). Vantagem: cientificamente defensável. Desvantagem: você precisa de uma tabela de referência por sexo, idade, e idealmente etnia.
-Ideal estético/canônico. Você usa proporções clássicas (terços iguais, quintos iguais, intercanthal igual à largura nasal, boca igual a 1.5 narizes). Vantagem: simples, intuitivo, casa bem com overlay visual. Desvantagem: é normativo e culturalmente enviesado — diga isso no produto.
-Ideal híbrido. É o que recomendo. Para métricas estruturais (terços, quintos, simetria), use ideal canônico. Para métricas absolutas (largura ocular, projeção de queixo), use referência populacional. Phi/golden marcadas como decoração.
+### Nest (TypeScript) — orquestração, interpretação, persistência
 
-Crie um arquivo declarativo (YAML ou JSON) chamado metric_ideals.yaml no FastAPI, indexado por metric_id, contendo: tipo do ideal, valor central, desvio aceitável (range "verde"), desvio aceitável estendido (range "amarelo"), além disso é "vermelho", direção do desvio (se valor > ideal, classifica como "wider"/"longer"/etc.), unidade, e referência bibliográfica (mesmo que seja só um link interno).
-Esse arquivo é a alma da Fase 2. Toda calibração futura passa por ele. Ele NÃO fica em código — fica em config/, versionado, revisável por não-engenheiros.
-2.2 Cálculo de desvio
-Para cada métrica computada, a engine produz:
+- Ownership do Postgres + migrations TypeORM
+- Todas as entities e repositórios
+- Carregamento dos YAMLs de configuração
+- `IdealComparator` (deviation, direction)
+- `SeverityClassifier` (5→3 via `severity_collapse_policy`)
+- Score regional + global + banding (M2+)
+- Versionamento e snapshots em cada análise
+- Aggregate root `AnalysisReport`
+- Persistência transacional
+- Endpoint exposto pro frontend (`POST /api/analyze`)
 
-deviation_raw: valor atual menos valor ideal, na unidade da métrica.
-deviation_normalized: o deviation_raw dividido pela tolerância "verde". Valores entre -1 e 1 estão na faixa boa, entre -2 e 2 na amarela, fora disso vermelho.
-percentile: posição estimada do usuário em relação à população (requer tabela populacional; se não tiver, deixa null).
-direction_label: rótulo direcional ("queixo retraído", "olhos próximos", "terço inferior dominante") — vem do mapa configurado no metric_ideals.yaml.
-severity: enum de ideal | mild | moderate | strong | extreme.
+### Frontend (React/Next)
 
-2.3 Score por região
-Agrupe métricas por região e produza um score 0–100 por região. Cada métrica contribui com (1 - |deviation_normalized| capado em 1) * confidence. O score regional é a média ponderada dessas contribuições, onde os pesos vêm de outro arquivo declarativo region_metric_weights.yaml.
-Você precisa de pesos por região porque algumas métricas pesam mais que outras na percepção daquela região. Exemplo: para "olhos", canthal tilt e altura ocular pesam mais que distância intercanthal. Para "mandíbula", ratio jawline-to-cheekbone pesa mais que largura absoluta. Calibre esses pesos olhando produtos similares e literatura, e deixe-os editáveis.
-2.4 Score global ponderado
-O score global é a combinação dos scores regionais. Use os pesos sugeridos nos anexos como ponto de partida (35% simetria, 35% proporção, 20% definição estrutural, 10% estabilidade da foto), mas mantenha-os no config/global_weights.yaml. Importante: o score global só é exibido se todos os scores regionais críticos tiverem confiança acima de um threshold (sugiro 0.5). Caso contrário, mostre só os regionais e marque o global como "indisponível por baixa confiança".
-2.5 Direção e magnitude — o que alimenta a Fase 3 e 4
-Cada métrica avaliada produz um objeto enriquecido que é o input dos overlays e do diagnóstico. Esse objeto contém: a métrica original, o desvio, a severidade, a direção em linguagem humana, e um campo improvement_vector quando aplicável (por exemplo, métricas de projeção têm um vetor 2D que aponta para onde o ideal está em relação ao atual — esse vetor é literalmente desenhado como seta na Fase 3).
-2.6 Versionamento dos ideais
-Ideais mudam. Quando você ajustar o metric_ideals.yaml, todo score histórico ficaria incomparável se você não versionar. Salve em cada AnalysisReport o ideals_version usado. No frontend, ao mostrar evolução, recompute os scores antigos com a versão atual antes de comparar — ou mostre os scores na versão original, mas com aviso de "calibração mudou".
+- MediaPipe WASM (modo padrão de captura)
+- Render de overlays SVG (M3)
+- Toggle UI
 
-Fase 3 — Catálogo de overlays visuais e renderização
-3.1 Estratégia de renderização: SVG cliente, raster servidor
-Tome essa decisão e siga. Recomendo: overlays interativos no cliente em SVG sobreposto à imagem (cada overlay é um componente React separado, ligável/desligável), e exportação final como imagem rasterizada server-side via Puppeteer ou Pillow no FastAPI quando o usuário pedir um PDF/PNG do relatório.
-A vantagem do SVG cliente é gigantesca: o usuário pode ligar/desligar camadas, ver animações, hover em métricas, sem nenhum custo de servidor. O servidor só renderiza no momento do export final.
-3.2 Catálogo de overlays — quais existir
-Cada overlay é uma especificação declarativa, não um componente ad-hoc. Crie um schema de overlay com: overlay_id, name_pt, description_pt, depends_on_metrics (lista de metric_id), category (axis, grid, contour, mask, vector, heatmap, label), default_visible (boolean), z_order (int), color_token, interactive (se aceita hover/click), legend_text.
-A lista mínima para a primeira versão:
+### YAMLs de configuração — todos no repo do Nest
 
-Linha do midline (axis).
-Linha intercanthal e linha mandibular (axis).
-Grid dos terços faciais (grid).
-Grid dos quintos faciais (grid).
-Contorno mandibular (contour) com marcação do ângulo gonial.
-Contorno do nariz com marcação de largura e eixo.
-Contorno labial com marcação de cantos e eixo.
-Marcadores de canthal tilt (axis duplo, um por olho).
-Marcadores de espaçamento ocular com legenda comparativa.
-Máscara de simetria espelhada — desenha a metade direita refletida sobre a esquerda em opacidade reduzida, para o usuário "ver" a assimetria.
-Heatmap de assimetria (sobre o rosto, vermelho onde a diferença esquerda-direita é maior).
-Heatmap de aderência ao ideal (verde nas regiões dentro da faixa, amarelo na faixa estendida, vermelho fora).
-Vetores de melhoria (setas curtas em regiões com desvio direcional).
-Overlay "ideal vs atual" — para cada landmark afetado, desenha o ponto atual e o ponto onde estaria no ideal, ligados por uma linha curta.
-Máscara phi/golden (opcional, marcada como decorativa).
-Régua de proporção mandíbula-zigomático.
-Marcação de altura da maçã do rosto.
-Eixo de inclinação labial (canting).
+Vivem em `nest/src/config/yaml/` (ou similar):
 
-3.3 Coordenadas e ancoragem
-Todo overlay opera no espaço dos landmarks normalizados, não no espaço de pixels da imagem original. Mantenha duas matrizes de transformação por sessão: normalized_to_original_pixels e original_pixels_to_display (que a UI ajusta conforme o tamanho de exibição). Os overlays são desenhados em coordenadas normalizadas e a transformação é aplicada na hora de renderizar. Isso evita que mudanças de tamanho de exibição quebrem alinhamento.
-3.4 Composição em camadas
-Os overlays não são exclusivos. O usuário pode ligar vários ao mesmo tempo. Defina ordem de empilhamento (z_order):
+- `metric_ideals.yaml` — faixas verde/amarelo/vermelho por métrica
+- `region_metric_weights.yaml` — peso de cada métrica na sua região (M2)
+- `global_weights.yaml` — pesos por dimensão para score global (M2)
+- `diagnostic_templates.yaml` — templates de texto por (metric_id, severity, direction, size) (M4)
+- `recommendations_catalog.yaml` — catálogo de recomendações (M4)
+- `overlay_definitions.yaml` — catálogo de overlays (M3)
 
-Camada 0: imagem da foto (com brilho levemente reduzido para overlays se destacarem).
-Camada 1: heatmaps (mais transparentes, ficam atrás).
-Camada 2: máscaras (semi-transparentes).
-Camada 3: grids e axes (linhas finas).
-Camada 4: contornos.
-Camada 5: vetores e setas.
-Camada 6: marcadores pontuais.
-Camada 7: labels textuais (sempre por cima de tudo).
+Python não vê nenhum desses arquivos. Se em algum PR aparecer YAML em `backend/`, é defeito.
 
-No frontend, cada camada é um <g> SVG. No backend, ao exportar, mantenha a mesma ordem.
-3.5 Tipos de saída exportáveis
-A funcionalidade "gerar réplicas com overlays" precisa produzir três outputs distintos:
+### `metric_registry` — caso especial
 
-Imagem anotada única — a foto do usuário com um conjunto pré-selecionado de overlays "essenciais" (midline, terços, contorno mandibular, canthal tilt). Esse é o "preview" que vai em primeira tela.
-Galeria por região — uma imagem por região analisada, cada uma com os overlays específicos daquela região (uma para olhos, uma para mandíbula, etc.). Útil para o relatório navegável.
-Composição "before/ideal" — duas imagens lado a lado: a foto real e uma versão da foto com landmarks deslocados para as posições ideais, redesenhada via warp (libraries: scikit-image ou OpenCV com remap). Use com cautela e marque visualmente como "simulação aproximada" — não é uma promessa de resultado.
+Python tem registry interno em código (uma função decorada por `metric_id`). A "carteira de identidade" canônica (região, peso, unit, presentation_only) vive no Nest na tabela `metric_definition`. Python expõe `GET /vision/capabilities` listando os `metric_id` que sabe calcular; Nest valida em CI que o catálogo bate com o que o Python oferece. Em runtime, Nest envia a lista de `metric_id` a calcular junto com os landmarks no request.
 
-A composição "before/ideal" é tecnicamente mais cara. Implemente ela na Fase 3.5, depois das outras saídas estarem estáveis. Para a primeira entrega, pode substituir por overlay vetorial simples ("ponto atual" → "ponto ideal") sem warp da imagem real.
-3.6 Endpoint de renderização server-side
-No FastAPI, adicione um endpoint POST /vision/render. Recebe: landmarks, image_base64 (ou referência ao asset salvo), lista de overlay_ids, formato de saída (PNG, JPG, PDF). Retorna o asset renderizado. Isso é o que alimenta o export final e o que o NestJS chama quando precisa gerar o PDF do relatório.
-3.7 Heatmaps — como gerar de fato
-Heatmaps merecem atenção separada porque são o que parece "IA avançada" para o usuário. Para gerar:
+---
 
-Heatmap de assimetria: para cada ponto do mesh, calcule a distância ao ponto homólogo refletido sobre o midline. Normalize para [0, 1]. Interpole para um campo denso (use scipy.interpolate.griddata com método cúbico). Mapeie para uma rampa de cor (verde-amarelo-vermelho) e renderize com alpha proporcional à intensidade.
-Heatmap de aderência ao ideal: idem, mas em vez de assimetria, calcule por região o |deviation_normalized| da métrica regional. Valor por região, não por ponto, então tem visual mais "blocado". Para suavizar, faça interpolação espacial entre regiões adjacentes.
+## 2. Decisões travadas (DEC-1 a DEC-20)
 
-Renderize esses heatmaps server-side no FastAPI usando OpenCV/Pillow e devolva como camada PNG transparente, que o frontend só sobrepõe. Não tente gerar no cliente — é matemática pesada.
+Mudar qualquer uma exige reabertura explícita. Algumas mudanças invalidam histórico.
 
-Fase 4 — Engine de diagnóstico textual e plano de ação
-4.1 Templates por métrica e por desvio
-Crie um arquivo diagnostic_templates.yaml indexado por metric_id. Cada métrica tem um conjunto de templates por severidade e direção. Estrutura: metric_id → severity → direction → template. O template é uma string com placeholders para inserir o valor atual, o ideal, e o percentil quando disponível.
-Cada template tem três variantes:
+### Bloqueantes (mudar invalida dados)
 
-short: até 80 caracteres, para a UI compacta ("Terço inferior levemente dominante").
-medium: até 200 caracteres, para os cards do relatório ("O seu terço inferior está cerca de 8% acima do ideal canônico, o que é uma diferença leve e dentro da faixa frequente na população").
-long: até 600 caracteres, para a visualização expandida com contexto, explicação do que aquela métrica significa e por que ela importa.
+| ID | Decisão |
+|----|---------|
+| DEC-1 | **Base de normalização**: distância intercanthal (canto interno↔canto interno do olho). Toda métrica `unit=ratio` é relativa a ela. |
+| DEC-2 | **Conceito de ideal**: híbrido. M1 só canônico + literatura aberta (Farkas só M2+). |
+| DEC-3 | **Severidade**: 5 níveis em `metric_evaluation_against_ideal` (`ideal\|mild\|moderate\|strong\|extreme`); 3 em `diagnostic_candidate` (`LEVE\|MODERADO\|SEVERO`). Colapso: `ideal+mild→LEVE`, `moderate→MODERADO`, `strong+extreme→SEVERO`. Persistido em `severity_collapse_policy`. |
+| DEC-4 | **i18n**: campo `locale` desde já, default `pt-BR`. Display names em JSONB `{locale: text}`. |
+| DEC-5 | **Aggregate root**: `analysis_report` é a raiz unificada. FK opcional para `diagnostic_report` e `decision_output` (coexistência durante migração). |
 
-4.2 Hierarquia de severidade e priorização
-O usuário não quer ler 80 análises. Implemente uma camada de priorização que pega todas as métricas avaliadas e ranqueia por relevância. Critérios de ranqueamento:
+### Estratégicas (afetam design, mas reversíveis)
 
-Severidade do desvio (extreme > strong > moderate > mild > ideal).
-Confiança da métrica (descarte abaixo de 0.5).
-Peso da métrica na percepção da região (do region_metric_weights.yaml).
-"Acionabilidade" — métricas que têm recomendação executável sobem; métricas estruturais imutáveis (formato ósseo) descem para a categoria informativa.
+| ID | Decisão |
+|----|---------|
+| DEC-6 | **`presentation_only` regra DURA em código**: `regional_scorer`/`global_scorer` recusam por assertion. Phi/golden ratio aparecem em overlay mas nunca em score. |
+| DEC-7 | **Thresholds em `analysis_threshold_config`** (versionada). Defaults: `min_confidence_to_display_metric=0.4`, `min_confidence_to_show_global_score=0.5`. |
+| DEC-8 | **Regiões críticas para gating do score global**: olhos, simetria, proporção_vertical, mandíbula. Se qualquer uma das quatro tiver `confidence < 0.5`, score global vira null. |
+| DEC-9 | **Bandas de score**: `<50` mostra apenas "explore oportunidades de harmonização" sem número; `50–70` mostra número + "rosto com aspectos a refinar"; `70–85` "boa harmonia geral"; `>85` "alta harmonia". |
+| DEC-10 | **Pixel-dependentes**: cadastra em `metric_definition` com `requires_pixel_analysis=true`, MAS pipeline pula (não emite `metric_evaluation`). |
+| DEC-11 | **Multi-captura adiada**. `landmark_payload.capture_count INT DEFAULT 1` reservado. |
+| DEC-12 | **Versionamento**: 7 tabelas `*_version` independentes agora; agregador (`analysis_versioning_set`) depois. |
+| DEC-13 | **`user_context`** (sex/age) aceito mas IGNORADO no M1. Registrado em `processing_notes` quando presente. |
+| DEC-14 | **MinIO** para assets renderizados. Paths: `/rendered/single/{report_id}.png`, `/rendered/region/{report_id}/{region}.png`, `/rendered/before-ideal/{report_id}.png`, `/reports/pdf/{report_id}.pdf`. TTL + opt-in (mesma policy de `photo_storage`). |
+| DEC-15 | **Before/ideal**: M3 vetorial (sem warp). Warp pós-M3. |
 
-Output: top 3 a 5 pontos fortes (severidade ideal + alta confiança + peso alto) e top 3 a 5 pontos a observar (severidade moderada-extrema + alta confiança + acionabilidade alta).
-4.3 Tipos de recomendação
-Toda recomendação tem uma category:
+### Operacionais
 
-photo — sugestão sobre como tirar foto melhor (mais luz frontal, ângulo, expressão neutra).
-posture — postura cervical, posição da cabeça em repouso.
-lifestyle — sono, hidratação, redução de inchaço, redução de gordura facial.
-styling — barba, corte de cabelo, sobrancelha, ângulo de selfie.
-professional_referral — quando o desvio for funcional (não só estético): respiração nasal, oclusão, dor na ATM, postura cervical patológica. Direcione para profissional, não dê conselho.
-presentation_only — observação puramente informativa, sem ação.
+| ID | Decisão |
+|----|---------|
+| DEC-16 | **`metric_id` snake_case inglês** + `display_name` JSONB i18n. |
+| DEC-17 | **`metric_evaluation` e `analysis_report` particionadas RANGE mensal** por `generated_at` desde o CREATE. |
+| DEC-18 | **DDL incremental por marco**: levas 1+2 antes do M1; demais ao longo dos M2-M4. |
+| DEC-19 | **Legado paralelo (A)**: `services/metrics/` novo no Python. `/vision/metrics` legado intocado, deprecation só em M3-M4. |
+| DEC-20 | **Postgres entra no M1**. ✅ DONE no PR-1. Migration `0000_extensions` isolada para `pgcrypto`. ✅ DONE no PR-2. |
 
-Crie um arquivo recommendations_catalog.yaml mapeando (metric_id, severity, direction) → lista de recommendation_id. Cada recommendation_id é detalhado em outro arquivo com texto, categoria, e prioridade.
-4.4 Tom e disclaimers obrigatórios
-Esse é um produto sensível. Estabeleça regras de copywriting que o gerador de texto nunca viola:
+---
 
-Nunca use linguagem médica afirmativa ("você tem assimetria patológica"). Use observação ("foi observada uma assimetria leve no plano frontal da imagem").
-Nunca prometa resultado ("faça X e seu rosto vai ficar Y"). Sugira ("essa observação pode ser explorada com X").
-Sempre feche o relatório com um disclaimer fixo: análise estética geométrica baseada em uma foto, não substitui avaliação profissional, recomendar acompanhamento médico se houver sintoma funcional.
-Nunca compare o usuário com pessoas específicas ou com tipos étnicos.
-Nunca emita score abaixo de um piso configurável (sugiro 35) — fala-se em "oportunidades de harmonização" em vez de devolver um número humilhante.
+## 3. Disclaimer canônico (congelado em `disclaimer_text_snapshot` v1)
 
-4.5 Geração do relatório final
-Junte tudo em um agregado AnalysisReport que contém: scores regionais e global, top observações priorizadas, recomendações priorizadas, lista de overlays sugeridos para visualização, timestamp, ideals_version, photo quality summary, e referência aos assets renderizados (URLs das imagens anotadas).
-Esse objeto é o que o NestJS persiste e o frontend consome.
+> "Esta análise é uma observação estética e geométrica produzida a partir de uma única foto. Não constitui diagnóstico médico, odontológico, fisioterapêutico ou de qualquer natureza clínica, e não substitui avaliação profissional presencial. Os resultados são sensíveis à qualidade da foto, ângulo, iluminação e expressão capturados. Se você apresenta dor, dificuldade funcional (na mastigação, respiração ou postura) ou desconforto persistente, procure um profissional habilitado."
 
-Estrutura de pastas — onde cada coisa mora
-No FastAPI (app/), adicione:
+Versionado junto com `threshold_config_version`. Nunca substitua sem incrementar versão.
 
-app/services/normalization/ — pré-processamento de landmarks (head pose correction, escala intercanthal, midline alignment).
-app/services/metrics/ — uma submódulo por família (symmetry.py, thirds.py, fifths.py, eyes.py, nose.py, mouth.py, jaw.py, brows.py, cheekbones.py, forehead.py, global_shape.py, phi.py).
-app/services/metric_registry.py — orquestra todas as famílias, aplica metadata, propaga confiança.
-app/services/ideals/ — comparator.py (engine de comparação), loader.py (carrega metric_ideals.yaml).
-app/services/scoring/ — regional_scorer.py, global_scorer.py.
-app/services/diagnosis/ — prioritizer.py, template_renderer.py, recommendation_resolver.py.
-app/services/rendering/ — overlay_registry.py, overlay_renderer.py (Pillow/OpenCV), heatmap_generator.py, report_exporter.py (PDF).
-app/config/ — metric_ideals.yaml, region_metric_weights.yaml, global_weights.yaml, diagnostic_templates.yaml, recommendations_catalog.yaml, overlay_definitions.yaml.
-app/routers/ — analyze.py (POST /vision/analyze: orquestra todo o pipeline novo), render.py (POST /vision/render).
-app/schemas/ — adicione metric_evaluation.py, analysis_report.py, overlay_spec.py.
+---
 
-No NestJS, adicione um módulo analysis/:
+## 4. Política de confiança baixa
 
-analysis/application/analysis.orchestrator.ts — chama o FastAPI /vision/analyze, pega o AnalysisReport, persiste, dispara eventos.
-analysis/domain/services/ — priority-policy.service.ts (caso queira aplicar políticas extras de UX que não cabem no Python), evolution-comparator.service.ts (compara reports ao longo do tempo).
-analysis/domain/value-objects/ — analysis-report.vo.ts, region-score.vo.ts, recommendation.vo.ts.
-analysis/infrastructure/repositories/ — persistência de reports.
-analysis/dto/ — DTOs espelhando os schemas Python (mantenha em sincronia via geração ou validação cruzada).
-vision/vision.client.ts — adicione método analyze(...) e render(...).
+FastAPI SEMPRE devolve as 20 métricas. Cada uma com:
 
-No frontend (React/Next):
+- `is_low_confidence` (bool, derivado de `confidence_final < 0.4`)
+- `displayable` (bool — adicional, NestJS aplica antes de mandar ao frontend)
 
-features/analysis/components/OverlayCanvas.tsx — componente que sobrepõe SVGs sobre a imagem.
-features/analysis/components/OverlayLayer/<um por overlay> — um componente declarativo por tipo de overlay, todos consumindo a mesma struct LandmarkContext + OverlaySpec.
-features/analysis/components/OverlayToggleBar.tsx — interface de ligar/desligar camadas.
-features/analysis/components/RegionScoreCard.tsx, MetricDetailPanel.tsx, RecommendationList.tsx — UI do relatório.
-features/analysis/api/analysis.client.ts — chamadas ao NestJS.
+Filtragem é responsabilidade do Nest. Persistência preserva tudo (auditoria + recalibração futura). Frontend nunca vê métrica abaixo do threshold, mas o histórico tem tudo.
 
+---
 
-Contratos novos — o que cada endpoint expõe
-Novo endpoint no FastAPI: POST /vision/analyze. Substitui o /vision/metrics quando o objetivo é o pipeline completo (deixe /vision/metrics vivo para uso interno e debug).
+## 5. Fase 1 — Catálogo expandido de métricas atômicas
 
-Request: session_id, landmarks, quality_context, user_context opcional (sexo declarado, faixa etária — só se o usuário consentiu, afeta seleção de ideais), ideals_version opcional (default = atual).
-Response: o AnalysisReport completo: lista de MetricEvaluation (métrica + ideal + desvio + severidade + confiança), RegionScore por região, GlobalScore, PrioritizedFindings (top observações), RecommendationList (priorizada), SuggestedOverlays (lista de overlay_id sugeridos para o frontend mostrar como padrão), Disclaimers (textos fixos a renderizar).
+### 5.1 Carteira de identidade obrigatória
 
-Novo endpoint: POST /vision/render.
+Toda métrica calculada pelo Python carrega no JSON de saída:
 
-Request: image_reference (URL ou base64), landmarks, lista overlay_ids, formato (png, jpg, pdf), opções de composição (resolução, qualidade, incluir legenda, idioma).
-Response: asset_url (se salvou em storage) ou asset_base64, metadata (overlays aplicados, dimensões, tempo de processamento).
+- `metric_id` — snake_case inglês, estável (não muda em refactor)
+- `region` — `eyes\|brows\|nose\|mouth\|jaw\|chin\|midface\|cheeks\|forehead\|global\|symmetry\|photo_quality`
+- `family` — `symmetry\|thirds\|fifths\|eyes\|brows\|nose\|mouth\|jaw\|cheekbones\|forehead\|global_shape\|phi\|photogenia`
+- `unit` — `intercanthal_units\|ratio\|degrees\|percent\|index_0_1`
+- `value` — número bruto
+- `error` — incerteza propagada
+- `confidence_raw` — antes das penalidades regionais/pose
+- `confidence_final` — após todas as penalidades
+- `direction` — `neutral\|left_dominant\|right_dominant\|longer\|shorter\|wider\|narrower\|...`
+- `dependency_landmarks` — array de índices MediaPipe consumidos
+- `presentation_only` — boolean (decorativa, não entra em score)
 
+Nada de `severity` ou `against_ideal` no Python — isso é Nest. Python devolve `value/error/confidence` e o Nest classifica.
 
-Ordem de implementação sugerida (cronograma de marcos)
-Pense em quatro marcos, cada um entregando algo demonstrável:
-Marco 1 — Núcleo analítico (semanas 1 a 3). Pré-processamento de normalização, famílias simetria + terços + quintos + olhos. Engine de ideais com 20 métricas calibradas. Score por região para essas quatro famílias e um score global parcial. Endpoint /vision/analyze retornando JSON cru sem texto. Sem overlays, sem diagnóstico — apenas confirmar que números saem certos. Crie testes unitários por família com fotos canônicas (rosto sintético perfeito, rosto com assimetria conhecida, rosto com pose torta) para garantir que cálculos são estáveis.
-Marco 2 — Famílias restantes e calibração (semanas 4 e 5). Adiciona mandíbula, nariz, boca, sobrancelhas, maçãs, testa, formato global. Sobe o catálogo para 60+ métricas. Calibra todos os ideais com revisão manual de 30-50 fotos. Score global completo. Ainda sem overlay; sem texto.
-Marco 3 — Visualização (semanas 6 a 8). Catálogo de overlays SVG no frontend, começando pelos 8 essenciais (midline, terços, quintos, contorno mandibular, canthal tilt, eye spacing, máscara de simetria, vetores de melhoria). Endpoint /vision/render server-side para os mesmos overlays. Heatmaps de assimetria e de aderência ao ideal. Composição "before/ideal" só com vetores (sem warp). Toggle bar funcional no frontend.
-Marco 4 — Diagnóstico e plano de ação (semanas 9 a 10). Templates de texto para cada métrica em três tamanhos. Engine de priorização. Recomendações catalogadas. Disclaimers obrigatórios. Geração do PDF do relatório. Revisão de copywriting com alguém não-engenheiro.
-Marcos opcionais pós-MVP. Composição before/ideal com warp real da imagem; análise de pixel (acne, olheiras) em módulo separado; multi-captura com mediana de landmarks; comparação longitudinal between reports.
+### 5.2 Normalização (DEC-1, congelada)
 
-Riscos, armadilhas e o que NÃO fazer
-Não trate landmarks ruins como bons. A maior fonte de bug aqui não é cálculo errado — é cálculo certo sobre landmarks instáveis. Sempre cheque a confiança que vem do Módulo 0 antes de qualquer coisa. Métricas com confiança < 0.4 não chegam no usuário.
-Não cole pesos no código. Todos os pesos, faixas ideais, templates, recomendações ficam em arquivos de configuração versionados. Mudar um peso não pode exigir deploy de código.
-Não venda como diagnóstico médico. Os anexos já reforçam isso — está literalmente no conselho final. O linguajar do produto, dos templates, do disclaimer e do nome das métricas precisa refletir "análise estética geométrica", nunca "diagnóstico". Profissional de saúde lê isso e o produto morre se a posição não estiver clara.
-Não tente entregar 80 métricas no Marco 1. A tentação de implementar tudo de uma vez é grande. Aprenda primeiro com 20 métricas calibradas, ajuste o pipeline, depois escale.
-Não monte overlays sem ter ideais calibrados. Um overlay que mostra "seu nariz está fora do ideal" quando o ideal foi mal definido é pior do que não mostrar nada. Calibre antes, desenhe depois.
-Não esqueça de versionar os ideais. Se você mudar metric_ideals.yaml sem versionar, perde a capacidade de comparação longitudinal — o usuário verá "evolução" que é só recalibração.
-Não meça pele com landmarks. Se a especificação pedir métricas que dependem de pixel, separe num módulo distinto e marque na carteira de identidade da métrica. Não enfie cálculo de pele dentro do módulo de simetria.
-Não exponha o score global cedo demais. Antes de ter 60+ métricas e calibração razoável, o score global será volátil e enganoso. Mostre só scores regionais até a calibração estar madura.
-Não trate "before/ideal" com warp como produto da Fase 3 inicial. Warp facial é tecnicamente delicado, eticamente mais ainda. Implemente como recurso opcional, depois do resto, e sempre marcado como "simulação aproximada".
-Não acople o frontend ao schema interno do FastAPI. Toda comunicação passa pelo NestJS. Mudanças de campo no Python não devem quebrar o Next. Use DTOs espelhados e validados nos dois lados.
-Não esqueça da consistência longitudinal. Cada AnalysisReport salvo precisa carregar quality_score, consistency_score, ideals_version e o fingerprint da sessão. Sem isso, comparação between reports é ruído (já documentado nos anexos — leve a sério).
+Pipeline obrigatório antes de QUALQUER métrica:
+
+1. **Pose correction**: aplica yaw/pitch/roll (vindos do Módulo 0) para projetar landmarks no plano frontal canônico
+2. **Centralização**: centroide facial vai para origem
+3. **Escala intercanthal**: distância entre cantos internos dos olhos vira 1.0
+4. **Alinhamento de midline**: rotação 2D para deixar a linha intercanthal horizontal (corrige roll residual)
+
+Saída: `NormalizedLandmarks` com `basis="intercanthal"`. Toda métrica downstream consome esse objeto.
+
+Mudar a base de normalização depois invalida todo histórico. Não fazer.
+
+### 5.3 Famílias do M1 — escopo das 20 métricas
+
+#### Família simetria (5 métricas — PR-5)
+- `midline_deviation` — desvio médio de testa/nariz/philtrum/mentum vs eixo vertical
+- `eye_height_asymmetry` — diferença Y entre centros dos olhos
+- `brow_height_asymmetry` — diferença Y entre picos das sobrancelhas
+- `lip_canting_angle` — inclinação da linha que une cantos da boca
+- `global_asymmetry_index` — média ponderada das 4 anteriores
+
+Region: `symmetry`. Unit: `intercanthal_units` ou `degrees`.
+
+#### Família terços (4 métricas — PR-6)
+- `upper_third_ratio` — testa/comprimento total
+- `middle_third_ratio` — sobrancelha→base do nariz / total
+- `lower_third_ratio` — base do nariz→queixo / total
+- `dominant_third` — categórica: `upper\|middle\|lower`
+
+Ideal canônico: 0.333 cada. Green ±0.02, yellow ±0.05.
+
+#### Família quintos (5 métricas — PR-7)
+- `fifth_1_ratio` a `fifth_5_ratio` — largura de cada quinto / largura facial
+- `intercanthal_to_eye_width_ratio` — espaçamento intercanthal / largura ocular média
+
+Ideal canônico: 0.20 cada. Green ±0.02.
+
+#### Família olhos (6 métricas — PR-8)
+- `eye_aperture_ratio_l` / `eye_aperture_ratio_r` — altura/largura do olho
+- `interpupillary_distance` — em unidades intercanthais
+- `intercanthal_distance` — sanity check (deve ser 1.0 por construção)
+- `canthal_tilt_l` / `canthal_tilt_r` — ângulo da linha canto interno→canto externo
+
+**Total M1: 20 métricas (5+4+5+6).**
+
+### 5.4 Famílias adiadas (M2)
+
+mandíbula, nariz, boca/lábios, sobrancelhas, maçãs, testa, formato global. Cada uma vai virar PR no M2. Phi/golden é família opcional, marcada como `presentation_only=true`.
+
+### 5.5 Pixel-dependentes (DEC-10)
+
+Métricas que precisam de análise de pixel além de landmarks (acne, olheiras, qualidade da pele, espessura real de sobrancelha, densidade de barba) são cadastradas em `metric_definition` com `requires_pixel_analysis=true`. O pipeline as **pula** — não emite `metric_evaluation` nem `metric_evaluation_against_ideal`. Reservam o `metric_id` no contrato. Voltar a elas pós-M4 com módulo dedicado.
+
+### 5.6 Propagação de confiança
+
+Python aplica em cascata, em ordem:
+
+1. Pega `quality_score` global do Módulo 0 — limita `confidence_raw`
+2. Aplica `regional_penalties[region]` correspondente — ex: métrica de jaw multiplica por `(1 - regional_penalties.jaw)`
+3. Aplica curva de pose (sigmóide invertida — pequenos desvios <5° quase não penalizam, ≥10° penalizam fortemente). Ajustar por região: terços sofrem menos com yaw que simetria.
+4. Estabilidade de landmarks (multi-captura, M2+) entra como terceiro fator. M1 ignora.
+
+`confidence_final = confidence_raw * regional_penalty * pose_penalty`, clipado em [0, 1].
+
+---
+
+## 6. Fase 2 — Engine de ideais e scoring (NO NEST, M2)
+
+Resumo. Detalhamento em outro documento quando o M2 começar.
+
+- `metric_ideals.yaml` no repo do Nest, indexado por `metric_id`
+- `IdealComparator` (Nest) consome `metric_value` (vindo do Python) + `metric_ideal` → produz `deviation_raw`, `deviation_normalized`, `direction_label`
+- `SeverityClassifier` (Nest) usa `severity_collapse_policy` para mapear 5→3
+- Score por região: `(1 - |deviation_normalized|) * confidence_final`, ponderado por `region_metric_weights.yaml`
+- Score global: combinação ponderada dos regionais via `global_weights.yaml`
+- Banding (DEC-9) aplicado antes de devolver ao frontend
+
+Fora do M1.
+
+---
+
+## 7. Fase 3 — Overlays (M3)
+
+Resumo:
+
+- SVG no cliente (interativo, com toggle de camadas)
+- Raster server-side via `POST /vision/render` no Python (Pillow/OpenCV) para export PDF/PNG
+- Heatmaps (assimetria, aderência ao ideal) gerados no Python via `scipy.interpolate.griddata`
+- Composição "before/ideal" vetorial primeiro, warp pós-M3
+
+Fora do M1 e M2.
+
+---
+
+## 8. Fase 4 — Diagnóstico textual e plano de ação (M4)
+
+Resumo:
+
+- `diagnostic_templates.yaml` indexado por `(metric_id, severity, direction, size)`, três tamanhos (short/medium/long)
+- Priorização por severidade × confiança × peso × acionabilidade
+- Catálogo de recomendações com categorias (`photo`, `posture`, `lifestyle`, `styling`, `professional_referral`, `presentation_only`)
+- Disclaimer obrigatório no fim de todo relatório
+- Geração de PDF como passo final
+
+Fora do M1.
+
+---
+
+## 9. Estrutura de pastas — split correto
+
+### FastAPI (Python) — `backend/app/`
+
+```
+backend/app/
+├── core/config.py
+├── domain/
+│   ├── normalized_landmarks.py     # dataclass NormalizedLandmarks(basis="intercanthal")
+│   └── metric_value.py             # dataclass do que sai pro Nest
+├── services/
+│   ├── normalization/              # PR-4 (próximo)
+│   │   ├── pose_correction.py
+│   │   ├── intercanthal_scaler.py
+│   │   ├── midline_aligner.py
+│   │   └── normalizer.py           # orquestra os 3 acima
+│   └── metrics/                    # PR-5..8
+│       ├── base.py                 # ABC + decorator @register_metric
+│       ├── registry.py             # MetricRegistry interno
+│       ├── confidence_propagation.py
+│       ├── symmetry.py             # PR-5
+│       ├── thirds.py               # PR-6
+│       ├── fifths.py               # PR-7
+│       └── eyes.py                 # PR-8
+├── vision/
+│   ├── routers/
+│   │   ├── metrics.py              # legado, intocado (DEC-19)
+│   │   ├── metrics_v2.py           # novo endpoint, M1
+│   │   └── capabilities.py         # GET /vision/capabilities
+│   └── schemas/
+│       ├── normalize_request.py
+│       ├── metrics_v2_request.py
+│       └── metrics_v2_response.py
+└── tests/
+    ├── fixtures/
+    │   ├── synthetic_perfect_face.py    # PR-4
+    │   ├── known_asymmetric_face.py     # PR-4
+    │   └── posed_face.py                # PR-4
+    └── unit/
+        ├── normalization/
+        ├── metrics/
+        └── confidence/
+```
+
+**O que NÃO existe no Python**: `infra/db/`, `alembic/`, `repositories/`, `services/ideals/`, `services/scoring/`, `services/diagnosis/`, qualquer YAML de configuração.
+
+### Nest — `nest/src/`
+
+```
+nest/src/
+├── database/
+│   ├── data-source.ts
+│   ├── database.module.ts
+│   └── migrations/
+│       ├── 1746000000000-Extensions.ts            # DONE
+│       ├── 1746000010000-Catalogs.ts              # DONE
+│       ├── 1746000020000-SeedInitialCatalogs.ts   # DONE
+│       └── 1746000030000-EvaluationsAndRoot.ts    # DONE
+├── modules/
+│   ├── analysis/
+│   │   ├── analysis.module.ts
+│   │   ├── api/
+│   │   │   └── analyze.controller.ts              # POST /api/analyze (PR-10)
+│   │   ├── application/
+│   │   │   └── analysis.orchestrator.ts           # PR-10
+│   │   ├── domain/
+│   │   │   ├── types/catalog.types.ts             # DONE
+│   │   │   └── services/
+│   │   │       ├── ideal-comparator.service.ts    # PR-9
+│   │   │       └── severity-classifier.service.ts # PR-9
+│   │   └── infrastructure/
+│   │       ├── entities/                          # 10 entidades (6 do PR-2 + 4 do PR-3)
+│   │       │   ├── metric-registry-version.entity.ts
+│   │       │   ├── metric-definition.entity.ts
+│   │       │   ├── ideals-version.entity.ts
+│   │       │   ├── metric-ideal.entity.ts
+│   │       │   ├── analysis-threshold-config.entity.ts
+│   │       │   ├── severity-collapse-policy.entity.ts
+│   │       │   ├── analysis-report.entity.ts
+│   │       │   ├── landmark-payload.entity.ts
+│   │       │   ├── metric-evaluation.entity.ts
+│   │       │   └── metric-evaluation-against-ideal.entity.ts
+│   │       └── repositories/
+│   └── vision/
+│       └── vision.client.ts                        # cliente HTTP pro FastAPI
+└── config/
+    └── yaml/                                       # carregados em runtime pelo Nest
+        ├── metric_ideals.yaml                      # M1 (PR-9)
+        ├── region_metric_weights.yaml              # M2
+        ├── global_weights.yaml                     # M2
+        ├── diagnostic_templates.yaml               # M4
+        ├── recommendations_catalog.yaml            # M4
+        └── overlay_definitions.yaml                # M3
+```
+
+---
+
+## 10. Contratos de endpoint
+
+### Python: `POST /vision/metrics-v2`
+
+**Request:**
+```json
+{
+  "session_id": "uuid",
+  "landmarks": [[x, y], ...],
+  "quality_context": {
+    "quality_score": 0.86,
+    "regional_penalties": {"jaw": 0.1, "eye": 0.0, "nose": 0.0, "...": 0.0},
+    "pose": {"yaw": 5.2, "pitch": -1.0, "roll": 0.8}
+  },
+  "metric_ids_to_compute": ["midline_deviation", "..."]
+}
+```
+
+**Response:**
+```json
+{
+  "normalization": {"basis": "intercanthal", "applied": true},
+  "metrics": [
+    {
+      "metric_id": "eye_height_asymmetry",
+      "region": "symmetry",
+      "family": "symmetry",
+      "unit": "intercanthal_units",
+      "value": 0.048,
+      "error": 0.005,
+      "confidence_raw": 0.95,
+      "confidence_final": 0.82,
+      "is_low_confidence": false,
+      "direction": "left_dominant",
+      "dependency_landmarks": [33, 133, 263, 362],
+      "presentation_only": false
+    }
+  ]
+}
+```
+
+Python NÃO devolve: comparação contra ideal, severidade, scores agregados, texto.
+
+### Python: `GET /vision/capabilities`
+
+Retorna lista de `metric_id` que o Python sabe calcular. Nest valida em CI que bate com `metric_definition` da versão ativa.
+
+### Nest: `POST /api/analyze` (frontend chama esse)
+
+**Orquestração interna:**
+1. Lê `metric_definition` da versão ativa para descobrir lista de `metric_id` a calcular (filtrando `requires_pixel_analysis=false`)
+2. Chama `POST /vision/metrics-v2` no Python com a lista
+3. Carrega `metric_ideal` da versão ativa via `metric_ideals.yaml` e/ou DB
+4. Aplica `IdealComparator` → `deviation_raw`, `deviation_normalized`, `direction_label`
+5. Aplica `SeverityClassifier` → `severity_5`, `severity_3` (via `severity_collapse_policy`)
+6. Persiste em transação única: `analysis_report` + `landmark_payload` + 20× `metric_evaluation` + 20× `metric_evaluation_against_ideal`
+7. Devolve `AnalysisReport` ao frontend com snapshots de versão e disclaimer
+
+**Response do `/api/analyze` (M1):**
+```json
+{
+  "analysis_report_id": "uuid",
+  "metric_registry_version": "v1.0",
+  "ideals_version": "v1.0",
+  "threshold_config_version": "v1.0",
+  "normalization": {"basis": "intercanthal"},
+  "metrics": [
+    {
+      "metric_id": "eye_height_asymmetry",
+      "region": "symmetry",
+      "value": 0.048,
+      "confidence_final": 0.82,
+      "is_low_confidence": false,
+      "displayable": true,
+      "direction": "left_dominant",
+      "against_ideal": {
+        "ideal_central_value": 0.0,
+        "deviation_raw": 0.048,
+        "deviation_normalized": 1.6,
+        "severity_5": "moderate",
+        "severity_3": "MODERADO",
+        "direction_label": {"pt-BR": "olho esquerdo mais alto"}
+      }
+    }
+  ],
+  "processing_notes": [],
+  "disclaimer": "Esta análise é uma observação estética..."
+}
+```
+
+Sem score regional/global, sem texto, sem overlay no M1.
+
+---
+
+## 11. Marcos
+
+- **M1** (atual): núcleo analítico — 20 métricas, comparação contra ideal, persistência. Sem texto, sem overlay, sem score regional/global.
+- **M2**: famílias restantes (mandíbula, nariz, boca, sobrancelhas, maçãs, testa, global) → 60+ métricas. Score regional + global com banding. Calibração com 30-50 fotos reais.
+- **M3**: overlays SVG no frontend + heatmaps + composição before/ideal vetorial + endpoint `POST /vision/render`.
+- **M4**: templates de texto + priorização + recomendações catalogadas + PDF do relatório.
+
+---
+
+## 12. Armadilhas a evitar
+
+**Não trate landmarks ruins como bons.** A maior fonte de bug não é cálculo errado — é cálculo certo sobre landmarks instáveis. Sempre cheque a confiança que vem do Módulo 0 antes de qualquer coisa.
+
+**Não cole pesos no código.** Todos os pesos, faixas ideais, templates, recomendações ficam em arquivos de configuração no Nest, versionados.
+
+**Não venda como diagnóstico médico.** Linguagem do produto, dos templates, do disclaimer e do nome das métricas precisa refletir "análise estética geométrica", nunca "diagnóstico".
+
+**Não tente entregar 80 métricas no M1.** Aprenda primeiro com 20 calibradas.
+
+**Não monte overlays sem ideais calibrados.** Calibre antes (M2), desenhe depois (M3).
+
+**Não esqueça de versionar os ideais.** Toda análise persistida grava `ideals_version`, `metric_registry_version`, `threshold_config_version`.
+
+**Não meça pele com landmarks.** Métricas pixel-dependentes ficam em módulo separado, marcadas com `requires_pixel_analysis=true`.
+
+**Não exponha o score global cedo demais.** Antes de ter 60+ métricas e calibração razoável (M2), score global é volátil. M1 mostra só métricas brutas.
+
+**Não trate before/ideal com warp como produto da Fase 3 inicial.** Vetorial primeiro.
+
+**Não acople o frontend ao schema interno do FastAPI.** Toda comunicação passa pelo Nest. Frontend chama `POST /api/analyze`, nunca `/vision/metrics-v2`.
+
+**Não coloque persistência, YAML ou ideais no Python.** Se aparecer YAML em `backend/`, sqlalchemy/asyncpg/alembic em `pyproject.toml`, ou `services/ideals/` em Python — é regressão. Reverter imediatamente.
+
+**Não esqueça da consistência longitudinal.** Cada `AnalysisReport` salvo precisa carregar `quality_score`, `consistency_score` (M2+), `ideals_version` e fingerprint da sessão.
