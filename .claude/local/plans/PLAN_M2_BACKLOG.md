@@ -2,19 +2,19 @@
 
 > Backlog detalhado do **Marco 2 — calibração + expansão de métricas + scoring rico**.
 > Releia junto com `PLAN_METRICS.md` no início de cada sessão.
-> Atualização: 2026-05-08 (após PR-12).
+> Atualização: 2026-05-08 (após PR-20).
 
 ---
 
 ## 0. Contexto
 
-PR-12 fechou a **primeira fatia do M2**: scoring regional + global + banding + 2 famílias com pesos ativos (symmetry com 14 métricas + eyes com 6). O endpoint `POST /v1/analysis/evaluate` já devolve `regional_scores[]` + `global_score` corretamente, com gating crítico e DEC-6 honrado em três camadas.
+**✅ PRs 13–20 entregues** — catálogo de 66 métricas (`metric_definition`) com 59 ideais (`metric_ideal`) e 56 pesos (`region_metric_weight` em 9 regiões). Pytest: 1034 passed / 48 skipped. DB verificado.
 
-A partir daqui, M2 tem três frentes paralelas, sequenciadas em PRs:
+A expansão do catálogo (frente 1 e 2 do M2) está **concluída**. As três frentes remanescentes são:
 
-1. **Famílias adicionais de métricas** (PRs 13–19) — leva o catálogo de 21 → 60+ `metric_id`.
-2. **Expansão dos pesos + ideais** (a cada PR de família, +1 migration que estende `region_metric_weight`/`metric_definition`/`metric_ideal`).
-3. **Calibração com fotos reais** (PR-22+) — exige UI mínima de captura + planilha de operador. Adiada até termos massa crítica de métricas.
+1. **Calibração com fotos reais** (PR-22) — coleta de ≥30 fotos de operador + planilha de override de faixas. Operação humana; modelo Opus para decisões de calibração.
+2. **Recalibração de pesos** (PR-21) — rebalanceia `region_metric_weight_version v2.0` + `global_weights_version v2.0` com base nos dados de PR-22. Bloqueia em PR-22. Modelo: **Opus**.
+3. **Multi-foto / consistência longitudinal** (PR-23) — `landmark_payload.capture_count > 1`, `landmark_stability_scores`, ajuste de `confidence_propagation`. Independente de fotos reais. Modelo: **Sonnet** — **próximo PR executável agora**.
 
 > **Cuidado MUITO importante (do prompt do usuário):**
 > *"M2 é calibração dos ideais. Definir faixas verde/amarelo de cada métrica envolve julgamento sobre fontes (literatura aberta vs sintético vs canônico), inconsistências entre referências, casos onde o ideal varia por sexo/idade. Opus pesa critérios melhor."*
@@ -33,13 +33,15 @@ A partir daqui, M2 tem três frentes paralelas, sequenciadas em PRs:
 | **PR-16** ✅ | Família **brows** — **DONE** | `brow_height_l/r`, `brow_arch_peak_l/r`, `brow_thickness_l/r` *(presentation_only)*, `brow_tail_drop_l`, `interbrow_distance_ratio` (8 — 2 presentation_only). `brow_tail_drop_r` adiada para PR-21. | idem + flag `presentation_only` | **Sonnet** |
 | **PR-17** ✅ | Família **cheekbones / midface** — **DONE** | `zygomatic_width_ratio`, `malar_projection_index`, `midface_height_ratio`, `cheekbone_to_jaw_ratio`, `submalar_hollow_index` (5) | idem + `ALTER TYPE metric_region_enum ADD VALUE 'cheekbones'` (migration split para contornar PG commit constraint) | **Sonnet** |
 | **PR-18** ✅ | Família **forehead** — **DONE** | `forehead_height_ratio`, `forehead_width_ratio`, `temporal_width_ratio`, `hairline_curvature_index` *(requires_pixel_analysis=True, stub DEC-10)* (4 — 1 pixel-dep) | `metric_definition` (+4), `metric_ideal` (+3), `region_metric_weight (region=forehead)` (+3). Sem ALTER TYPE — 'forehead' já no enum. `FOREHEAD_POSE_PARAMS` (yaw_weight=0.60, pitch_weight=0.40) | **Sonnet** |
-| **PR-19** | Família **global_shape** | `face_height_to_width_ratio`, `face_shape_classification` *(categórica: oval/round/square/heart/oblong)*, `total_facial_convexity`, `e_line_deviation` (4) | idem (region=global) | **Sonnet** |
-| **PR-20** | Família **phi/golden** *(presentation_only HARD)* | `phi_face_height_to_width`, `phi_lower_face_segments`, `phi_eye_to_mouth`, `phi_nose_to_lip` (4 — todas `presentation_only=true`) | `metric_definition` (sem `metric_ideal`, sem peso) | **Sonnet** |
+| **PR-19** ✅ | Família **global_shape** — **DONE** | `face_height_to_width_ratio`, `face_shape_classification` *(presentation_only, DEC-6)*, `total_facial_convexity`, `e_line_deviation` *(requires_pixel_analysis=True, stub DEC-10)* (4) | `metric_definition` (+4), `metric_ideal` (+3), `region_metric_weight` (+2, region=global). Sem ALTER TYPE — 'global' já no enum. | **Sonnet** |
+| **PR-20** ✅ | Família **phi/golden** *(presentation_only HARD)* — **DONE** | `phi_face_height_to_width`, `phi_lower_face_segments`, `phi_eye_to_mouth`, `phi_nose_to_lip` (4 — todas `presentation_only=true`) | `metric_definition` (+4, sem `metric_ideal`, sem `region_metric_weight`) | **Sonnet** |
 | **PR-21** | **Recalibração ampla** dos `region_metric_weight` quando todas as famílias estiverem dentro | rebalanceia pesos das 6 regiões (atualmente symmetry=14, eyes=6 dominam o score) | nova `region_metric_weights_version v2.0` + `global_weights_version v2.0` (DEC-12: snapshot, mantém v1.0 ativa em histórico) | **Opus** (julgamento de balanceamento) |
 | **PR-22** | **Calibração com fotos reais** | coleta de 30–50 fotos (operador interno), planilha de override de `green_range_min/max` por métrica, `ideals_version v2.0` ativada | `ideals_version`, `metric_ideal` (rows nova versão), `metric_evaluation` re-rodada para auditoria | **Opus** (julgamento de fontes) |
 | **PR-23** | **Consistência longitudinal** (multi-foto) | `landmark_payload.capture_count > 1`, `landmark_stability_scores`, ajuste de `confidence_propagation` | `landmark_payload` (já tem coluna), pipeline Python | **Sonnet** |
 
-**Total esperado de métricas após PR-20**: 21 (M1) + 6+7+7+8+5+4+4+4 = **66 métricas** (≅ alvo de "60+").
+**Total após PR-20**: 21 (M1) + 6+7+7+8+5+4+4+4 = **66 métricas** ✅ — alvo de "60+" atingido. DB: 66 `metric_definition`, 59 `metric_ideal`, 56 `region_metric_weight` (9 regiões). pytest: 1034 passed / 48 skipped.
+
+**Próximo executável com Sonnet**: PR-23 (multi-foto / consistência longitudinal). PR-21 e PR-22 **requerem Opus** e PR-22 exige fotos reais (tarefa humana).
 
 ---
 
@@ -295,4 +297,127 @@ Após isso → **abrir M3** (overlays). Ver `PLAN_M3_OVERLAYS.md`.
 
 **Validações**: pytest 793 passed (+79 cheekbones), vitest 116 passed, migration aplicada. DB: 54 definitions, 53 ideals, cheekbones=5 weights.
 
-**Próximo PR**: PR-18 (forehead family).
+---
+
+### PR-18 — forehead family (4 métricas) ✅ DONE
+
+**Data**: 2026-05-08. **Modelo**: Sonnet 4.6 com contexto.
+
+**Métricas entregues (4)**: `forehead_height_ratio`, `forehead_width_ratio`, `temporal_width_ratio`, `hairline_curvature_index` *(requires_pixel_analysis=True, stub DEC-10)*.
+
+**Desvio do plano original**:
+- `hairline_curvature_index` cadastrado em `metric_definition` com `requires_pixel_analysis=True`. Pipeline pula — não emite `metric_evaluation` (DEC-10). Reserva `metric_id` para módulo de pixel pós-M4.
+- `forehead_width_ratio` usa bizygomatic como denominador (Farkas §4.2), não face_width em sentido amplo.
+
+**Calibração** (fontes primárias):
+- `forehead_height_ratio = 1.90 ICU (±0.30 verde)` — Farkas (1994), tabela 1.1: ~62 mm / ~32 mm ≈ 1.94; Naini (2011) §2.3 upper-third ≈ 1/3 total ≈ 1.90. Não varia significativamente por sexo.
+- `forehead_width_ratio = 0.70 (±0.07 verde)` — Farkas (1994) tabela 4.2: bizygomatic:forehead = 1.0:0.70. Naini (2011) §6 confirma.
+- `temporal_width_ratio = 0.75 (±0.07 verde)` — temporal fossa width / bizygomatic. Romo et al. (2006): ideal ~75% do bizygomatic para contorno harmônico.
+- `hairline_curvature_index` — sem ideal (pixel-dep).
+
+**Fontes / links**:
+- Farkas, L.G. (1994). *Anthropometry of the Head and Face*, 2nd ed. Raven Press. ISBN 0-7817-0082-8.
+- Naini, F.B. (2011). *Facial Aesthetics: Concepts & Clinical Diagnosis*. Wiley-Blackwell. ISBN 978-1-4051-8192-1. Capítulos 2.3, 6.
+- Romo T., Yalamanchili H., Sclafani A.P. (2006). "Forehead and brow rejuvenation." *Plast Reconstr Surg* 118(7):232S–244S. DOI: [10.1097/01.prs.0000242509.25985.c3](https://doi.org/10.1097/01.prs.0000242509.25985.c3).
+
+**Pesos (region_metric_weight v1.0, region=forehead, 3 linhas)**:
+- `forehead_height_ratio = 1.0`, `forehead_width_ratio = 1.0`, `temporal_width_ratio = 1.1` (temporal fossa percebida como mais discriminante). `hairline_curvature_index` excluída (pixel-dep + DEC-10).
+
+**Pose params (`FOREHEAD_POSE_PARAMS`)**: yaw_soft=5°, hard=15°, pitch_soft=6°, hard=16°, yaw_weight=0.60, pitch_weight=0.40, floor=0.17.
+
+**Artefatos**:
+- `backend/app/services/metrics/forehead.py` (4 calculators, ~260 linhas).
+- `backend/app/services/metrics/confidence_propagation.py` (`FOREHEAD_POSE_PARAMS`).
+- `backend/app/services/metrics/base.py` — adicionado `requires_pixel_analysis: ClassVar[bool] = False` ao ABC.
+- `backend/tests/fixtures/synthetic_landmarks.py` (`perfect_forehead_face`, `short_forehead_face`).
+- `backend/tests/unit/test_forehead.py` (75 testes, todos passing).
+- `nest/src/database/migrations/1746000110000-SeedForeheadFamily.ts` (4 defs + 3 ideals + 3 weights).
+- `nest/src/config/yaml/metric_ideals.yaml` (+forehead section).
+- `nest/src/config/yaml/region_metric_weights.yaml` (+forehead region).
+
+**Validações**: pytest 868 passed (+75 forehead), vitest 116 passed, migration aplicada. DB: 58 definitions, 56 ideals, region_metric_weight: forehead=3.
+
+---
+
+### PR-19 — global_shape family (4 métricas) ✅ DONE
+
+**Data**: 2026-05-08. **Modelo**: Sonnet 4.6 com contexto.
+
+**Métricas entregues (4)**: `face_height_to_width_ratio`, `face_shape_classification` *(presentation_only=True, DEC-6)*, `total_facial_convexity`, `e_line_deviation` *(requires_pixel_analysis=True, stub DEC-10)*.
+
+**Desvio do plano original**:
+- `face_shape_classification` originalmente prevista como puramente categórica. Implementada com `presentation_only=True` — a classificação oval/round/square/heart/oblong é derivada do `face_height_to_width_ratio` e convexidade, mas não entra em score (DEC-6).
+- `e_line_deviation` (Ricketts E-line: nariz→queixo) requer perfil lateral — cadastrada como stub `requires_pixel_analysis=True` (DEC-10). Implementada para frontal parcial, mas pipeline pula para não enviesar o score global.
+- `total_facial_convexity` usa `scipy.ConvexHull` sobre 8 pontos faciais externos. Produz índice de convexidade [0, 1] onde 1 = face perfeitamente convexa.
+
+**Calibração** (fontes primárias):
+- `face_height_to_width_ratio = 1.35 (±0.10 verde)` — Farkas (1994) tabela 4.4-4.7: bigonial:bizygomatic ~1.35. Powell & Humphreys (1984): "aesthetic face" ~1.35. φ ≈ 1.618 é o ideal Marquardt mas refutado como norma populacional (Farkas, 1994).
+- `total_facial_convexity = 0.98 (±0.04 verde)` — índice derivado de 8 landmarks perimetrais. Valor canônico estimado; literatura não tem standard direto para esta métrica.
+- `face_shape_classification` — ideal_central_value=1.35 (mesma base que face_height_to_width, para referência overlay), presentation_only=True.
+- `e_line_deviation` — sem ideal (pixel-dep stub).
+
+**Fontes / links**:
+- Farkas, L.G. (1994). *Anthropometry of the Head and Face*, 2nd ed. Raven Press. ISBN 0-7817-0082-8. Tabelas 4.4–4.7.
+- Powell N., Humphreys B. (1984). *Proportions of the Aesthetic Face*. Thieme-Stratton. ISBN 0-86577-038-1.
+- Ricketts R.M. (1982). "Divine proportion in facial esthetics." *Clin Plast Surg* 9(4):401–422. PMID: 7140068.
+- Marquardt Beauty Analysis: https://www.beautyanalysis.com (phi mask overlay reference).
+
+**Pesos (region_metric_weight v1.0, region=global, 2 linhas)**:
+- `face_height_to_width_ratio = 1.3`, `total_facial_convexity = 0.8`. `face_shape_classification` excluída (DEC-6 presentation_only). `e_line_deviation` excluída (DEC-10 pixel-dep).
+
+**Pose params (`GLOBAL_SHAPE_POSE_PARAMS`)**: yaw_soft=6°, hard=18°, pitch_soft=6°, hard=18°, yaw_weight=0.50, pitch_weight=0.50, floor=0.20 — balanceado pois métricas globais têm sensibilidade igual a yaw e pitch.
+
+**Artefatos**:
+- `backend/app/services/metrics/global_shape.py` (4 calculators, ~330 linhas, inclui ConvexHull).
+- `backend/app/services/metrics/confidence_propagation.py` (`GLOBAL_SHAPE_POSE_PARAMS`).
+- `backend/tests/fixtures/synthetic_landmarks.py` (`perfect_global_shape_face`, `round_face`).
+- `backend/tests/unit/test_global_shape.py` (77 testes, todos passing).
+- `nest/src/database/migrations/1746000120000-SeedGlobalShapeFamily.ts` (4 defs + 3 ideals + 2 weights).
+- `nest/src/config/yaml/metric_ideals.yaml` (+global_shape section).
+- `nest/src/config/yaml/region_metric_weights.yaml` (+global region).
+
+**Validações**: pytest 945 passed (+77 global_shape), vitest 116 passed, migration aplicada. DB: 62 definitions, 59 ideals, region_metric_weight: global=2.
+
+---
+
+### PR-20 — phi/golden family (4 métricas, todas presentation_only) ✅ DONE
+
+**Data**: 2026-05-08. **Modelo**: Sonnet 4.6 com contexto. **Commit**: `926bf2c`.
+
+**Métricas entregues (4)**: `phi_face_height_to_width`, `phi_lower_face_segments`, `phi_eye_to_mouth`, `phi_nose_to_lip` — **TODAS `presentation_only=True` (DEC-6 hard)**. Φ ≠ média populacional; φ ≈ 1.618 é aesthetic overlay, não norma clínica.
+
+**Justificativa DEC-6 por métrica**:
+- `phi_face_height_to_width`: Farkas (1994) median = 1.35; φ = 1.618 → desvia +20% da população. Overlay visual apenas.
+- `phi_lower_face_segments`: Ricketts (1982) propõe divisão áurea, mas Naini (2011) §2.5 não confirma como norma populacional.
+- `phi_eye_to_mouth`: Marquardt Phi Mask (2002) — design overlay sem base epidemiológica validada.
+- `phi_nose_to_lip`: Farkas (1994) mouth:nose width ≈ 1.47 (não φ=1.618). Edler (2001) range 1.4–1.6.
+
+**Calibração**: Sem `metric_ideal` — `presentation_only=True` ≡ `default_weight_in_region=0.0`, sem entrada em `metric_ideal` (DEC-6).
+
+**PHI_POSE_PARAMS**: yaw_soft=8°, hard=22°, pitch_soft=7°, hard=20°, yaw_weight=0.45, pitch_weight=0.55, floor=0.25. Mais permissivo que demais (overlay deve permanecer visível em fotos levemente giradas).
+
+**Fontes / links**:
+- Marquardt S.R. (2002). *Phi Mask*. https://www.beautyanalysis.com (design overlay; sem peer-review epidemiológico).
+- Livio M. (2002). *The Golden Ratio*. Broadway Books. ISBN 0-7679-0816-X.
+- Ricketts R.M. (1982). "Divine proportion in facial esthetics." *Clin Plast Surg* 9(4):401–422.
+- Edler R.J. (2001). "Background considerations to facial aesthetics." *J Orthod* 28(2):159–168. DOI: [10.1093/ortho/28.2.159](https://doi.org/10.1093/ortho/28.2.159).
+- Farkas L.G., Katic M.J., et al. (1994). "Anthropometric proportions in the upper lip–lower lip–chin area." *Am J Orthod* 105(1):36–43. DOI: [10.1016/S0889-5406(94)70099-1](https://doi.org/10.1016/S0889-5406(94)70099-1).
+- Naini F.B. (2011). *Facial Aesthetics*. §2.5, §9 (lower-face segments). Wiley-Blackwell.
+
+**Bugs encontrados e corrigidos durante PR-20**:
+1. `lm.x(idx)` / `lm.y(idx)` → API correta é `lm.xy(idx)[0]` / `lm.xy(idx)[1]`.
+2. `propagate()` chamado com kwargs errados → assinatura correta: `propagate(cr, quality_score, region, regional_penalties, yaw_deg, pitch_deg, params)`.
+3. `default_weight_in_region: null` → coluna NOT NULL no DB → corrigido para `0.0`.
+4. Testes de floor: `floor^yaw_weight ≈ 0.536` não `floor=0.25` (geometric mean ponderada).
+
+**Artefatos**:
+- `backend/app/services/metrics/phi_golden.py` (4 calculators, ~470 linhas).
+- `backend/app/services/metrics/confidence_propagation.py` (`PHI_POSE_PARAMS`).
+- `backend/app/services/metrics/__init__.py` (import `phi_golden`).
+- `backend/tests/fixtures/synthetic_landmarks.py` (`perfect_phi_face`, `wide_face_non_phi`).
+- `backend/tests/unit/test_phi_golden.py` (89 testes, todos passing).
+- `nest/src/database/migrations/1746000130000-SeedPhiGoldenFamily.ts` (4 defs, 0 ideais, 0 pesos).
+- `nest/src/config/yaml/metric_ideals.yaml` (+comentário DEC-6 phi family).
+- `nest/src/config/yaml/region_metric_weights.yaml` (+comentário phi exclusion).
+
+**Validações**: pytest 1034 passed (+89 phi), vitest 116 passed, migration aplicada. DB: **66 definitions, 59 ideals, 56 weights (9 regiões)**. Alvo M2 de 60+ métricas ✅ atingido.

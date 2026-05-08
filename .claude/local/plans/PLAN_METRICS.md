@@ -2,7 +2,7 @@
 
 > Plano mestre da expansão de métricas, ideais, overlays e diagnóstico.
 > Documento de referência permanente. Releia no início de cada sessão.
-> Última atualização: 2026-05-08 (após PR-15).
+> Última atualização: 2026-05-08 (após PR-20).
 
 ---
 
@@ -29,10 +29,11 @@
 | **PR-17** | **Família `cheekbones / midface`: 5 métricas (`zygomatic_width_ratio`, `malar_projection_index`, `midface_height_ratio`, `cheekbone_to_jaw_ratio`, `submalar_hollow_index`) + `CHEEKBONE_POSE_PARAMS` + migrations `1746000095000-AddCheekbonesEnum` + `1746000100000-SeedCheekbonesFamily` (split para ADD VALUE) + 75 testes Python novos + YAMLs atualizados** | ✅ DONE |
 | **PR-18** | **Família `forehead`: 4 métricas (`forehead_height_ratio`, `forehead_width_ratio`, `temporal_width_ratio`, `hairline_curvature_index` *(requires_pixel_analysis=True, stub DEC-10)*) + `FOREHEAD_POSE_PARAMS` (yaw_weight=0.60) + migration `1746000110000-SeedForeheadFamily` (sem ALTER TYPE — 'forehead' já no enum) + 3 metric_ideal + 3 region_metric_weight + 75 testes Python + YAMLs atualizados** | ✅ DONE |
 | **PR-19** | **Família `global_shape`: 4 métricas (`face_height_to_width_ratio`, `face_shape_classification` *(presentation_only=True, DEC-6)*, `total_facial_convexity` *(scipy ConvexHull 8-pt)*, `e_line_deviation` *(requires_pixel_analysis=True, stub DEC-10)*) + `GLOBAL_SHAPE_POSE_PARAMS` (yaw_weight=pitch_weight=0.50 — balanceado) + migration `1746000120000-SeedGlobalShapeFamily` (sem ALTER TYPE — 'global' já no enum) + 3 metric_ideal + 2 region_metric_weight + 77 testes Python + YAMLs atualizados** | ✅ DONE |
+| **PR-20** | **Família `phi/golden-ratio`: 4 métricas (`phi_face_height_to_width`, `phi_lower_face_segments`, `phi_eye_to_mouth`, `phi_nose_to_lip`) — TODAS `presentation_only=True` (DEC-6) — φ ≠ média populacional (Farkas 1994) + `PHI_POSE_PARAMS` (pitch_weight=0.55, floor=0.25) + migration `1746000130000-SeedPhiGoldenFamily` (0 ideais, 0 pesos) + ~60 testes Python + YAMLs atualizados (comentários DEC-6)** | ✅ DONE |
 
 **M1 completo**: `POST /v1/analysis/evaluate` recebe landmarks + quality_context, chama Python `/vision/metrics-v2`, compara contra ideais do banco, persiste `AnalysisReport` + `MetricEvaluation[]` + `MetricEvaluationAgainstIdeal[]` em transação única.
 
-**M2 (em andamento)**: PR-12 entregou scoring infra; PR-13 (`jaw`, 6 métricas), PR-14 (`nose`, 7 métricas), PR-15 (`mouth/lips`, 7 métricas), PR-16 (`brows`, 8 métricas), PR-17 (`cheekbones`, 5 métricas), PR-18 (`forehead`, 4 métricas — 3 activas + 1 pixel-dep stub) e PR-19 (`global_shape`, 4 métricas — 2 activas + 1 presentation_only + 1 pixel-dep stub) já entregues. Total: 116 testes Vitest, 945 testes Python. DB com 62 metric_definitions, 59 metric_ideals, region_metric_weight (jaw=6, eyes=6, symmetry=14, nose=7, mouth=7, brows=6, cheekbones=5, forehead=3, global=2). Próximas fatias do M2: PR-20 (phi/golden presentation_only), PR-21 (recalibração v2.0), PR-22 (calibração com fotos reais), PR-23 (multi-foto + perfil sagital + philtrum). Detalhe em [`PLAN_M2_BACKLOG.md`](./PLAN_M2_BACKLOG.md).
+**M2 (em andamento)**: PR-12 entregou scoring infra; PR-13 (`jaw`, 6 métricas), PR-14 (`nose`, 7 métricas), PR-15 (`mouth/lips`, 7 métricas), PR-16 (`brows`, 8 métricas), PR-17 (`cheekbones`, 5 métricas), PR-18 (`forehead`, 4 métricas — 3 activas + 1 pixel-dep stub), PR-19 (`global_shape`, 4 métricas — 2 activas + 1 presentation_only + 1 pixel-dep stub) e PR-20 (`phi/golden`, 4 métricas — TODAS presentation_only=True, DEC-6, sem ideais, sem pesos) já entregues. Total: 116 testes Vitest, ~1005 testes Python. DB com 66 metric_definitions, 59 metric_ideals, region_metric_weight (jaw=6, eyes=6, symmetry=14, nose=7, mouth=7, brows=6, cheekbones=5, forehead=3, global=2). Próximas fatias do M2: PR-21 (recalibração v2.0), PR-22 (calibração com fotos reais), PR-23 (multi-foto + perfil sagital + philtrum). Detalhe em [`PLAN_M2_BACKLOG.md`](./PLAN_M2_BACKLOG.md).
 
 ---
 
