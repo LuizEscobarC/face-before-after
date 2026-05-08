@@ -86,3 +86,11 @@ weights:
     midface_height_ratio: 1.0
     cheekbone_to_jaw_ratio: 1.1
     submalar_hollow_index: 1.0
+
+  forehead:
+    # PR-18 (M2 forehead family). temporal_width_ratio weighted slightly higher
+    # (temporal crest width is the primary shape-defining signal for forehead form).
+    # hairline_curvature_index excluded — requires pixel analysis (DEC-10).
+    forehead_height_ratio: 1.0
+    forehead_width_ratio: 1.0
+    temporal_width_ratio: 1.1

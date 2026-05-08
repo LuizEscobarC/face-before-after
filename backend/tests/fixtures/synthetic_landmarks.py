@@ -28,7 +28,9 @@ from app.domain.landmarks_mesh import (
     LM_RIGHT_BROW,
     LM_RIGHT_EYE,
     P_BROW_LEFT_INNER,
+    P_BROW_LEFT_OUTER,
     P_BROW_RIGHT_INNER,
+    P_BROW_RIGHT_OUTER,
     P_FOREHEAD_CROWN,
     P_LEFT_CHEEK,
     P_LEFT_EYE_BOT,
@@ -617,5 +619,88 @@ def square_jaw_cheekbone_face() -> np.ndarray:
     kp[P_SUBNASALE]       = _CHEEK_SUBNASALE
     kp[P_LEFT_CHEEK]      = _CHEEK_CHEEK_L
     kp[P_RIGHT_CHEEK]     = _CHEEK_CHEEK_R
+    grid = _base_grid()
+    return _set_key_points(grid, kp)
+
+
+# ---------------------------------------------------------------------------
+# Forehead fixtures (PR-18)
+# ---------------------------------------------------------------------------
+# Canonical forehead geometry. After normalisation (ICD = 100 px → 1.0 ICU):
+#
+#   P_FOREHEAD_CROWN   (10)  at (400,  82) → y = −2.18 ICU (above eye line)
+#   Brow inner midline       at (_, 272)   → y = −0.28 ICU (canonical from _LEFT_BROW_PTS)
+#   P_LEFT_ZYGOMATIC  (338)  at (200, 300) → x = −2.00 ICU
+#   P_RIGHT_ZYGOMATIC (378)  at (600, 300) → x = +2.00 ICU → bizygomatic = 4.0 ICU
+#   P_LEFT_EYE_OUTER   (33)  at (260, 300) → x = −1.40 ICU
+#   P_RIGHT_EYE_OUTER (263)  at (540, 300) → x = +1.40 ICU → biocular    = 2.8 ICU
+#   P_BROW_LEFT_OUTER  (70)  at (250, 260) → x = −1.50 ICU
+#   P_BROW_RIGHT_OUTER(300)  at (550, 260) → x = +1.50 ICU → brow span   = 3.0 ICU
+#
+# Metric values (ideal in brackets):
+#   forehead_height_ratio = (−0.28) − (−2.18) = 1.90 ICU  [1.90]
+#   forehead_width_ratio  = 2.8 / 4.0          = 0.70      [0.70]
+#   temporal_width_ratio  = 3.0 / 4.0          = 0.75      [0.75]
+
+_FOREHEAD_ZYG_L          = (200.0, _FACE_CY)   # bizygomatic = 4.0 ICU
+_FOREHEAD_ZYG_R          = (600.0, _FACE_CY)
+_FOREHEAD_EYE_OUTER_L    = (260.0, _FACE_CY)   # biocular = 2.8 ICU, ratio = 0.70
+_FOREHEAD_EYE_OUTER_R    = (540.0, _FACE_CY)
+_FOREHEAD_BROW_OUTER_L   = (250.0, 260.0)      # outer brow span = 3.0 ICU, ratio = 0.75
+_FOREHEAD_BROW_OUTER_R   = (550.0, 260.0)
+_FOREHEAD_CROWN_IDEAL    = (_FACE_CX, 82.0)    # forehead height = 1.90 ICU
+_FOREHEAD_CROWN_SHORT    = (_FACE_CX, 132.0)   # forehead height = 1.40 ICU (short)
+
+
+def perfect_forehead_face() -> np.ndarray:
+    """(478, 3) — face with canonical forehead geometry.
+
+    All three landmark-based forehead metrics fall at ideal:
+      forehead_height_ratio = 1.90 ICU  (ideal 1.90)
+      forehead_width_ratio  = 0.70       (ideal 0.70)
+      temporal_width_ratio  = 0.75       (ideal 0.75)
+
+    ``hairline_curvature_index`` requires pixel analysis (DEC-10) — its
+    compute() returns a zero-confidence stub regardless of landmark position.
+
+    Geometry notes:
+      bizygomatic  = (600 − 200) px = 400 px = 4.0 ICU  (Farkas-realistic)
+      biocular     = (540 − 260) px = 280 px = 2.8 ICU
+      outer brow   = (550 − 250) px = 300 px = 3.0 ICU
+      crown y      = 82 px  →  (82 − 300) / 100 = −2.18 ICU (above eye line)
+      brow inner y = 272 px →  (272 − 300) / 100 = −0.28 ICU (canonical)
+      forehead_height = −0.28 − (−2.18) = 1.90 ICU ✓
+    """
+    kp = _canonical_key_points()
+    kp[P_FOREHEAD_CROWN]    = _FOREHEAD_CROWN_IDEAL
+    kp[P_LEFT_ZYGOMATIC]    = _FOREHEAD_ZYG_L
+    kp[P_RIGHT_ZYGOMATIC]   = _FOREHEAD_ZYG_R
+    kp[P_LEFT_EYE_OUTER]    = _FOREHEAD_EYE_OUTER_L
+    kp[P_RIGHT_EYE_OUTER]   = _FOREHEAD_EYE_OUTER_R
+    kp[P_BROW_LEFT_OUTER]   = _FOREHEAD_BROW_OUTER_L
+    kp[P_BROW_RIGHT_OUTER]  = _FOREHEAD_BROW_OUTER_R
+    grid = _base_grid()
+    return _set_key_points(grid, kp)
+
+
+def short_forehead_face() -> np.ndarray:
+    """(478, 3) — forehead fixture with a short/low hairline.
+
+    Crown raised (closer to brow line) → forehead_height = 1.40 ICU,
+    which falls inside the yellow range [1.30, 2.50] but below the
+    green range [1.60, 2.20].  All width metrics remain at ideal.
+
+    crown y = 132 px → (132 − 300) / 100 = −1.68 ICU
+    brow inner y = 272 px → −0.28 ICU
+    forehead_height = −0.28 − (−1.68) = 1.40 ICU → direction = 'short_forehead'
+    """
+    kp = _canonical_key_points()
+    kp[P_FOREHEAD_CROWN]    = _FOREHEAD_CROWN_SHORT
+    kp[P_LEFT_ZYGOMATIC]    = _FOREHEAD_ZYG_L
+    kp[P_RIGHT_ZYGOMATIC]   = _FOREHEAD_ZYG_R
+    kp[P_LEFT_EYE_OUTER]    = _FOREHEAD_EYE_OUTER_L
+    kp[P_RIGHT_EYE_OUTER]   = _FOREHEAD_EYE_OUTER_R
+    kp[P_BROW_LEFT_OUTER]   = _FOREHEAD_BROW_OUTER_L
+    kp[P_BROW_RIGHT_OUTER]  = _FOREHEAD_BROW_OUTER_R
     grid = _base_grid()
     return _set_key_points(grid, kp)

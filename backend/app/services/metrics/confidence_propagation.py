@@ -125,6 +125,21 @@ CHEEKBONE_POSE_PARAMS = PosePenaltyParams(
     floor=0.17,
 )
 
+# Forehead metrics blend height (pitch-sensitive) and width (yaw-sensitive).
+# Two of three active metrics are horizontal ratios (forehead_width_ratio,
+# temporal_width_ratio) → yaw is the dominant error axis (weight=0.60).
+# forehead_height_ratio is pitch-sensitive, but is somewhat forgiving because
+# the forehead crown (Mesh-478 point 10) is a stable, high-contrast landmark.
+# Slightly relaxed soft thresholds vs cheekbones since upper-face landmarks
+# (brow arches, outer canthi) are less affected by lateral head rotation than
+# bizygomatic contour points. Floor matches brow/cheekbone families.
+FOREHEAD_POSE_PARAMS = PosePenaltyParams(
+    yaw_soft_deg=5.0, yaw_hard_deg=15.0,
+    pitch_soft_deg=6.0, pitch_hard_deg=16.0,
+    yaw_weight=0.60, pitch_weight=0.40,
+    floor=0.17,
+)
+
 
 def _axis_penalty(angle_deg: float, soft: float, hard: float, floor: float) -> float:
     """Piecewise linear penalty for a single rotation axis."""

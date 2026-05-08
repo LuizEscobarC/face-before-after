@@ -18,5 +18,6 @@ from app.services.metrics import nose as _nose          # noqa: F401 — trigger
 from app.services.metrics import mouth as _mouth        # noqa: F401 — triggers @register
 from app.services.metrics import brows as _brows        # noqa: F401 — triggers @register
 from app.services.metrics import cheekbones as _cheekbones  # noqa: F401 — triggers @register
+from app.services.metrics import forehead as _forehead  # noqa: F401 — triggers @register
 
-__all__ = ["symmetry", "thirds", "fifths", "eyes", "jaw", "nose", "mouth", "brows", "cheekbones"]
+__all__ = ["symmetry", "thirds", "fifths", "eyes", "jaw", "nose", "mouth", "brows", "cheekbones", "forehead"]

@@ -61,6 +61,7 @@ class MetricCalculator(ABC):
     family: ClassVar[str]
     unit: ClassVar[str]
     presentation_only: ClassVar[bool] = False
+    requires_pixel_analysis: ClassVar[bool] = False
 
     @abstractmethod
     def compute(
