@@ -51,6 +51,20 @@ def build_session_fingerprint(
     return fingerprint_hash, fingerprint_parts
 
 
+def generate_baseline_group_id(flags: dict[str, bool]) -> str:
+    """Deterministic group ID based only on categorical appearance flags.
+
+    Same beard/glasses/hair_covering state → same group ID, regardless of
+    pose/lighting/distance. Enables filtering comparisons by appearance state.
+    """
+    key = (
+        f"beard:{bool(flags.get('beard', False))}"
+        f"|glasses:{bool(flags.get('glasses', False))}"
+        f"|hair:{bool(flags.get('hair_covering', False))}"
+    )
+    return hashlib.sha1(key.encode("utf-8"), usedforsecurity=False).hexdigest()[:12]
+
+
 _PART_LABELS = ["beard", "glasses", "smile", "lighting", "pose", "distance"]
 _CRITICAL_PARTS = {"lighting", "pose", "distance"}
 
@@ -70,7 +84,7 @@ def compute_consistency_score(
     n = min(len(parts_a), len(parts_b), len(_PART_LABELS))
     issues: list[str] = []
     matches = 0
-    critical_ok = True
+    all_critical_parts_match = True
 
     _messages = {
         "pose": "Pose diferente entre as fotos (ângulo de captura distinto).",
@@ -87,15 +101,15 @@ def compute_consistency_score(
             matches += 1
         else:
             if label in _CRITICAL_PARTS:
-                critical_ok = False
-            msg = _messages.get(label)
-            if msg:
-                issues.append(msg)
+                all_critical_parts_match = False
+            issue_message = _messages.get(label)
+            if issue_message:
+                issues.append(issue_message)
 
     consistency_score = round(matches / n, 4) if n > 0 else 0.0
 
     return {
         "consistency_score": consistency_score,
         "consistency_issues": issues,
-        "is_comparable": critical_ok and consistency_score >= 0.5,
+        "is_comparable": all_critical_parts_match and consistency_score >= 0.5,
     }

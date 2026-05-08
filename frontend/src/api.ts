@@ -3,6 +3,7 @@ import type {
   AnalyzeMode,
   CaptureGuidelines,
   CompareResult,
+  CompareWithConsistency,
   GlossaryTerm,
 } from "./types";
 
@@ -200,7 +201,7 @@ export async function analyzePhoto(mode: AnalyzeMode, file: File): Promise<Analy
 export async function compareRuns(
   run_id_before: string,
   run_id_after: string,
-): Promise<CompareResult> {
+): Promise<CompareWithConsistency> {
   const res = await fetch(`${BASE}/v1/analysis/compare`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -209,7 +210,7 @@ export async function compareRuns(
   if (!res.ok) {
     throw new Error(await readError(res, "Erro na comparação."));
   }
-  return (await res.json()) as CompareResult;
+  return (await res.json()) as CompareWithConsistency;
 }
 
 // ---------- Glossary (não exposto pelo orchestrator ainda) ----------
@@ -243,8 +244,4 @@ export async function submitLandmarkPayload(
 
 // ---------- Consistency types (E3) ----------
 
-export type CompareWithConsistency = CompareResult & {
-  consistency_score: number;
-  consistency_issues: string[];
-  is_comparable: boolean;
-};
+export type { CompareWithConsistency } from "./types";

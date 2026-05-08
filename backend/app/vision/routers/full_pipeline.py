@@ -21,7 +21,7 @@ from app.core.exceptions import FileTooLargeError, InvalidImageError
 from app.infra.storage import MinIOStorage
 from app.vision.schemas.pipeline import FullPipelineRequest, FullPipelineResponse
 from app.vision.services import face_detection, quality_evaluator
-from app.vision.services.fingerprint import build_session_fingerprint
+from app.vision.services.fingerprint import build_session_fingerprint, generate_baseline_group_id
 from app.vision.services.image_codec import decode_base64_image
 from app.vision.services.pose_estimator import estimate_pose
 
@@ -97,8 +97,13 @@ async def _execute(image_bytes: bytes, filename: str, mode: str, storage: MinIOS
                 fingerprint_hash, fingerprint_parts = build_session_fingerprint(
                     quality["flags"], pose, quality.get("mean_luminance", 0.0), face_width_ratio
                 )
+                baseline_group_id = generate_baseline_group_id(quality["flags"])
                 sidecar = out_dir / f"{run_id}_fingerprint.json"
-                sidecar.write_text(json.dumps({"fingerprint": fingerprint_hash, "fingerprint_parts": fingerprint_parts}))
+                sidecar.write_text(json.dumps({
+                    "fingerprint": fingerprint_hash,
+                    "fingerprint_parts": fingerprint_parts,
+                    "baseline_group_id": baseline_group_id,
+                }))
     except Exception:
         logger.debug("Fingerprint sidecar generation failed for run_id=%s (non-fatal)", run_id)
 

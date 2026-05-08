@@ -1,8 +1,9 @@
 import { useLocation, useNavigate } from "react-router-dom";
-import type { AnalysisResult, CompareResult } from "../types";
+import { ConsistencyWarning } from "../components/ConsistencyWarning";
+import type { AnalysisResult, CompareWithConsistency } from "../types";
 
 type LocationState = {
-  compareResult?: CompareResult;
+  compareResult?: CompareWithConsistency;
   resBefore?: AnalysisResult;
   resAfter?: AnalysisResult;
 };
@@ -49,9 +50,9 @@ export function CompareResultPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const state = (location.state as LocationState | null);
-  const cr = state?.compareResult;
+  const compareResult = state?.compareResult;
 
-  if (!cr) {
+  if (!compareResult) {
     return (
       <div className="page" style={{ paddingTop: 60 }}>
         <section className="section">
@@ -63,8 +64,8 @@ export function CompareResultPage() {
     );
   }
 
-  const deltaColor = cr.score_delta >= 0 ? "#22d3ee" : "#f87171";
-  const deltaSign = cr.score_delta >= 0 ? "+" : "";
+  const deltaColor = compareResult.score_delta >= 0 ? "#22d3ee" : "#f87171";
+  const deltaSign = compareResult.score_delta >= 0 ? "+" : "";
 
   return (
     <>
@@ -76,24 +77,24 @@ export function CompareResultPage() {
           <p className="hero-sub">Evolução baseada nas métricas faciais objetivas.</p>
 
           <div style={{ display: "flex", justifyContent: "center", gap: 40, flexWrap: "wrap", marginTop: 24 }}>
-            <ScoreArc score={cr.score_before} label="ANTES" />
+            <ScoreArc score={compareResult.score_before} label="ANTES" />
             <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
               <div style={{ fontSize: 36, fontWeight: 800, color: deltaColor }}>
-                {deltaSign}{cr.score_delta}
+                {deltaSign}{compareResult.score_delta}
               </div>
               <div style={{ fontSize: 12, color: "var(--muted)" }}>pontos</div>
             </div>
-            <ScoreArc score={cr.score_after} label="DEPOIS" />
+            <ScoreArc score={compareResult.score_after} label="DEPOIS" />
           </div>
 
           <div style={{ display: "flex", justifyContent: "center", gap: 16, marginTop: 16, flexWrap: "wrap" }}>
-            <span className="badge-pill">{cr.tier_before} → {cr.tier_after}</span>
+            <span className="badge-pill">{compareResult.tier_before} → {compareResult.tier_after}</span>
             <span className="badge-pill" style={{ background: "rgba(34,211,238,0.12)", borderColor: "rgba(34,211,238,0.3)", color: "#22d3ee" }}>
-              ✅ {cr.improved_count} melhorias
+              ✅ {compareResult.improved_count} melhorias
             </span>
-            {cr.worsened_count > 0 && (
+            {compareResult.worsened_count > 0 && (
               <span className="badge-pill" style={{ background: "rgba(248,113,113,0.12)", borderColor: "rgba(248,113,113,0.3)", color: "#fca5a5" }}>
-                ⚠️ {cr.worsened_count} regressões
+                ⚠️ {compareResult.worsened_count} regressões
               </span>
             )}
           </div>
@@ -101,11 +102,20 @@ export function CompareResultPage() {
       </div>
 
       <div className="page">
+        {compareResult.consistency_score !== undefined && (
+          <section className="section" style={{ paddingTop: 0 }}>
+            <ConsistencyWarning
+              consistency_score={compareResult.consistency_score}
+              consistency_issues={compareResult.consistency_issues ?? []}
+              is_comparable={compareResult.is_comparable ?? true}
+            />
+          </section>
+        )}
         {/* Top melhorias */}
-        {cr.top_improvements.length > 0 && (
+        {compareResult.top_improvements.length > 0 && (
           <section className="section">
             <h2 className="section-title">✅ Maiores Melhorias</h2>
-            {cr.top_improvements.map((m) => (
+            {compareResult.top_improvements.map((m) => (
               <div key={m.key} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 14px", background: "rgba(34,211,238,0.06)", border: "1px solid rgba(34,211,238,0.2)", borderRadius: 10, marginBottom: 8 }}>
                 <div style={{ flex: 1 }}>
                   <div style={{ fontWeight: 600, color: "var(--text)", fontSize: 14 }}>{m.label}</div>
@@ -118,10 +128,10 @@ export function CompareResultPage() {
         )}
 
         {/* Top regressões */}
-        {cr.top_regressions.length > 0 && (
+        {compareResult.top_regressions.length > 0 && (
           <section className="section">
             <h2 className="section-title">⚠️ Maiores Regressões</h2>
-            {cr.top_regressions.map((m) => (
+            {compareResult.top_regressions.map((m) => (
               <div key={m.key} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 14px", background: "rgba(248,113,113,0.06)", border: "1px solid rgba(248,113,113,0.2)", borderRadius: 10, marginBottom: 8 }}>
                 <div style={{ flex: 1 }}>
                   <div style={{ fontWeight: 600, color: "var(--text)", fontSize: 14 }}>{m.label}</div>
@@ -134,7 +144,7 @@ export function CompareResultPage() {
         )}
 
         {/* Tabela completa */}
-        {cr.metrics.length > 0 && (
+        {compareResult.metrics.length > 0 && (
           <section className="section">
             <h2 className="section-title">📊 Todas as Métricas</h2>
             <div className="metric-table-wrap">
@@ -148,7 +158,7 @@ export function CompareResultPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {cr.metrics.map((m) => (
+                  {compareResult.metrics.map((m) => (
                     <tr key={m.key}>
                       <td>{m.label}</td>
                       <td>{m.before.toFixed(2)}</td>

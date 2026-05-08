@@ -102,6 +102,14 @@ export type CompareResult = {
   top_regressions: CompareMetric[];
 };
 
+export type CompareWithConsistency = CompareResult & {
+  consistency_score: number;
+  consistency_issues: string[];
+  is_comparable: boolean;
+  baseline_group_id_before?: string;
+  baseline_group_id_after?: string;
+};
+
 export type PremiumMetric = {
   key: string;
   label: string;
