@@ -124,13 +124,13 @@ Overlay decorativa (golden ratio mask, phi grid) **DEVE** carregar legenda expl�
 - Powell & Humphreys (1984) — *Proportions of the Aesthetic Face* (terços/quintos)
 - MediaPipe Face Mesh-478 (mirror pairs): https://github.com/google-ai-edge/mediapipe/blob/master/docs/solutions/face_mesh.md
 
-### Sub-marco M3.4 — composição before/ideal (vetorial) — 🟡 PR-41 ENTREGUE
+### Sub-marco M3.4 — composição before/ideal (vetorial) — ✅ ENTREGUE
 
 | PR | Escopo | Modelo | Status |
 |----|--------|--------|--------|
 | **PR-41** | Python `BeforeIdealComposer` (vetorial): renderiza side-by-side: foto original + esboço vetorial do "ideal" (silhueta de landmarks deslocados para `ideal_central_value` quando aplicável). **Sem warp** — só wireframe sobreposto. | **Opus** | ✅ `2140a7e` |
-| **PR-42** | Nest: persiste `rendered_asset.asset_type='before_ideal_composition'`. | Sonnet | 🔲 |
-| **PR-43** | Frontend: tela de comparação. Toggle "ver linhas guia". | Sonnet | 🔲 |
+| **PR-42** | Nest: `POST /v1/vision/compose-before-ideal` (proxy PNG stateless) + `POST /v1/overlays/:reportId/compose-before-ideal` (persist `rendered_asset.asset_type='before_ideal_composition'`). `composeBeforeIdealAndPersist()` em overlays.service.ts. | Sonnet | ✅ `d95e218` |
+| **PR-43** | Frontend: ViewMode `"before_ideal"` em PremiumResultPage.tsx. Sidebar "Vetores ideais" (📏). `buildComposeOffsets()` a partir de `improvement_vector_x/y`. Toggle linhas guia + wireframe. Cleanup `URL.revokeObjectURL`. | Sonnet | ✅ `d861a4e` |
 
 **Notas de execução M3.4 / PR-41** (sessão Opus 2026-05-08):
 
@@ -172,7 +172,54 @@ Overlay decorativa (golden ratio mask, phi grid) **DEVE** carregar legenda expl�
   A composição lado-a-lado preserva a foto original intocada (left pane) e
   apresenta o ideal como esboço técnico (right pane), reforçando o caráter
   geométrico-analítico vs. promessa estética.
-- **PR-42 (Sonnet)** vai persistir o PNG retornado em
+- **PR-42 (Sonnet — `d95e218`)** — Nest wiring:
+  - **`vision.dto.ts`**: `OffsetDto` (`landmark_index`, `dx_icu`, `dy_icu`, `metric_id?`) +
+    `ComposeBeforeIdealRequestDto` (`runId`, `landmarks[][]`, `offsets?`, `showGuideLines?`,
+    `showActualWireframe?`). `class-validator` decorators.
+  - **`vision.client.ts`**: `composeBeforeIdeal()` — fetches annotated image via
+    `fetchAnnotated(runId)`, then POSTs native `fetch + FormData + Blob` multipart to
+    `${baseUrl}/vision/compose-before-ideal`. Returns `{data: Buffer, contentType: 'image/png'}`.
+    `AbortSignal.timeout(30_000)`.
+  - **`vision.controller.ts`**: `POST /v1/vision/compose-before-ideal` — streams PNG back
+    via `reply.header('Content-Type','image/png').send(file.data)`. Used by frontend (PR-43).
+  - **`overlays.service.ts`**: `composeBeforeIdealAndPersist(reportId, generatedAt, imageUrl,
+    offsets, showGuideLines, showActualWireframe)` — loads `LandmarkPayloadEntity` from DB,
+    downloads `imageUrl`, calls Python via multipart, uploads PNG to MinIO at
+    `rendered/{reportId}/{uuid}_before_ideal.png`, persists `RenderedAssetEntity` with
+    `assetType='before_ideal_composition'`. Error: `NotFoundException` if no landmark payload.
+  - **`overlays.controller.ts`**: `POST /v1/overlays/:reportId/compose-before-ideal` with
+    `ComposeBeforeIdealBodyDto` (`generatedAt`, `imageUrl`, `offsets?`, `showGuideLines?`,
+    `showActualWireframe?`). Returns `RenderedAssetDto.from(asset)` (HTTP 201).
+  - **Pattern**: native Node.js 18 `fetch` + `FormData` + `new Blob([new Uint8Array(buffer)])` —
+    mirrors `overlays.service.ts renderAndPersist()` pattern.
+  - **Fontes**: Nest Fastify docs https://docs.nestjs.com/techniques/http-module,
+    FormData+Blob Node.js 18 https://nodejs.org/api/globals.html#class-formdata,
+    MinIO JS SDK https://github.com/minio/minio-js,
+    rendered_asset DDL migration 1746000160000-M3OverlayCatalog,
+    PLAN_M3_OVERLAYS §2 PR-42, DEC-15, DEC-26.
+
+- **PR-43 (Sonnet — `d861a4e`)** — Frontend comparison view:
+  - **`PremiumResultPage.tsx`**: ViewMode `"before_ideal"` added.
+  - **`COMPOSE_ANCHOR`**: `{ midline_deviation: 1, chin_height_ratio: 152, brow_height_l: 107,
+    brow_height_r: 336 }` — MediaPipe Mesh-478 landmark indices (mirrors `IMPROVEMENT_ANCHOR`
+    in `OverlayLayer.tsx`).
+  - **`buildComposeOffsets(evals)`**: filters `metric_evaluations` by `COMPOSE_ANCHOR` membership
+    + non-null `improvement_vector_x/y`, maps to `{landmark_index, dx_icu, dy_icu, metric_id}`.
+  - **`fetchCompose()`** (`useCallback`): `POST /v1/vision/compose-before-ideal` (JSON body:
+    `runId, landmarks, offsets, showGuideLines, showActualWireframe`) → blob →
+    `URL.createObjectURL(blob)`. Revokes previous URL before creating new one.
+  - **Sidebar button** "Vetores ideais" (📏): visible when `hasBeforeIdeal` = `run_id +
+    landmarks + ≥1 metric with improvement vector + COMPOSE_ANCHOR entry`.
+  - **Toggles in sidebar**: "Linhas guia" (`showGuideLines`) + "Wireframe atual"
+    (`showActualWireframe`) — each flip triggers `fetchCompose` via `useEffect` dep array.
+  - **View body**: loading spinner (⏳) | `<img src={beforeIdealUrl}>` | empty state.
+  - **Cleanup**: `URL.revokeObjectURL(beforeIdealUrl)` on component unmount / URL change.
+  - **TypeScript**: validated via `npx tsc --noEmit` — zero errors.
+  - **Fontes**: MediaPipe Mesh-478 https://github.com/google-ai-edge/mediapipe/blob/master/docs/solutions/face_mesh.md,
+    MDN URL.createObjectURL https://developer.mozilla.org/en-US/docs/Web/API/URL/createObjectURL,
+    PLAN_M3_OVERLAYS §2 PR-42/PR-43, DEC-26.
+
+**PR-42 (Sonnet)** vai persistir o PNG retornado em
   `rendered_asset.asset_type='before_ideal_composition'` (enum já existe desde
   PR-30). Wiring entre `OrchestratorService` e o novo endpoint.
 - **PR-43 (Sonnet)** vai construir a tela de comparação no frontend, consumindo
