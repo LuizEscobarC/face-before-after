@@ -69,6 +69,27 @@ EYES_POSE_PARAMS = PosePenaltyParams(
     yaw_weight=0.6, pitch_weight=0.4,
 )
 
+# Jaw geometry is highly sensitive to yaw (silhouette becomes asymmetric in 2D
+# when head is rotated). Pitch matters less. Floor is intentionally lower than
+# eyes/symmetry because gonion landmarks on Mesh-478 are approximate (see
+# landmarks_mesh.py TODOs) — small head turns already invalidate jaw width.
+JAW_POSE_PARAMS = PosePenaltyParams(
+    yaw_soft_deg=4.0, yaw_hard_deg=12.0,
+    pitch_soft_deg=6.0, pitch_hard_deg=18.0,
+    yaw_weight=0.8, pitch_weight=0.2,
+    floor=0.15,
+)
+
+# Nose width and dorsum deviation are sensitive to yaw (alar foreshortening,
+# tip displacement). Pitch matters less for X-axis ratios but affects vertical
+# ratios (nose_length_to_icd) somewhat. Mid floor (~0.18).
+NOSE_POSE_PARAMS = PosePenaltyParams(
+    yaw_soft_deg=5.0, yaw_hard_deg=15.0,
+    pitch_soft_deg=8.0, pitch_hard_deg=20.0,
+    yaw_weight=0.7, pitch_weight=0.3,
+    floor=0.18,
+)
+
 
 def _axis_penalty(angle_deg: float, soft: float, hard: float, floor: float) -> float:
     """Piecewise linear penalty for a single rotation axis."""

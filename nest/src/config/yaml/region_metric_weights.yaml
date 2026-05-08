@@ -37,3 +37,22 @@ weights:
     intercanthal_distance: 0.5  # sanity-check metric — kept low
     canthal_tilt_l: 1.0
     canthal_tilt_r: 1.0
+  jaw:
+    # PR-13 (M2 jaw family). Bumped weight on width_ratio + asymmetry per DEC-8
+    # (jaw is critical region; width and asymmetry carry the strongest signal).
+    jaw_width_ratio: 1.5
+    gonial_angle_l: 1.0
+    gonial_angle_r: 1.0
+    gonial_angle_asymmetry: 1.2
+    mandibular_plane_angle: 1.0
+    chin_height_ratio: 1.0
+  nose:
+    # PR-14 (M2 nose family). Slight bump on width and deviation metrics:
+    # asymmetry and dorsum displacement carry strong perceptual signal.
+    nose_length_to_icd: 1.0
+    nose_width_to_icd: 1.2
+    alar_to_face_width_ratio: 1.0
+    nose_to_mouth_width_ratio: 1.0
+    dorsum_deviation: 1.3
+    nasal_tip_deviation: 1.3
+    alar_base_asymmetry: 1.2

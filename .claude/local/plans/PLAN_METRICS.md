@@ -2,7 +2,7 @@
 
 > Plano mestre da expansão de métricas, ideais, overlays e diagnóstico.
 > Documento de referência permanente. Releia no início de cada sessão.
-> Última atualização: 2026-05-08 (após PR-12).
+> Última atualização: 2026-05-08 (após PR-14).
 
 ---
 
@@ -22,10 +22,12 @@
 | **PR-10** | **Nest: `AnalysisOrchestrator` + endpoint `POST /v1/analysis/evaluate` + Python `/vision/metrics-v2`** | ✅ DONE |
 | **PR-11** | **Migration `0004_SeedMetricCatalogV1`: 21 `metric_definition` + 20 `metric_ideal` rows (ideals_version=v1.0)** | ✅ DONE |
 | **PR-12** | **M2 first slice: `RegionalScorer` + `GlobalScorer` + `ScoreBander` + 6 entidades + migration `0005_RegionalAndGlobalScoring` + YAMLs `region_metric_weights.yaml`/`global_weights.yaml` + 42 testes Vitest novos** | ✅ DONE |
+| **PR-13** | **Família `jaw` (mandíbula): 6 métricas (`jaw_width_ratio`, `gonial_angle_l/r`, `gonial_angle_asymmetry`, `mandibular_plane_angle`, `chin_height_ratio`) + `JAW_POSE_PARAMS` (yaw-sensitive) + migration `0006_SeedJawFamily` + 53 testes Python novos + YAMLs atualizados** | ✅ DONE |
+| **PR-14** | **Família `nose`: 7 métricas (`nose_length_to_icd`, `nose_width_to_icd`, `alar_to_face_width_ratio`, `nose_to_mouth_width_ratio`, `dorsum_deviation`, `nasal_tip_deviation`, `alar_base_asymmetry`) + `NOSE_POSE_PARAMS` + migration `0007_SeedNoseFamily` + 63 testes Python novos + YAMLs atualizados. Substituições vs plano original: `nasal_tip_projection` e `nasolabial_angle` (sagital) movidas para PR-23 (multi-foto)** | ✅ DONE |
 
 **M1 completo**: `POST /v1/analysis/evaluate` recebe landmarks + quality_context, chama Python `/vision/metrics-v2`, compara contra ideais do banco, persiste `AnalysisReport` + `MetricEvaluation[]` + `MetricEvaluationAgainstIdeal[]` em transação única.
 
-**M2 (em andamento)**: PR-12 entregou a primeira fatia — score regional + global + banding (DEC-9) + gating crítico (DEC-8). Total: 116 testes Vitest (74 anteriores + 42 novos), 426 testes Python. DB com 6 novas tabelas + 21 region_metric_weight rows + 2 global_weight rows. Próximas fatias do M2: novas famílias de métricas (mandíbula, nariz, boca, sobrancelhas, maçãs, testa, formato global).
+**M2 (em andamento)**: PR-12 entregou scoring infra; PR-13 (`jaw`, 6 métricas) e PR-14 (`nose`, 7 métricas) já entregues. Total: 116 testes Vitest, 542 testes Python (53 jaw + 63 nose desde PR-12). DB com 34 metric_definitions, 33 metric_ideals, region_metric_weight (jaw=6, eyes=6, symmetry=14, nose=7). Próximas fatias do M2: PR-15 (mouth), PR-16 (brows), PR-17 (cheekbones), PR-18 (forehead), PR-19 (global_shape), PR-20 (phi/golden presentation_only), PR-21 (recalibração v2.0), PR-22 (calibração com fotos reais), PR-23 (multi-foto + perfil sagital). Detalhe em [`PLAN_M2_BACKLOG.md`](./PLAN_M2_BACKLOG.md).
 
 ---
 
@@ -462,10 +464,18 @@ Sem score regional/global, sem texto, sem overlay no M1.
 
 ## 11. Marcos
 
-- **M1** (atual): núcleo analítico — 20 métricas, comparação contra ideal, persistência. Sem texto, sem overlay, sem score regional/global.
-- **M2**: famílias restantes (mandíbula, nariz, boca, sobrancelhas, maçãs, testa, global) → 60+ métricas. Score regional + global com banding. Calibração com 30-50 fotos reais.
-- **M3**: overlays SVG no frontend + heatmaps + composição before/ideal vetorial + endpoint `POST /vision/render`.
-- **M4**: templates de texto + priorização + recomendações catalogadas + PDF do relatório.
+- **M1** (✅ done): núcleo analítico — 21 métricas, comparação contra ideal, persistência. Sem texto, sem overlay, sem score regional/global.
+- **M2** (🟡 em andamento, primeira fatia entregue no PR-12): famílias restantes (mandíbula, nariz, boca, sobrancelhas, maçãs, testa, global) → 60+ métricas. Score regional + global com banding (✅ PR-12). Calibração com 30-50 fotos reais. **Backlog detalhado em [`PLAN_M2_BACKLOG.md`](./PLAN_M2_BACKLOG.md)**.
+- **M3**: overlays SVG no frontend + heatmaps + composição before/ideal vetorial + endpoint `POST /vision/render`. **Plano detalhado em [`PLAN_M3_OVERLAYS.md`](./PLAN_M3_OVERLAYS.md)**.
+- **M4**: templates de texto + priorização + recomendações catalogadas + PDF do relatório + disclaimers. **Plano detalhado em [`PLAN_M4_NARRATIVE.md`](./PLAN_M4_NARRATIVE.md)**.
+
+> **Reavaliação caso a caso a partir do M2**: cada marco próximo tem sub-marcos com PRs atômicos. Ver os arquivos específicos.
+>
+> **Modelos recomendados** (do prompt do usuário):
+> - **M2 (calibração de ideais, PRs 21-22)**: Opus — julgamento sobre fontes (Farkas vs Naini), divergencias, variação por sexo/idade.
+> - **M3.3 (heatmaps + before/ideal)**: Opus — supressão em cascata, interpolação `griddata`, mapeamento de cor.
+> - **M4.2 (templates) e M4.3 (recomendações)**: Opus — implicação legal/ética do tom + classificação `lifestyle` vs `professional_referral`.
+> - PRs de família de métrica (PR-13..20), infra de overlay (PR-30..36, 39..43), infra de template/PDF (PR-50..52, 55, 57..62): Sonnet com bom contexto basta.
 
 ---
 

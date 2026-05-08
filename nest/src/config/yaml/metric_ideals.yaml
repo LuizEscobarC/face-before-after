@@ -296,3 +296,167 @@ metrics:
       pt-BR: "inclinação positiva (olho de gato) — direito"
     direction_label_below:
       pt-BR: "inclinação negativa (queda lateral) — direito"
+
+  # ──────────────────────────────────────────────
+  # FAMÍLIA: jaw (PR-13 / M2)
+  # ──────────────────────────────────────────────
+
+  jaw_width_ratio:
+    ideal_type: population_statistical
+    ideal_central_value: 0.80
+    green_range_min: 0.75
+    green_range_max: 0.85
+    yellow_range_min: 0.70
+    yellow_range_max: 0.90
+    direction_label_above:
+      pt-BR: "mandíbula mais larga"
+    direction_label_below:
+      pt-BR: "mandíbula mais afilada"
+
+  gonial_angle_l:
+    ideal_type: population_statistical
+    ideal_central_value: 125.0
+    green_range_min: 120.0
+    green_range_max: 130.0
+    yellow_range_min: 115.0
+    yellow_range_max: 135.0
+    direction_label_above:
+      pt-BR: "ângulo mais aberto"
+    direction_label_below:
+      pt-BR: "ângulo mais fechado"
+
+  gonial_angle_r:
+    ideal_type: population_statistical
+    ideal_central_value: 125.0
+    green_range_min: 120.0
+    green_range_max: 130.0
+    yellow_range_min: 115.0
+    yellow_range_max: 135.0
+    direction_label_above:
+      pt-BR: "ângulo mais aberto"
+    direction_label_below:
+      pt-BR: "ângulo mais fechado"
+
+  gonial_angle_asymmetry:
+    ideal_type: canonical
+    ideal_central_value: 0.0
+    green_range_min: 0.0
+    green_range_max: 3.0
+    yellow_range_min: 0.0
+    yellow_range_max: 6.0
+    direction_label_above:
+      pt-BR: "lado esquerdo mais aberto"
+    direction_label_below:
+      pt-BR: "lado direito mais aberto"
+
+  mandibular_plane_angle:
+    ideal_type: population_statistical
+    ideal_central_value: 27.0
+    green_range_min: 22.0
+    green_range_max: 32.0
+    yellow_range_min: 17.0
+    yellow_range_max: 37.0
+    direction_label_above:
+      pt-BR: "plano mandibular mais inclinado"
+    direction_label_below:
+      pt-BR: "plano mandibular mais horizontal"
+
+  chin_height_ratio:
+    ideal_type: population_statistical
+    ideal_central_value: 0.50
+    green_range_min: 0.45
+    green_range_max: 0.55
+    yellow_range_min: 0.40
+    yellow_range_max: 0.60
+    direction_label_above:
+      pt-BR: "mento alongado"
+    direction_label_below:
+      pt-BR: "mento curto"
+
+  # ──────────────────────────────────────────────
+  # FAMÍLIA: nose (PR-14 / M2)
+  # ──────────────────────────────────────────────
+
+  nose_length_to_icd:
+    ideal_type: population_statistical
+    ideal_central_value: 1.50
+    green_range_min: 1.35
+    green_range_max: 1.65
+    yellow_range_min: 1.20
+    yellow_range_max: 1.80
+    direction_label_above:
+      pt-BR: "nariz alongado"
+    direction_label_below:
+      pt-BR: "nariz curto"
+
+  nose_width_to_icd:
+    ideal_type: population_statistical
+    ideal_central_value: 1.00
+    green_range_min: 0.90
+    green_range_max: 1.10
+    yellow_range_min: 0.80
+    yellow_range_max: 1.20
+    direction_label_above:
+      pt-BR: "nariz mais largo"
+    direction_label_below:
+      pt-BR: "nariz mais estreito"
+
+  alar_to_face_width_ratio:
+    ideal_type: population_statistical
+    ideal_central_value: 0.20
+    green_range_min: 0.17
+    green_range_max: 0.23
+    yellow_range_min: 0.14
+    yellow_range_max: 0.26
+    direction_label_above:
+      pt-BR: "asas nasais proeminentes"
+    direction_label_below:
+      pt-BR: "asas nasais discretas"
+
+  nose_to_mouth_width_ratio:
+    ideal_type: population_statistical
+    ideal_central_value: 0.65
+    green_range_min: 0.57
+    green_range_max: 0.73
+    yellow_range_min: 0.50
+    yellow_range_max: 0.80
+    direction_label_above:
+      pt-BR: "nariz largo em relação à boca"
+    direction_label_below:
+      pt-BR: "nariz estreito em relação à boca"
+
+  dorsum_deviation:
+    ideal_type: canonical
+    ideal_central_value: 0.0
+    green_range_min: 0.0
+    green_range_max: 0.03
+    yellow_range_min: 0.0
+    yellow_range_max: 0.07
+    direction_label_above:
+      pt-BR: "dorso desviado para a esquerda"
+    direction_label_below:
+      pt-BR: "dorso desviado para a direita"
+
+  nasal_tip_deviation:
+    ideal_type: canonical
+    ideal_central_value: 0.0
+    green_range_min: 0.0
+    green_range_max: 0.03
+    yellow_range_min: 0.0
+    yellow_range_max: 0.07
+    direction_label_above:
+      pt-BR: "ponta desviada para a esquerda"
+    direction_label_below:
+      pt-BR: "ponta desviada para a direita"
+
+  alar_base_asymmetry:
+    ideal_type: canonical
+    ideal_central_value: 0.0
+    green_range_min: 0.0
+    green_range_max: 0.03
+    yellow_range_min: 0.0
+    yellow_range_max: 0.07
+    direction_label_above:
+      pt-BR: "asa esquerda mais baixa"
+    direction_label_below:
+      pt-BR: "asa direita mais baixa"

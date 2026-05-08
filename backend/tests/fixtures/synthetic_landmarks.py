@@ -38,8 +38,11 @@ from app.domain.landmarks_mesh import (
     P_LEFT_IRIS_CENTER,
     P_LEFT_MOUTH,
     P_LEFT_ZYGOMATIC,
+    P_LOWER_LIP_BOT,
     P_MENTON,
     P_NASION,
+    P_NOSE_LEFT,
+    P_NOSE_RIGHT,
     P_NOSE_TIP,
     P_RIGHT_EYE_BOT,
     P_RIGHT_EYE_INNER,
@@ -268,5 +271,127 @@ def perfect_thirds() -> np.ndarray:
     # Override the two vertical anchors that define thirds balance.
     kp[P_FOREHEAD_CROWN] = _FOREHEAD_THIRDS_PT   # (400, 184)
     kp[P_MENTON]         = _MENTON_THIRDS_PT     # (400, 448)
+    grid = _base_grid()
+    return _set_key_points(grid, kp)
+
+
+# ---------------------------------------------------------------------------
+# Jaw fixture (PR-13)
+# ---------------------------------------------------------------------------
+# Canonical jaw geometry. After normalisation (intercanthal scale = 1.0):
+#   bizygomatic = 4.0 ICU (zygomatics at x = 200, 600)
+#   bigonial    = 3.2 ICU (gonions at x = 240, 560) → jaw_width_ratio = 0.80 ✓
+#   menton at (400, 560) → mandibular_plane_angle = atan(80/160) ≈ 26.57° ✓
+#   gonial angle at each gonion (zygomatic-gonion-menton) ≈ 129° (within green ±5° of 125°)
+#   gonial asymmetry = 0° ✓
+#   chin_height_ratio = (560-460) / (560-360) = 0.50 ✓ (lower_lip_bot at y=460)
+_JAW_ZYG_L     = (200.0, _FACE_CY)         # (200, 300)
+_JAW_ZYG_R     = (600.0, _FACE_CY)         # (600, 300)
+_JAW_GONION_L  = (240.0, 480.0)
+_JAW_GONION_R  = (560.0, 480.0)
+_JAW_MENTON    = (_FACE_CX, 560.0)         # (400, 560)
+_JAW_LOWER_LIP_BOT = (_FACE_CX, 460.0)     # (400, 460)
+
+
+def perfect_jaw_face() -> np.ndarray:
+    """(478, 3) — face with canonical jaw geometry.
+
+    All six jaw metrics fall within their green range (close to ideal):
+      jaw_width_ratio        ≈ 0.80 (ideal)
+      gonial_angle_l/r       ≈ 129° (ideal 125°, |dev|=4 ≤ green ±5)
+      gonial_angle_asymmetry ≈ 0° (ideal)
+      mandibular_plane_angle ≈ 26.57° (ideal 27°)
+      chin_height_ratio      ≈ 0.50 (ideal)
+    """
+    kp = _canonical_key_points()
+    kp[P_LEFT_ZYGOMATIC]  = _JAW_ZYG_L
+    kp[P_RIGHT_ZYGOMATIC] = _JAW_ZYG_R
+    kp[P_LEFT_GONION]     = _JAW_GONION_L
+    kp[P_RIGHT_GONION]    = _JAW_GONION_R
+    kp[P_MENTON]          = _JAW_MENTON
+    kp[P_LOWER_LIP_BOT]   = _JAW_LOWER_LIP_BOT
+    grid = _base_grid()
+    return _set_key_points(grid, kp)
+
+
+def asymmetric_jaw_face() -> np.ndarray:
+    """(478, 3) — jaw fixture with deliberate L/R gonial asymmetry.
+
+    Right gonion shifted up by 30 px, leaving left side the canonical geometry.
+    Yields gonial_angle_asymmetry > 8° (yellow range).
+    """
+    kp = _canonical_key_points()
+    kp[P_LEFT_ZYGOMATIC]  = _JAW_ZYG_L
+    kp[P_RIGHT_ZYGOMATIC] = _JAW_ZYG_R
+    kp[P_LEFT_GONION]     = _JAW_GONION_L
+    kp[P_RIGHT_GONION]    = (_JAW_GONION_R[0], _JAW_GONION_R[1] - 30.0)
+    kp[P_MENTON]          = _JAW_MENTON
+    kp[P_LOWER_LIP_BOT]   = _JAW_LOWER_LIP_BOT
+    grid = _base_grid()
+    return _set_key_points(grid, kp)
+
+
+# ---------------------------------------------------------------------------
+# Nose fixture (PR-14)
+# ---------------------------------------------------------------------------
+# Canonical nose geometry (after normalisation to ICU = 1.0):
+#   nose_length_to_icd     = (subnasale.y - nasion.y) / 1.0 = 1.5 ICU
+#   nose_width_to_icd      = alar_width / 1.0 = 1.0 ICU
+#   alar_to_face_width     = 1.0 / 5.0 = 0.20 (bizygomatic = 5 ICU = 500 px)
+#   nose_to_mouth_width    = alar / mouth = 100 / 154 ≈ 0.65
+#   dorsum_deviation       = |nasion.x - tip.x| = 0
+#   nasal_tip_deviation    = |tip.x - midline.x| = 0
+#   alar_base_asymmetry    = |alar_l.y - alar_r.y| = 0
+#
+# Pixel layout (ICD = 100 px, _FACE_CX=400, _FACE_CY=300):
+_NOSE_NASION       = (_FACE_CX, _FACE_CY - 75)            # (400, 225)
+_NOSE_SUBNASALE    = (_FACE_CX, _FACE_CY + 75)            # (400, 375) → length=150 px
+_NOSE_TIP_PT_NOSE  = (_FACE_CX, _FACE_CY + 30)            # (400, 330)  midway, on midline
+_NOSE_ALAR_L       = (_FACE_CX - 50, _FACE_CY + 45)       # (350, 345)
+_NOSE_ALAR_R       = (_FACE_CX + 50, _FACE_CY + 45)       # (450, 345)
+_NOSE_MOUTH_L      = (_FACE_CX - 77, _FACE_CY + 140)      # (323, 440)  width=154 px
+_NOSE_MOUTH_R      = (_FACE_CX + 77, _FACE_CY + 140)      # (477, 440)
+# Bizygomatic anchors already at (_FACE_CX ± 250, _FACE_CY) = (150,300)/(650,300) = 5 ICU.
+
+
+def perfect_nose_face() -> np.ndarray:
+    """(478, 3) — face with canonical nose geometry.
+
+    All seven nose metrics fall within their green range:
+      nose_length_to_icd          = 1.50 (ideal)
+      nose_width_to_icd           = 1.00 (ideal)
+      alar_to_face_width_ratio    = 0.20 (ideal)
+      nose_to_mouth_width_ratio   ≈ 0.649 (ideal 0.65)
+      dorsum_deviation            = 0.00 (ideal)
+      nasal_tip_deviation         = 0.00 (ideal)
+      alar_base_asymmetry         = 0.00 (ideal)
+    """
+    kp = _canonical_key_points()
+    kp[P_NASION]       = _NOSE_NASION
+    kp[P_SUBNASALE]    = _NOSE_SUBNASALE
+    kp[P_NOSE_TIP]     = _NOSE_TIP_PT_NOSE
+    kp[P_NOSE_LEFT]    = _NOSE_ALAR_L
+    kp[P_NOSE_RIGHT]   = _NOSE_ALAR_R
+    kp[P_LEFT_MOUTH]   = _NOSE_MOUTH_L
+    kp[P_RIGHT_MOUTH]  = _NOSE_MOUTH_R
+    grid = _base_grid()
+    return _set_key_points(grid, kp)
+
+
+def deviated_nose_face() -> np.ndarray:
+    """(478, 3) — nose fixture with deliberate dorsum + tip deviation.
+
+    Nose tip shifted +12 px to the right (image), creating both a non-zero
+    dorsum_deviation (nasion vs tip) and nasal_tip_deviation (tip vs midline).
+    Yields ~0.12 ICU deviation (yellow range for both).
+    """
+    kp = _canonical_key_points()
+    kp[P_NASION]       = _NOSE_NASION
+    kp[P_SUBNASALE]    = _NOSE_SUBNASALE
+    kp[P_NOSE_TIP]     = (_FACE_CX + 12, _FACE_CY + 30)
+    kp[P_NOSE_LEFT]    = _NOSE_ALAR_L
+    kp[P_NOSE_RIGHT]   = _NOSE_ALAR_R
+    kp[P_LEFT_MOUTH]   = _NOSE_MOUTH_L
+    kp[P_RIGHT_MOUTH]  = _NOSE_MOUTH_R
     grid = _base_grid()
     return _set_key_points(grid, kp)

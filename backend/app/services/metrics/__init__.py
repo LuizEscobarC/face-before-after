@@ -13,5 +13,7 @@ from app.services.metrics import symmetry as _symmetry  # noqa: F401 — trigger
 from app.services.metrics import thirds as _thirds      # noqa: F401 — triggers @register
 from app.services.metrics import fifths as _fifths      # noqa: F401 — triggers @register
 from app.services.metrics import eyes as _eyes          # noqa: F401 — triggers @register
+from app.services.metrics import jaw as _jaw            # noqa: F401 — triggers @register
+from app.services.metrics import nose as _nose          # noqa: F401 — triggers @register
 
-__all__ = ["symmetry", "thirds", "fifths", "eyes"]
+__all__ = ["symmetry", "thirds", "fifths", "eyes", "jaw", "nose"]
