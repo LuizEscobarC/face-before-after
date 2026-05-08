@@ -19,6 +19,7 @@ import {
   MetricsResponseDto,
 } from './dto/vision.dto.js';
 import type { ClientLandmarkPayloadDto } from './dto/client-landmark-payload.dto.js';
+import type { MetricsV2ResponseDto } from '#modules/analysis/dto/evaluate.dto.js';
 import { VISION_CLIENT_CONFIG, VisionClientConfig } from './vision.config.js';
 
 @Injectable()
@@ -58,6 +59,17 @@ export class VisionClient {
       quality_context: { quality_score: 1.0, regional_penalties: {} },
       session_id: payload.session_id,
     });
+  }
+
+  metricsV2(payload: {
+    landmarks: number[][];
+    quality_context: { quality_score: number; regional_penalties: Record<string, number>; pose?: Record<string, number> };
+    session_id?: string | null;
+    yaw_deg?: number;
+    pitch_deg?: number;
+    image_size?: number[] | null;
+  }): Promise<MetricsV2ResponseDto> {
+    return this.request<MetricsV2ResponseDto>('POST', '/vision/metrics-v2', payload);
   }
 
   fullPipeline(payload: FullPipelineRequestDto): Promise<FullPipelineResponseDto> {
