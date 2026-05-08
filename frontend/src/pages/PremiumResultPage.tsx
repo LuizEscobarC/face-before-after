@@ -2,11 +2,12 @@ import { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { fetchGlossary } from "../api";
 import { MetricExplainer } from "../components/MetricExplainer";
+import { DEFAULT_OVERLAYS, OverlayLayer, OverlayToggleBar } from "../components/OverlayLayer";
 import { feynmanFor } from "../data/feynman";
 import type { AnalysisResult, GlossaryTerm, PremiumMetricCategory } from "../types";
 
 type LocationState = { result?: AnalysisResult };
-type ViewMode = "landmarks" | "ideal" | "compare";
+type ViewMode = "landmarks" | "ideal" | "compare" | "overlays";
 
 const RANK_EMOJI = ["🥇", "🥈", "🥉"];
 const PHASE_ICON = ["⚡", "🎯", "🏅"];
@@ -122,6 +123,14 @@ export function PremiumResultPage() {
 
   const [glossary, setGlossary] = useState<Record<string, GlossaryTerm>>({});
   const [view, setView] = useState<ViewMode>("landmarks");
+  const [activeOverlays, setActiveOverlays] = useState<string[]>(DEFAULT_OVERLAYS);
+  const [imgDims, setImgDims] = useState<{ w: number; h: number } | null>(null);
+
+  const handleOverlayToggle = (id: string) => {
+    setActiveOverlays((prev) =>
+      prev.includes(id) ? prev.filter((o) => o !== id) : [...prev, id]
+    );
+  };
 
   useEffect(() => {
     fetchGlossary()
@@ -161,6 +170,7 @@ export function PremiumResultPage() {
     landmarks: { icon: "🗺", label: "Mapa de métricas", sub: "detectadas" },
     ideal:     { icon: "📐", label: "Proporções", sub: "ideais" },
     compare:   { icon: "⚖️", label: "Comparativo", sub: "original vs simetrizado" },
+    overlays:  { icon: "🔬", label: "Overlays", sub: "linhas de referência" },
   };
 
   return (
@@ -220,6 +230,23 @@ export function PremiumResultPage() {
             </button>
           )}
 
+          {annotatedUrl && result.landmarks && (
+            <button
+              className={`view-btn${view === "overlays" ? " view-btn-active" : ""}`}
+              onClick={() => setView("overlays")}
+            >
+              <span className="view-btn-icon">🔬</span>
+              <span className="view-btn-text">
+                Overlays
+                <small>linhas de referência</small>
+              </span>
+            </button>
+          )}
+
+          {view === "overlays" && result.landmarks && (
+            <OverlayToggleBar activeOverlays={activeOverlays} onToggle={handleOverlayToggle} />
+          )}
+
           {/* Score card */}
           <div className="sidebar-score">
             <div className="sidebar-score-num">{result.score}</div>
@@ -275,6 +302,27 @@ export function PremiumResultPage() {
                   beforeSrc={`${simBase}/canonical`}
                   afterSrc={`${simBase}/symmetrized`}
                 />
+              )}
+
+              {view === "overlays" && annotatedUrl && result.landmarks && (
+                <div style={{ position: "relative", display: "inline-block" }}>
+                  <img
+                    src={annotatedUrl}
+                    alt="Rosto com overlays de referência"
+                    className="panel-img"
+                    style={{ display: "block" }}
+                    onLoad={(e) => {
+                      const img = e.currentTarget;
+                      setImgDims({ w: img.naturalWidth, h: img.naturalHeight });
+                    }}
+                  />
+                  <OverlayLayer
+                    landmarks={result.landmarks}
+                    imageWidth={imgDims?.w ?? 640}
+                    imageHeight={imgDims?.h ?? 480}
+                    activeOverlays={activeOverlays}
+                  />
+                </div>
               )}
             </div>
           </div>

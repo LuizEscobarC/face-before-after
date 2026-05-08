@@ -132,6 +132,8 @@ export type AnalysisResult = {
   access_tier: string;
   input_file: string;
   run_id?: string;
+  /** Raw pixel landmark coordinates from MediaPipe Mesh-478. Each entry is [x, y]. */
+  landmarks?: Array<[number, number]>;
   score: number;
   tier: string;
   tier_description: string;
