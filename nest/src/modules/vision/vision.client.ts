@@ -68,6 +68,10 @@ export class VisionClient {
     return this.request<Record<string, unknown>>('POST', '/vision/compare', payload);
   }
 
+  async fetchOriginal(runId: string): Promise<{ data: Buffer; contentType: string }> {
+    return this.fetchBinary(`/vision/results/${runId}/original`);
+  }
+
   async fetchAnnotated(runId: string): Promise<{
     data: Buffer;
     contentType: string;
@@ -77,7 +81,7 @@ export class VisionClient {
 
   async fetchSimulation(
     runId: string,
-    simType: 'symmetrized' | 'ideal_proportions' | 'comparison_grid',
+    simType: 'canonical' | 'symmetrized' | 'ideal_proportions' | 'comparison_grid',
   ): Promise<{ data: Buffer; contentType: string }> {
     return this.fetchBinary(`/vision/results/${runId}/simulation/${simType}`);
   }

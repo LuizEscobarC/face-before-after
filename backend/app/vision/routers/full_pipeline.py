@@ -19,6 +19,7 @@ from app.api.deps import get_storage
 from app.core.config import settings
 from app.core.exceptions import FileTooLargeError, InvalidImageError
 from app.infra.storage import MinIOStorage
+from app.core.json_utils import sanitize_numpy
 from app.vision.schemas.pipeline import FullPipelineRequest, FullPipelineResponse
 from app.vision.services import face_detection, quality_evaluator
 from app.vision.services.fingerprint import build_session_fingerprint, generate_baseline_group_id
@@ -76,6 +77,7 @@ async def _execute(image_bytes: bytes, filename: str, mode: str, storage: MinIOS
             logger.warning("MinIO upload failed for run_id=%s", run_id)
 
     if isinstance(result, dict):
+        result = sanitize_numpy(result)
         result["run_id"] = run_id
         result["output_dir"] = str(out_dir)
         result["photo_url"] = photo_url

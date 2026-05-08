@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { LoggerModule } from './shared/config/logger.module.js';
+import { DatabaseModule } from './database/database.module.js';
 import { HealthModule } from './modules/health/health.module.js';
 import { VisionModule } from './modules/vision/vision.module.js';
 import { PhotoQualityModule } from './modules/photo-quality/photo-quality.module.js';
@@ -15,6 +16,7 @@ import { IdentityModule } from './modules/identity/identity.module.js';
   imports: [
     EventEmitterModule.forRoot({ wildcard: true }),
     LoggerModule,
+    DatabaseModule,
     HealthModule,
     VisionModule,
     PhotoQualityModule,

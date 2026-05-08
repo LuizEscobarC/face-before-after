@@ -1,4 +1,25 @@
 services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: face-postgres
+    ports:
+      - "9019:5432"
+    environment:
+      - POSTGRES_DB=${POSTGRES_DB:-face_analysis}
+      - POSTGRES_USER=${POSTGRES_USER:-faceanalysis}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-faceanalysis}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - face-analysis
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-faceanalysis} -d ${POSTGRES_DB:-face_analysis}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
   minio:
     image: minio/minio:latest
     container_name: face-minio
@@ -87,6 +108,7 @@ services:
       - LOG_LEVEL=info
       - VISION_SERVICE_URL=http://vision-service:8000
       - VISION_SERVICE_TIMEOUT_MS=60000
+      - DATABASE_URL=${DATABASE_URL:-postgresql://faceanalysis:faceanalysis@postgres:5432/face_analysis}
     volumes:
       - ./nest/src:/app/src
       - ./nest/tsconfig.json:/app/tsconfig.json
@@ -94,6 +116,8 @@ services:
     depends_on:
       vision-service:
         condition: service_started
+      postgres:
+        condition: service_healthy
     networks:
       - face-analysis
     restart: unless-stopped
@@ -134,4 +158,6 @@ volumes:
   api-data:
     driver: local
   minio-data:
+    driver: local
+  postgres-data:
     driver: local

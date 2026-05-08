@@ -1,12 +1,21 @@
 from __future__ import annotations
 
+import numpy as np
 from fastapi import FastAPI
+from fastapi.encoders import ENCODERS_BY_TYPE
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.logging import setup_logging
 from app.vision.router import router as vision_router
 
 setup_logging()
+
+# Register numpy scalar/array types so FastAPI's jsonable_encoder can serialize
+# them without raising "Object of type float32 is not JSON serializable".
+ENCODERS_BY_TYPE[np.integer] = int          # type: ignore[index]
+ENCODERS_BY_TYPE[np.floating] = float       # type: ignore[index]
+ENCODERS_BY_TYPE[np.bool_] = bool           # type: ignore[index]
+ENCODERS_BY_TYPE[np.ndarray] = list         # type: ignore[index]
 
 app = FastAPI(
     title="Face Vision Service",

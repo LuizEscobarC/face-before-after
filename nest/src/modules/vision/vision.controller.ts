@@ -66,6 +66,16 @@ export class VisionController {
     return this.client.compare(body);
   }
 
+  @Get('results/:runId/original')
+  @ApiOperation({ summary: 'Foto original sem anotações' })
+  async original(
+    @Param('runId') runId: string,
+    @Res({ passthrough: false }) reply: FastifyReply,
+  ): Promise<void> {
+    const file = await this.client.fetchOriginal(runId);
+    void reply.header('Content-Type', file.contentType).send(file.data);
+  }
+
   @Get('results/:runId/annotated')
   @ApiOperation({ summary: 'Imagem anotada com landmarks' })
   async annotated(
@@ -80,7 +90,7 @@ export class VisionController {
   @ApiOperation({ summary: 'Simulação visual (symmetrized | ideal_proportions | comparison_grid)' })
   async simulation(
     @Param('runId') runId: string,
-    @Param('simType') simType: 'symmetrized' | 'ideal_proportions' | 'comparison_grid',
+    @Param('simType') simType: 'canonical' | 'symmetrized' | 'ideal_proportions' | 'comparison_grid',
     @Res({ passthrough: false }) reply: FastifyReply,
   ): Promise<void> {
     const file = await this.client.fetchSimulation(runId, simType);

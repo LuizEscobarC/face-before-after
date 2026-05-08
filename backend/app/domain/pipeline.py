@@ -1304,7 +1304,8 @@ def run(image_path: str, output_dir: str, mode: str = "premium") -> dict:
     img_path  = os.path.join(output_dir, f"{base}_mvp_annotated.jpg")
 
     with open(json_path, 'w', encoding='utf-8') as f:
-        json.dump(result, f, ensure_ascii=False, indent=2)
+        from app.core.json_utils import sanitize_numpy
+        json.dump(sanitize_numpy(result), f, ensure_ascii=False, indent=2)
 
     with open(txt_path, 'w', encoding='utf-8') as f:
         f.write(report_txt)
