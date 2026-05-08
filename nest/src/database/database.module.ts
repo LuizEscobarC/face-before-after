@@ -25,6 +25,10 @@ import { TypeOrmModule } from '@nestjs/typeorm';
           autoLoadEntities: true,
           synchronize: false,
           migrationsRun: false,
+          ssl:
+            process.env.DB_SSL === 'true'
+              ? { rejectUnauthorized: false }
+              : false,
           logging: process.env.DB_LOGGING === 'true',
         };
       },
