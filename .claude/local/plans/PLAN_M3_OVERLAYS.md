@@ -124,13 +124,73 @@ Overlay decorativa (golden ratio mask, phi grid) **DEVE** carregar legenda expl�
 - Powell & Humphreys (1984) — *Proportions of the Aesthetic Face* (terços/quintos)
 - MediaPipe Face Mesh-478 (mirror pairs): https://github.com/google-ai-edge/mediapipe/blob/master/docs/solutions/face_mesh.md
 
-### Sub-marco M3.4 — composição before/ideal (vetorial)
+### Sub-marco M3.4 — composição before/ideal (vetorial) — 🟡 PR-41 ENTREGUE
 
-| PR | Escopo | Modelo |
-|----|--------|--------|
-| **PR-41** | Python `BeforeIdealComposer` (vetorial): renderiza side-by-side: foto original + esboço vetorial do "ideal" (silhueta de landmarks deslocados para `ideal_central_value` quando aplicável). **Sem warp** — só wireframe sobreposto. | **Opus** |
-| **PR-42** | Nest: persiste `rendered_asset.asset_type='before_ideal_composition'`. | Sonnet |
-| **PR-43** | Frontend: tela de comparação. Toggle "ver linhas guia". | Sonnet |
+| PR | Escopo | Modelo | Status |
+|----|--------|--------|--------|
+| **PR-41** | Python `BeforeIdealComposer` (vetorial): renderiza side-by-side: foto original + esboço vetorial do "ideal" (silhueta de landmarks deslocados para `ideal_central_value` quando aplicável). **Sem warp** — só wireframe sobreposto. | **Opus** | ✅ `2140a7e` |
+| **PR-42** | Nest: persiste `rendered_asset.asset_type='before_ideal_composition'`. | Sonnet | 🔲 |
+| **PR-43** | Frontend: tela de comparação. Toggle "ver linhas guia". | Sonnet | 🔲 |
+
+**Notas de execução M3.4 / PR-41** (sessão Opus 2026-05-08):
+
+- **`backend/app/vision/services/before_ideal_composer.py`** — módulo puro. API:
+  `compose_before_ideal(image, landmarks, offsets, *, show_actual_wireframe=True,
+  show_guide_lines=True, gutter_px=8) -> Image.Image`. Retorna RGBA double-width
+  (2 × W + gutter). Left pane é byte-identical ao input photo (no-warp promise
+  per DEC-15). Right pane = photo + actual wireframe (gray solid alpha 160) +
+  ideal wireframe (cyan `#22d3ee` dashed 4/2 per DEC-26) + guide lines opcionais
+  (vertical midline + horizontal intercanthal em cyan faint).
+- **`IdealLandmarkOffset(landmark_index, dx_icu, dy_icu, metric_id="")`** —
+  dataclass frozen+slots. Cada offset desloca o landmark `landmark_index` no
+  wireframe ideal por `(dx_icu, dy_icu)` ICU. Magnitude cap ±0.3 ICU
+  (mirror dos calculadores PR-34 em `backend/app/services/metrics/symmetry.py` etc).
+  `metric_id` é tag de traceability — não é desenhado.
+- **Wireframe** = `LM_JAWLINE` + `LM_LEFT_BROW` + `LM_RIGHT_BROW` + `LM_LEFT_EYE`
+  (closed) + `LM_RIGHT_EYE` (closed) + `LM_OUTER_MOUTH` (closed) +
+  `LM_NOSE_BRIDGE`. Anatomicamente cobre todas as regiões alvo de
+  `improvement_vector` do PR-34 (midline, chin, brows) + região circundante
+  para silhueta legível.
+- **`BeforeIdealComposeError`** com `reason ∈ {invalid_landmark_shape,
+  insufficient_landmarks, intercanthal_distance_degenerate,
+  invalid_landmark_index}`. Caller (router/Nest) converte em HTTP 422 +
+  `processing_note`.
+- **Endpoint `POST /vision/compose-before-ideal`** em
+  `backend/app/vision/routers/compose.py`. Multipart fields: `image`,
+  `landmarks_json`, `offsets_json` (default `"[]"`),
+  `show_actual_wireframe` (form bool, default `"true"`),
+  `show_guide_lines` (form bool, default `"true"`). Wired em
+  `backend/app/vision/router.py`.
+- **Tests**: 10 unit tests em `backend/tests/unit/test_before_ideal_composer.py`
+  (output dimensions/mode, left pane byte-identical, empty offsets renders cyan,
+  single offset shifts only right pane, magnitude cap clipping, degenerate ICD
+  raises, insufficient landmarks raises, invalid landmark_index raises,
+  show_actual_wireframe toggle, show_guide_lines toggle). Suite: **1110 ✓ + 48
+  skipped** (PR-37/38 base era 1100, +10 desta entrega).
+- **Decisão de design — por que side-by-side e não overlay direto na foto**:
+  o overlay direto convida o usuário a interpretar como "antes/depois" cosmético.
+  A composição lado-a-lado preserva a foto original intocada (left pane) e
+  apresenta o ideal como esboço técnico (right pane), reforçando o caráter
+  geométrico-analítico vs. promessa estética.
+- **PR-42 (Sonnet)** vai persistir o PNG retornado em
+  `rendered_asset.asset_type='before_ideal_composition'` (enum já existe desde
+  PR-30). Wiring entre `OrchestratorService` e o novo endpoint.
+- **PR-43 (Sonnet)** vai construir a tela de comparação no frontend, consumindo
+  o asset persistido + montando o `offsets_json` a partir de
+  `metric_evaluations[].improvement_vector_x/y` (ICU já vem capped do Python).
+
+**Fontes/Referências (para auditoria futura)**:
+
+- PLAN_M3_OVERLAYS §2 PR-41, §3 DEC-15, DEC-26
+- PLAN_METRICS §2 DEC-15 (vector first, warp later)
+- Naini, F.B. (2011) *Facial Aesthetics: Concepts and Clinical Diagnosis* —
+  Ch. 4 (vertical/horizontal proportions), Ch. 6 (mid-sagittal axis)
+- Powell, N. & Humphreys, B. (1984) *Proportions of the Aesthetic Face*
+- Farkas, L.G. (1994) *Anthropometry of the Head and Face*
+- MediaPipe Face Mesh-478 — https://github.com/google-ai-edge/mediapipe/blob/master/docs/solutions/face_mesh.md
+- Pillow `ImageDraw` — https://pillow.readthedocs.io/en/stable/reference/ImageDraw.html
+- ANSI/ISO ergonomic guidelines on side-by-side comparison (cognitive load) —
+  consulted but not cited in code.
 
 ### Sub-marco M3.5 (opcional, pós-M3) — warp before/ideal
 
