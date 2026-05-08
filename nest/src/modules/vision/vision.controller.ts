@@ -1,10 +1,11 @@
-import { Body, Controller, Get, Param, Post, Res, HttpCode } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, HttpStatus, Param, Post, Res } from '@nestjs/common';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import type { FastifyReply } from 'fastify';
 import { VisionClient } from './vision.client.js';
 import {
   CaptureGuidelinesDto,
   CompareRequestDto,
+  ComposeBeforeIdealRequestDto,
   FullPipelineRequestDto,
   FullPipelineResponseDto,
   LandmarkRequestDto,
@@ -95,5 +96,41 @@ export class VisionController {
   ): Promise<void> {
     const file = await this.client.fetchSimulation(runId, simType);
     void reply.header('Content-Type', file.contentType).send(file.data);
+  }
+
+  /**
+   * POST /v1/vision/compose-before-ideal
+   *
+   * Stateless before/ideal composition proxy (PR-42, M3.4).
+   * Fetches the annotated photo by runId, posts multipart to Python
+   * /vision/compose-before-ideal, and streams the resulting double-width
+   * RGBA PNG back to the caller.
+   *
+   * Left pane = byte-identical original photo (no-warp per DEC-15).
+   * Right pane = photo + actual wireframe (gray, optional) + ideal wireframe
+   *   (cyan #22d3ee dashed 4/2, DEC-26) + guide lines (optional).
+   *
+   * References:
+   *  - backend/app/vision/services/before_ideal_composer.py (PR-41)
+   *  - PLAN_M3_OVERLAYS §2 PR-42, DEC-15, DEC-26
+   *  - Pillow ImageDraw: https://pillow.readthedocs.io/en/stable/reference/ImageDraw.html
+   *  - MediaPipe Mesh-478: https://github.com/google-ai-edge/mediapipe/blob/master/docs/solutions/face_mesh.md
+   */
+  @Post('compose-before-ideal')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Composição before/ideal side-by-side PNG (DEC-15 no-warp, PR-42 M3.4)' })
+  @ApiResponse({ status: 200, description: 'Double-width PNG (left=original, right=ideal wireframe overlay)' })
+  async composeBeforeIdeal(
+    @Body() body: ComposeBeforeIdealRequestDto,
+    @Res({ passthrough: false }) reply: FastifyReply,
+  ): Promise<void> {
+    const file = await this.client.composeBeforeIdeal(
+      body.runId,
+      body.landmarks,
+      body.offsets ?? [],
+      body.showGuideLines ?? true,
+      body.showActualWireframe ?? true,
+    );
+    void reply.header('Content-Type', 'image/png').send(file.data);
   }
 }

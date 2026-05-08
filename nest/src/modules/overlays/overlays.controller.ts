@@ -15,7 +15,7 @@ import {
   Post,
 } from '@nestjs/common';
 import { ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
-import { IsArray, IsDateString, IsOptional, IsString } from 'class-validator';
+import { IsArray, IsBoolean, IsDateString, IsOptional, IsString, IsInt, IsNumber, Min, Max } from 'class-validator';
 import { RenderedAssetService } from './overlays.service.js';
 import { RenderedAssetEntity } from './infrastructure/entities/rendered-asset.entity.js';
 
@@ -37,6 +37,60 @@ class RenderRequestDto {
   @IsOptional()
   @IsString()
   overlayCatalogVersion?: string; // Defaults to 'v1.0'
+}
+
+/** One ideal-landmark offset for the before/ideal composer (PR-42). */
+class OffsetItemDto {
+  @IsInt()
+  @Min(0)
+  @Max(477)
+  landmark_index!: number;
+
+  @IsNumber()
+  dx_icu!: number;
+
+  @IsNumber()
+  dy_icu!: number;
+
+  @IsOptional()
+  @IsString()
+  metric_id?: string;
+}
+
+/**
+ * PR-42 (M3.4) — request DTO for POST /v1/overlays/:reportId/compose-before-ideal.
+ *
+ * The caller supplies the generatedAt partition key + imageUrl of the base photo
+ * and an optional array of landmark offsets in ICU.  The Nest service loads
+ * the landmark payload from DB, calls Python, uploads to MinIO, and persists
+ * a RenderedAssetEntity with assetType='before_ideal_composition'.
+ *
+ * References:
+ *  - PLAN_M3_OVERLAYS §2 PR-42, DEC-15, DEC-26
+ *  - backend/app/vision/services/before_ideal_composer.py (PR-41)
+ */
+class ComposeBeforeIdealBodyDto {
+  @IsDateString()
+  generatedAt!: string;
+
+  @IsString()
+  imageUrl!: string;
+
+  @IsOptional()
+  @IsArray()
+  offsets?: OffsetItemDto[];
+
+  @IsOptional()
+  @IsBoolean()
+  showGuideLines?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  showActualWireframe?: boolean;
+
+  @IsOptional()
+  @IsString()
+  overlayCatalogVersion?: string;
 }
 
 class RenderedAssetDto {
@@ -120,5 +174,43 @@ export class OverlaysController {
     const generatedAt = new Date(body.generatedAt ?? new Date().toISOString());
     const assets = await this.renderedAssetService.findByReportId(reportId, generatedAt);
     return assets.map(RenderedAssetDto.from);
+  }
+
+  /**
+   * POST /v1/overlays/:reportId/compose-before-ideal
+   *
+   * PR-42 (M3.4) — Generates a before/ideal composition PNG (calling Python
+   * /vision/compose-before-ideal), uploads to MinIO, and persists a
+   * RenderedAssetEntity with assetType='before_ideal_composition'.
+   *
+   * Caller supplies imageUrl of the base photo (e.g. annotated URL from the
+   * vision service) plus optional ideal-landmark offsets in ICU derived from
+   * MetricEvaluationResult.improvement_vector_x/y.
+   *
+   * References:
+   *  - PLAN_M3_OVERLAYS §2 PR-42, DEC-15, DEC-26
+   *  - backend/app/vision/services/before_ideal_composer.py (PR-41)
+   *  - rendered_asset DDL: migration 1746000160000-M3OverlayCatalog
+   */
+  @Post(':reportId/compose-before-ideal')
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({ summary: 'Generate and persist before/ideal composition (M3.4 PR-42)' })
+  @ApiParam({ name: 'reportId', description: 'UUID of the analysis_report' })
+  @ApiResponse({ status: 201, description: 'RenderedAssetEntity persisted (assetType=before_ideal_composition)' })
+  @ApiResponse({ status: 404, description: 'No landmark payload for this report' })
+  async composeBeforeIdeal(
+    @Param('reportId') reportId: string,
+    @Body() body: ComposeBeforeIdealBodyDto,
+  ): Promise<RenderedAssetDto> {
+    const generatedAt = new Date(body.generatedAt);
+    const asset = await this.renderedAssetService.composeBeforeIdealAndPersist(
+      reportId,
+      generatedAt,
+      body.imageUrl,
+      body.offsets ?? [],
+      body.showGuideLines ?? true,
+      body.showActualWireframe ?? true,
+    );
+    return RenderedAssetDto.from(asset);
   }
 }

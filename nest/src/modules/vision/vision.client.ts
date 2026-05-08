@@ -26,6 +26,7 @@ import { VISION_CLIENT_CONFIG, VisionClientConfig } from './vision.config.js';
 export class VisionClient {
   private readonly logger = new Logger(VisionClient.name);
   private readonly http: AxiosInstance;
+  private readonly baseUrl: string;
 
   constructor(@Inject(VISION_CLIENT_CONFIG) config: VisionClientConfig) {
     this.http = axios.create({
@@ -35,6 +36,7 @@ export class VisionClient {
       maxContentLength: 60 * 1024 * 1024,
       headers: { 'Content-Type': 'application/json' },
     });
+    this.baseUrl = config.baseUrl;
   }
 
   health(): Promise<{ status: string }> {
@@ -96,6 +98,76 @@ export class VisionClient {
     simType: 'canonical' | 'symmetrized' | 'ideal_proportions' | 'comparison_grid',
   ): Promise<{ data: Buffer; contentType: string }> {
     return this.fetchBinary(`/vision/results/${runId}/simulation/${simType}`);
+  }
+
+  /**
+   * PR-42 (M3.4) — Generate a before/ideal composition PNG via Python.
+   *
+   * Fetches the annotated base photo by runId, then POSTs multipart to
+   * Python /vision/compose-before-ideal with the full landmark array and
+   * optional offsets. Returns the PNG buffer.
+   *
+   * References:
+   *  - backend/app/vision/services/before_ideal_composer.py (PR-41)
+   *  - PLAN_M3_OVERLAYS §2 PR-42, DEC-15, DEC-26
+   *  - Pillow ImageDraw: https://pillow.readthedocs.io/en/stable/reference/ImageDraw.html
+   */
+  async composeBeforeIdeal(
+    runId: string,
+    landmarks: number[][],
+    offsets: Array<{ landmark_index: number; dx_icu: number; dy_icu: number; metric_id?: string }>,
+    showGuideLines = true,
+    showActualWireframe = true,
+  ): Promise<{ data: Buffer; contentType: string }> {
+    // 1. Fetch the annotated base image from Python (uses existing fetchBinary).
+    const imageResult = await this.fetchAnnotated(runId);
+
+    // 2. POST multipart to Python /vision/compose-before-ideal (native fetch for FormData).
+    const formData = new FormData();
+    formData.append(
+      'image',
+      new Blob([new Uint8Array(imageResult.data)], { type: 'image/png' }),
+      'photo.png',
+    );
+    formData.append('landmarks_json', JSON.stringify(landmarks));
+    formData.append('offsets_json', JSON.stringify(offsets));
+    formData.append('show_guide_lines', showGuideLines ? 'true' : 'false');
+    formData.append('show_actual_wireframe', showActualWireframe ? 'true' : 'false');
+
+    let response: Response;
+    try {
+      response = await fetch(`${this.baseUrl}/vision/compose-before-ideal`, {
+        method: 'POST',
+        body: formData,
+        signal: AbortSignal.timeout(30_000),
+      });
+    } catch (err) {
+      this.logger.error(`compose-before-ideal fetch failed: ${String(err)}`);
+      throw new ServiceUnavailableException({
+        code: ERROR_CODES.VISION_UPSTREAM_ERROR,
+        message: ERROR_MESSAGES.vision.upstreamError,
+        details: String(err),
+      });
+    }
+
+    if (!response.ok) {
+      const errText = await response.text().catch(() => '(unreadable)');
+      const status = response.status;
+      this.logger.warn(`compose-before-ideal returned ${status}: ${errText}`);
+      let detail: unknown = errText;
+      try { detail = JSON.parse(errText) as unknown; } catch { /* keep as text */ }
+      throw new HttpException(
+        {
+          code: ERROR_CODES.VISION_UPSTREAM_ERROR,
+          message: `Compose-before-ideal failed (${status})`,
+          details: detail,
+        },
+        status >= 400 && status < 600 ? status : HttpStatus.BAD_GATEWAY,
+      );
+    }
+
+    const arrayBuffer = await response.arrayBuffer();
+    return { data: Buffer.from(arrayBuffer), contentType: 'image/png' };
   }
 
   private async fetchBinary(path: string): Promise<{ data: Buffer; contentType: string }> {
