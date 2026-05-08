@@ -79,16 +79,50 @@ Overlay decorativa (golden ratio mask, phi grid) **DEVE** carregar legenda expl�
 | **PR-35** | Migration `0011_AlterMetricEvalAddImprovementVector`: colunas `improvement_vector_x/y` em `metric_evaluation_against_ideal`. | Sonnet |
 | **PR-36** | Frontend: SVG render de setas baseado nos vetores acima. Cor por severidade (mild=green, moderate=yellow, strong=orange, extreme=red). | Sonnet |
 
-### Sub-marco M3.3 — heatmaps (assimetria + aderência ao ideal)
+### Sub-marco M3.3 — heatmaps (assimetria + aderência ao ideal) ✅ COMPLETO (2026-05-08)
 
 > **Atenção máxima** a esta sub-fase. Requer judgment denso. Modelo recomendado: **Opus**.
 
-| PR | Escopo | Modelo |
-|----|--------|--------|
-| **PR-37** | Python `HeatmapRenderer` (asymmetry): para cada landmark do lado esquerdo, calcula `delta = ||lm_l - mirror(lm_r)||` em coordenadas normalizadas. Interpola via `scipy.interpolate.griddata` com método `cubic` dentro do convex hull facial. Mascara fora do hull. Gradiente azul → branco → vermelho. | **Opus** |
-| **PR-38** | Python `HeatmapRenderer` (ideal_adherence): para cada região, calcula `(1 - |deviation_normalized|)` ponderado por confiança, projeta em landmarks da região, interpola igual. Suppression por densidade (regra L1+L2 da §1.1). | **Opus** |
-| **PR-39** | Nest: novo `overlay_id`s (`heatmap_asymmetry`, `heatmap_ideal_adherence`) em `overlay_definition`. Rota `POST /api/analysis/:id/render?overlay=heatmap_*`. | Sonnet |
-| **PR-40** | Frontend: toggle de heatmap + legenda colormap inline. | Sonnet |
+| PR | Escopo | Modelo | Status |
+|----|--------|--------|--------|
+| **PR-37** | Python `HeatmapRenderer` (asymmetry): para cada landmark do lado esquerdo, calcula `delta = ||lm_l - mirror(lm_r)||` em coordenadas normalizadas. Interpola via `scipy.interpolate.griddata` com método `cubic` dentro do convex hull facial. Mascara fora do hull. Gradiente azul → branco → vermelho. | **Opus** | ✅ `8d5e4e2` |
+| **PR-38** | Python `HeatmapRenderer` (ideal_adherence): para cada região, calcula `(1 - |deviation_normalized|)` ponderado por confiança, projeta em landmarks da região, interpola igual. Suppression por densidade (regra L1+L2 da §1.1). | **Opus** | ✅ `8d5e4e2` (mesmo módulo) + wiring `2a4a830` |
+| **PR-39** | Nest: novo `overlay_id`s (`heatmap_asymmetry`, `heatmap_ideal_adherence`) em `overlay_definition`. Rota `POST /api/analysis/:id/render?overlay=heatmap_*`. | Sonnet | ✅ `3d18a5b` |
+| **PR-40** | Frontend: toggle de heatmap + legenda colormap inline. | Sonnet | ✅ `494ca75` |
+
+**Notas de execução M3.3** (sessão Opus 2026-05-08):
+
+- **`backend/app/vision/services/heatmap_renderer.py`** — módulo puro (sem matplotlib).
+  Colormaps coolwarm e adherence_sequential implementados em numpy. Cascata de
+  supressão L1 (`<3` vizinhos em `0.5×ICD`) + L2 (`HeatmapSuppressedError` se
+  `<8` amostras totais ou triangulação Qhull falha). Convex-hull mask via
+  `scipy.spatial.ConvexHull` + ray-casting vectorizado. Resolução interna 512².
+- **`backend/app/vision/routers/render.py`** — dispatch dos heatmaps ANTES das
+  linhas (DEC-25). Novo form field `region_adherence_json`. `HeatmapSuppressedError`
+  → HTTP 422 com `{overlay_id, suppressed, samples}`.
+- **PR-39 enums já existiam** desde PR-30 (`1746000160000-M3OverlayCatalog`):
+  `overlay_category_enum` inclui `'heatmap'`; `rendered_asset_type_enum` inclui
+  `'heatmap_asymmetry'` + `'heatmap_ideal_adherence'`. Migration 1746000190000
+  é puro INSERT (2 overlay_definition + 11 overlay_metric_dependency).
+- **PR-40 frontend**: novo `<HeatmapImageLayer>` PNG `<img>` posicionado entre
+  a foto base e o `<OverlayLayer>` SVG. Plumbing do `heatmapAssetUrls` para o
+  endpoint Nest fica como follow-up Sonnet (UI scaffolding é a parte Opus).
+- **Tests**: 12 unit tests em `backend/tests/unit/test_heatmap_renderer.py`
+  (anchor stops dos 2 colormaps, NaN→transparente, perfect-face near-white nos
+  pixels renderizados, perturbação aumenta redness, fora do hull transparente,
+  L2 suppression raise, ICD degenerado raise, adherence região alta > baixa,
+  confidence<0.4 ignora região, região desconhecida ignora). Suite: 1100 ✓ + 48
+  skipped. Frontend: tsc --noEmit clean, vite build clean.
+
+**Fontes/Referências (para auditoria futura)**:
+
+- scipy.interpolate.griddata — https://docs.scipy.org/doc/scipy/reference/generated/scipy.interpolate.griddata.html
+- scipy.spatial.ConvexHull (Qhull) — https://docs.scipy.org/doc/scipy/reference/generated/scipy.spatial.ConvexHull.html
+- Moreland 2009 — *Diverging Color Maps for Scientific Visualization* (coolwarm anchors): https://www.kennethmoreland.com/color-advice/
+- Crameri, Shephard & Heron 2020 — *The misuse of colour in science communication* (Nature Communications): https://www.nature.com/articles/s41467-020-19160-7
+- Naini, F.B. (2011) — *Facial Aesthetics: Concepts and Clinical Diagnosis* §2 (regiões + simetria)
+- Powell & Humphreys (1984) — *Proportions of the Aesthetic Face* (terços/quintos)
+- MediaPipe Face Mesh-478 (mirror pairs): https://github.com/google-ai-edge/mediapipe/blob/master/docs/solutions/face_mesh.md
 
 ### Sub-marco M3.4 — composição before/ideal (vetorial)
 
