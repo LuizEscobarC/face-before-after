@@ -1,20 +1,33 @@
-"""Confidence propagation for metric calculators (PR-5).
+"""Confidence propagation for metric calculators (PR-5, updated PR-23).
 
 Pipeline (PLAN_METRICS.md §5.6):
-    1. confidence_raw * quality_score         (global quality gate)
-    2. × regional_penalty_factor              (per-region occlusion/quality)
-    3. × pose_penalty_factor                  (based on yaw/pitch)
-    4. clip to [0, 1]
+    1. confidence_raw * quality_score           (global quality gate)
+    2. × regional_penalty_factor                (per-region occlusion/quality)
+    3. × pose_penalty_factor                    (based on yaw/pitch)
+    4. × landmark_stability_penalty (PR-23)     (only when capture_count > 1;
+                                                 based on per-landmark jitter
+                                                 across multi-capture frames)
+    5. clip to [0, 1]
 
 Symmetry metrics are most sensitive to yaw — if the head is turned, bilateral
 comparisons are invalid.  Thirds/fifths care more about pitch (foreshortening
 of vertical distances).  The ``PosePenaltyParams`` lets each metric family
 tune the soft/hard thresholds and the yaw/pitch weight.
+
+Landmark stability (step 4) is computed by
+``app.services.landmark_stability.stability_factor_for_metric``.  The factor
+is 1.0 when all dependency landmarks were perfectly stable across frames, and
+decreases toward 0 as jitter increases.  Single-capture sessions always use
+a factor of 1.0 (no penalty), preserving full backwards compatibility.
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    import numpy as np  # only for type annotations — avoid circular imports
 
 # Metrics with confidence_final below this are flagged as low-confidence.
 LOW_CONF_THRESHOLD = 0.4
@@ -214,6 +227,47 @@ def regional_penalty_factor(region: str, regional_penalties: dict[str, float]) -
 
 
 # ---------------------------------------------------------------------------
+# Landmark stability penalty (PR-23, step 4)
+# ---------------------------------------------------------------------------
+
+def landmark_stability_penalty(
+    stability_scores: list[float] | None,
+    dependency_landmarks: list[int],
+) -> float:
+    """Stability factor in [0, 1] for a metric based on its dependency landmarks.
+
+    Returns the mean stability score of the landmark indices consumed by the
+    metric.  1.0 = all dependency landmarks were perfectly stable across
+    multi-capture frames; 0.0 = all maximally unstable.
+
+    Returns 1.0 (no penalty) when:
+    - *stability_scores* is ``None`` (single-capture session — backwards compat).
+    - *dependency_landmarks* is empty.
+    - All dependency indices are out of range.
+
+    Parameters
+    ----------
+    stability_scores : list[float] | None
+        Per-landmark stability scores from
+        ``LandmarkStabilityResult.to_scores_list()``.
+        Pass ``None`` for single-capture sessions.
+    dependency_landmarks : list[int]
+        MediaPipe Mesh-478 indices consumed by the metric.
+    """
+    if stability_scores is None or not dependency_landmarks:
+        return 1.0
+
+    n = len(stability_scores)
+    valid = [stability_scores[i] for i in dependency_landmarks if 0 <= i < n]
+    if not valid:
+        return 1.0
+
+    # Use arithmetic mean: consistent with how regional_penalty_factor
+    # aggregates across the region.
+    return float(sum(valid) / len(valid))
+
+
+# ---------------------------------------------------------------------------
 # Full pipeline
 # ---------------------------------------------------------------------------
 
@@ -225,12 +279,49 @@ def propagate(
     yaw_deg: float = 0.0,
     pitch_deg: float = 0.0,
     pose_params: PosePenaltyParams | None = None,
+    *,
+    stability_scores: list[float] | None = None,
+    dependency_landmarks: list[int] | None = None,
 ) -> float:
     """Apply the full confidence propagation pipeline.
 
-    Returns ``confidence_final`` clipped to [0, 1].
+    Steps 1–3 are always applied.  Step 4 (landmark stability) is applied
+    only when *stability_scores* is not ``None`` AND *dependency_landmarks*
+    is provided (i.e., when operating in multi-capture mode).
+
+    Parameters
+    ----------
+    confidence_raw : float
+        Initial confidence before any penalty (0–1).
+    quality_score : float
+        Global image quality score from the quality module (0–1).
+    region : str
+        Metric region key (e.g. ``"symmetry"``, ``"jaw"``).
+    regional_penalties : dict[str, float]
+        Per-region penalty fractions (0–1).
+    yaw_deg : float
+        Head yaw in degrees.
+    pitch_deg : float
+        Head pitch in degrees.
+    pose_params : PosePenaltyParams | None
+        Family-specific pose penalty configuration.  Defaults to
+        ``PosePenaltyParams()`` when ``None``.
+    stability_scores : list[float] | None
+        Per-landmark stability scores (PR-23).  ``None`` = single-capture,
+        no stability penalty applied.
+    dependency_landmarks : list[int] | None
+        Dependency landmark indices for step 4.  Ignored when
+        *stability_scores* is ``None``.
+
+    Returns
+    -------
+    float
+        ``confidence_final`` clipped to [0, 1].
     """
     conf = float(confidence_raw) * float(quality_score)
     conf *= regional_penalty_factor(region, regional_penalties)
     conf *= pose_penalty(yaw_deg, pitch_deg, pose_params)
+    # Step 4: landmark stability (multi-capture only; backwards compatible)
+    conf *= landmark_stability_penalty(stability_scores, dependency_landmarks or [])
     return float(max(0.0, min(1.0, conf)))
+

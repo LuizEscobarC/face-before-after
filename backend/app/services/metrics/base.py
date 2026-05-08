@@ -23,17 +23,25 @@ from app.domain.normalized_landmarks import NormalizedLandmarks
 class QualityContext:
     """Runtime quality signals forwarded from Nest alongside the landmarks.
 
-    quality_score        Overall 0–1 quality score from the quality module.
-    regional_penalties   Dict mapping region name → penalty fraction (0–1).
-                         A penalty of 0.2 means that region's metrics lose
-                         20% of their confidence.
-    pose                 Dict with keys 'yaw', 'pitch', 'roll' in degrees.
-                         Missing keys default to 0.0.
+    quality_score             Overall 0–1 quality score from the quality module.
+    regional_penalties        Dict mapping region name → penalty fraction (0–1).
+                              A penalty of 0.2 means that region's metrics lose
+                              20% of their confidence.
+    pose                      Dict with keys 'yaw', 'pitch', 'roll' in degrees.
+                              Missing keys default to 0.0.
+    landmark_stability_scores Per-landmark stability scores in [0, 1] computed
+                              from multi-capture sessions (PR-23, DEC-11).
+                              ``None`` when capture_count == 1 (single-capture,
+                              the common M1/M2 case) — no stability penalty.
+                              Shape: list of 478 floats (one per Mesh-478 point).
+    capture_count             Number of frames captured. 1 = single-capture.
     """
 
     quality_score: float = 1.0
     regional_penalties: dict[str, float] = field(default_factory=dict)
     pose: dict[str, float] = field(default_factory=dict)
+    landmark_stability_scores: list[float] | None = None
+    capture_count: int = 1
 
     def get_yaw(self) -> float:
         return float(self.pose.get("yaw", 0.0))
