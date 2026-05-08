@@ -1,0 +1,12 @@
+fastapi>=0.112.0
+uvicorn>=0.30.0
+python-multipart>=0.0.9
+pydantic-settings>=2.0
+requests>=2.31.0
+opencv-python-headless<4.11,>=4.8.0
+numpy<2.0,>=1.24
+mediapipe>=0.10.18
+pillow>=10.0.0
+scipy>=1.11.0
+minio>=7.2.0
+python-dotenv>=1.0.0
