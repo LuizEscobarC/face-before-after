@@ -321,6 +321,7 @@ export function PremiumResultPage() {
                     imageWidth={imgDims?.w ?? 640}
                     imageHeight={imgDims?.h ?? 480}
                     activeOverlays={activeOverlays}
+                    metricEvaluations={result.metric_evaluations}
                   />
                 </div>
               )}

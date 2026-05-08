@@ -26,6 +26,35 @@ export type TopLeverage = {
   time_to_result?: string;
 };
 
+/**
+ * One metric evaluation row from Nest's POST /v1/analysis/evaluate response.
+ * Mirrors MetricEvaluationResultDto (PR-10, extended in PR-34 M3.2).
+ *
+ * Sources: PLAN_METRICS.md §5, PLAN_M3_OVERLAYS §2 (improvement_vector)
+ */
+export type MetricEvaluationResult = {
+  metric_id: string;
+  region: string;
+  family: string;
+  unit: string;
+  value: number | null;
+  confidence_raw: number | null;
+  confidence_final: number | null;
+  is_low_confidence: boolean;
+  direction: string | null;
+  deviation_raw: number | null;
+  deviation_normalized: number | null;
+  /** 5-level severity: ideal | mild | moderate | strong | extreme (DEC-3). */
+  severity_5: string | null;
+  /** Collapsed 3-level severity: LEVE | MODERADO | SEVERO (DEC-3). */
+  severity_3: string | null;
+  direction_label: Record<string, string>;
+  /** Horizontal improvement vector in normalised intercanthal units. Null = N/A. */
+  improvement_vector_x: number | null;
+  /** Vertical improvement vector in normalised intercanthal units. Positive = downward. Null = N/A. */
+  improvement_vector_y: number | null;
+};
+
 export type VisualStatus = {
   dominance_score?: number;
   attractiveness_score?: number;
@@ -134,6 +163,8 @@ export type AnalysisResult = {
   run_id?: string;
   /** Raw pixel landmark coordinates from MediaPipe Mesh-478. Each entry is [x, y]. */
   landmarks?: Array<[number, number]>;
+  /** Metric evaluations from POST /v1/analysis/evaluate (M1 pipeline, PR-34 M3.2). */
+  metric_evaluations?: MetricEvaluationResult[];
   score: number;
   tier: string;
   tier_description: string;
