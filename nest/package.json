@@ -30,7 +30,8 @@
     "migration:show": "npm run typeorm -- migration:show",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:cov": "vitest run --coverage"
+    "test:cov": "vitest run --coverage",
+    "lint:templates": "tsx scripts/lint-templates.ts"
   },
   "license": "ISC",
   "dependencies": {
