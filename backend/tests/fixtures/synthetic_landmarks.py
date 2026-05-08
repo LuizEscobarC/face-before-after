@@ -463,3 +463,85 @@ def deviated_mouth_face() -> np.ndarray:
     kp[P_LOWER_LIP_BOT]   = _MOUTH_LOWER_LIP_BOT
     grid = _base_grid()
     return _set_key_points(grid, kp)
+
+
+# ---------------------------------------------------------------------------
+# Brow fixtures (PR-16)
+# ---------------------------------------------------------------------------
+# Canonical brow geometry (after normalisation to ICU = 1.0):
+#   brow_height_l/r           = (300-265) / 100 = 0.35 ICU
+#   brow_arch_peak_l/r        = 0.67 (apex 67% from inner to outer)
+#   brow_thickness_l/r        = (265-245) / 100 = 0.20 ICU
+#   brow_tail_drop_l          = (260-265) / 100 = -0.05 ICU (outer above inner)
+#   interbrow_distance_ratio  = (450-350) / 100 = 1.0 ICU
+#
+# Left brow: LM_LEFT_BROW = [outer(0), ..., ..., ..., inner(4)] = [70, 63, 105, 66, 107]
+#   [0]=70  outer : (250, 260)  — tail, slightly above inner (y=260 < 265)
+#   [1]=63  arch  : (283, 245)  — arch peak (highest: min y across brow)
+#   [2]=105 mid   : (315, 250)
+#   [3]=66        : (333, 258)
+#   [4]=107 inner : (350, 265)  — inner corner, 35 px above eye level (300)
+#
+# Right brow: LM_RIGHT_BROW = [inner(0), ..., ..., ..., outer(4)] = [336, 296, 334, 293, 300]
+#   [0]=336 inner : (450, 265)
+#   [1]=296       : (467, 258)
+#   [2]=334 mid   : (485, 250)
+#   [3]=293 arch  : (517, 245)  — arch peak (min y)
+#   [4]=300 outer : (550, 260)  — tail, slightly above inner
+#
+# Inner brow gap = 450-350 = 100 px = 1.0 ICU  →  interbrow_distance_ratio = 1.0
+_BROW_L_OUTER  = (250.0, 260.0)   # LM_LEFT_BROW[0]=70   tail, elevated
+_BROW_L_ARCH   = (283.0, 245.0)   # LM_LEFT_BROW[1]=63   peak (highest point)
+_BROW_L_MID    = (315.0, 250.0)   # LM_LEFT_BROW[2]=105  mid
+_BROW_L_3      = (333.0, 258.0)   # LM_LEFT_BROW[3]=66
+_BROW_L_INNER  = (350.0, 265.0)   # LM_LEFT_BROW[4]=107  inner corner
+
+_BROW_R_INNER  = (450.0, 265.0)   # LM_RIGHT_BROW[0]=336 inner corner
+_BROW_R_3      = (467.0, 258.0)   # LM_RIGHT_BROW[1]=296
+_BROW_R_MID    = (485.0, 250.0)   # LM_RIGHT_BROW[2]=334 mid
+_BROW_R_ARCH   = (517.0, 245.0)   # LM_RIGHT_BROW[3]=293 peak (highest point)
+_BROW_R_OUTER  = (550.0, 260.0)   # LM_RIGHT_BROW[4]=300 tail, elevated
+
+_CANONICAL_BROW_PTS: dict[int, tuple[float, float]] = {
+    LM_LEFT_BROW[0]: _BROW_L_OUTER,
+    LM_LEFT_BROW[1]: _BROW_L_ARCH,
+    LM_LEFT_BROW[2]: _BROW_L_MID,
+    LM_LEFT_BROW[3]: _BROW_L_3,
+    LM_LEFT_BROW[4]: _BROW_L_INNER,
+    LM_RIGHT_BROW[0]: _BROW_R_INNER,
+    LM_RIGHT_BROW[1]: _BROW_R_3,
+    LM_RIGHT_BROW[2]: _BROW_R_MID,
+    LM_RIGHT_BROW[3]: _BROW_R_ARCH,
+    LM_RIGHT_BROW[4]: _BROW_R_OUTER,
+}
+
+
+def perfect_brow_face() -> np.ndarray:
+    """(478, 3) — face with canonical brow geometry.
+
+    All eight brow metrics fall within their green range:
+      brow_height_l/r           = 0.35 (ideal)
+      brow_arch_peak_l/r        = 0.67 (ideal)
+      brow_thickness_l/r        ≈ 0.20 (ideal; presentation_only)
+      brow_tail_drop_l          = -0.05 (ideal; slightly lifted outer)
+      interbrow_distance_ratio  = 1.00 (ideal)
+    """
+    kp = _canonical_key_points()
+    kp.update(_CANONICAL_BROW_PTS)
+    grid = _base_grid()
+    return _set_key_points(grid, kp)
+
+
+def drooping_brow_face() -> np.ndarray:
+    """(478, 3) — brow fixture with deliberate left-side tail droop.
+
+    Left outer brow lowered by 20 px (from y=260 to y=280), making
+    brow_tail_drop_l = +0.15 ICU (drooping = positive, outer below inner).
+    All other brow metrics remain at canonical values.
+    """
+    kp = _canonical_key_points()
+    kp.update(_CANONICAL_BROW_PTS)
+    # Override only the left outer brow (tail) to create droop
+    kp[LM_LEFT_BROW[0]] = (_BROW_L_OUTER[0], _BROW_L_OUTER[1] + 20.0)  # (250, 280)
+    grid = _base_grid()
+    return _set_key_points(grid, kp)

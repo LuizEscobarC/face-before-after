@@ -100,6 +100,18 @@ MOUTH_POSE_PARAMS = PosePenaltyParams(
     floor=0.18,
 )
 
+# Brow landmarks (5 points per arch on Mesh-478) tolerate moderate yaw before
+# the arch geometry foreshortens. Brow-height / tail-drop are also affected by
+# pitch (the brow appears to rise/lower with head tilt), so pitch weight is
+# slightly higher than for mouth. Floor is slightly lower than mouth because
+# brow landmarks at the supraorbital ridge are stable across expressions.
+BROW_POSE_PARAMS = PosePenaltyParams(
+    yaw_soft_deg=5.0, yaw_hard_deg=15.0,
+    pitch_soft_deg=8.0, pitch_hard_deg=20.0,
+    yaw_weight=0.65, pitch_weight=0.35,
+    floor=0.17,
+)
+
 
 def _axis_penalty(angle_deg: float, soft: float, hard: float, floor: float) -> float:
     """Piecewise linear penalty for a single rotation axis."""

@@ -30,7 +30,7 @@ A partir daqui, M2 tem três frentes paralelas, sequenciadas em PRs:
 | **PR-13** ✅ | Família **jaw** (mandíbula) — **DONE** | `jaw_width_ratio`, `gonial_angle_l/r`, `gonial_angle_asymmetry`, `mandibular_plane_angle`, `chin_height_ratio` (6) | `metric_definition`, `metric_ideal`, `region_metric_weight (region=jaw)` | **Sonnet** com contexto |
 | **PR-14** ✅ | Família **nose** — **DONE** | `nose_length_to_icd`, `nose_width_to_icd`, `alar_to_face_width_ratio`, `nose_to_mouth_width_ratio`, `dorsum_deviation`, `nasal_tip_deviation`, `alar_base_asymmetry` (7) | idem (region=nose) | **Sonnet** |
 | **PR-15** ✅ | Família **mouth/lips** — **DONE** | `mouth_width_to_icd`, `mouth_to_face_width_ratio`, `upper_lip_height_ratio`, `lower_lip_height_ratio`, `vermilion_height_total`, `lip_corner_canting`, `mouth_midline_deviation` (7) | idem (region=mouth) | **Sonnet** |
-| **PR-16** | Família **brows** | `brow_height_l/r`, `brow_arch_peak_x_l/r`, `brow_thickness_l/r` *(presentation_only)*, `brow_tail_drop_l/r`, `interbrow_distance_ratio` (8 — 2 presentation_only) | idem + flag `presentation_only` | **Sonnet** |
+| **PR-16** ✅ | Família **brows** — **DONE** | `brow_height_l/r`, `brow_arch_peak_l/r`, `brow_thickness_l/r` *(presentation_only)*, `brow_tail_drop_l`, `interbrow_distance_ratio` (8 — 2 presentation_only). `brow_tail_drop_r` adiada para PR-21. | idem + flag `presentation_only` | **Sonnet** |
 | **PR-17** | Família **cheekbones / midface** | `zygomatic_width_ratio`, `malar_projection_index`, `midface_height_ratio`, `cheekbone_to_jaw_ratio`, `submalar_hollow_index` (5) | idem | **Sonnet** |
 | **PR-18** | Família **forehead** | `forehead_height_ratio`, `forehead_width_ratio`, `temporal_width_ratio`, `hairline_curvature_index` *(M frontal pixel-dep)* (4 — 1 `requires_pixel_analysis=true`) | idem + DEC-10 (skip pipeline) | **Sonnet** |
 | **PR-19** | Família **global_shape** | `face_height_to_width_ratio`, `face_shape_classification` *(categórica: oval/round/square/heart/oblong)*, `total_facial_convexity`, `e_line_deviation` (4) | idem (region=global) | **Sonnet** |
@@ -236,4 +236,43 @@ Após isso → **abrir M3** (overlays). Ver `PLAN_M3_OVERLAYS.md`.
 
 **Validações**: pytest 606 passed (+64 mouth), vitest 116 passed, migration aplicada. DB: 41 metric_definitions, 40 metric_ideals, region_metric_weight (jaw=6, eyes=6, symmetry=14, nose=7, mouth=7).
 
-**Próximo PR**: PR-16 (brows family — sobrancelhas).
+**Próximo PR**: ~~PR-16~~ **DONE** (ver abaixo).
+
+### PR-16 — brows family (DONE)
+
+**Data**: 2026-05-08. **Modelo**: Sonnet 4.6 com contexto.
+
+**Métricas entregues (8)**: `brow_height_l`, `brow_height_r`, `brow_arch_peak_l`, `brow_arch_peak_r`, `brow_thickness_l` *(presentation_only)*, `brow_thickness_r` *(presentation_only)*, `brow_tail_drop_l`, `interbrow_distance_ratio`.
+
+**Desvio do plano original**:
+- `brow_arch_peak_x_l/r` → `brow_arch_peak_l/r` (nome simplificado; _x implícito na fração).
+- `brow_tail_drop_r` → **DEFERIDA para PR-21** (conta de 8 métricas mantida; `interbrow_distance_ratio` incluída conforme plano original).
+- `brow_thickness_l/r` marcadas `presentation_only=True` por DEC-10 (Mesh-478 não expõe bordas superior/inferior da sobrancelha de forma estável — proxy via span vertical).
+
+**Calibração** (Farkas 1994 + Naini 2011 + Romo 2006):
+- `brow_height_l/r = 0.35 ICU (±0.10 verde)` — Farkas: ~11 mm em ICD ~32 mm → 0.34.
+- `brow_arch_peak_l/r = 0.67 (±0.10 verde)` — Romo/Farkas: ápice em 2/3 do arco (acima do limbo lateral).
+- `brow_thickness_l/r = 0.20 ICU (±0.07 verde)` — proxy (presentation_only).
+- `brow_tail_drop_l = -0.05 ICU (±0.08 verde)` — Naini: cauda levemente elevada (negativo = exterior acima do interior).
+- `interbrow_distance_ratio = 1.0 ICU (±0.15 verde)` — Farkas: espaço = 1 ICD.
+
+**Pesos (region_metric_weight v1.0, region=brows, 6 linhas — brow_thickness excluída por DEC-6)**:
+- brow_tail_drop_l=1.2, interbrow_distance_ratio=1.1, demais=1.0.
+
+**Pose params (`BROW_POSE_PARAMS`)**: yaw_soft=5°, hard=15°, pitch_soft=8°, hard=20°, yaw_weight=0.65, pitch_weight=0.35, floor=0.17.
+
+**Versão**: estendeu `region_metric_weights_version v1.0` (não bumpou — DEC-12).
+
+**Artefatos**:
+- `backend/app/services/metrics/brows.py` (8 calculators, ~320 linhas).
+- `backend/tests/fixtures/synthetic_landmarks.py` (`perfect_brow_face`, `drooping_brow_face`).
+- `backend/tests/unit/test_brows.py` (108 tests, todos passing).
+- `backend/app/services/metrics/confidence_propagation.py` (`BROW_POSE_PARAMS`).
+- `backend/app/services/metrics/__init__.py` (import `brows`).
+- `nest/src/database/migrations/1746000090000-SeedBrowFamily.ts`.
+- `nest/src/config/yaml/metric_ideals.yaml` (+brows section).
+- `nest/src/config/yaml/region_metric_weights.yaml` (+brows region).
+
+**Validações**: pytest 714 passed (+108 brows), vitest 116 passed, migration **pendente** (Docker não estava rodando).
+
+**Próximo PR**: PR-17 (cheekbones/midface family).

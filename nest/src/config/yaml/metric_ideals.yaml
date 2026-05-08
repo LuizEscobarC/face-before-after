@@ -548,3 +548,102 @@ metrics:
       pt-BR: "boca deslocada para a esquerda"
     direction_label_below:
       pt-BR: "boca deslocada para a direita"
+
+  # ------------------------------------------------------------------
+  # PR-16: brows family
+  # ------------------------------------------------------------------
+  brow_height_l:
+    ideal_type: population_statistical
+    ideal_central_value: 0.35
+    green_range_min: 0.25
+    green_range_max: 0.45
+    yellow_range_min: 0.15
+    yellow_range_max: 0.55
+    direction_label_above:
+      pt-BR: "sobrancelha elevada"
+    direction_label_below:
+      pt-BR: "sobrancelha baixa"
+
+  brow_height_r:
+    ideal_type: population_statistical
+    ideal_central_value: 0.35
+    green_range_min: 0.25
+    green_range_max: 0.45
+    yellow_range_min: 0.15
+    yellow_range_max: 0.55
+    direction_label_above:
+      pt-BR: "sobrancelha elevada"
+    direction_label_below:
+      pt-BR: "sobrancelha baixa"
+
+  brow_arch_peak_l:
+    ideal_type: population_statistical
+    ideal_central_value: 0.67
+    green_range_min: 0.57
+    green_range_max: 0.77
+    yellow_range_min: 0.47
+    yellow_range_max: 0.87
+    direction_label_above:
+      pt-BR: "arco muito lateral"
+    direction_label_below:
+      pt-BR: "arco muito medial"
+
+  brow_arch_peak_r:
+    ideal_type: population_statistical
+    ideal_central_value: 0.67
+    green_range_min: 0.57
+    green_range_max: 0.77
+    yellow_range_min: 0.47
+    yellow_range_max: 0.87
+    direction_label_above:
+      pt-BR: "arco muito lateral"
+    direction_label_below:
+      pt-BR: "arco muito medial"
+
+  brow_thickness_l:
+    ideal_type: population_statistical
+    ideal_central_value: 0.20
+    green_range_min: 0.13
+    green_range_max: 0.27
+    yellow_range_min: 0.08
+    yellow_range_max: 0.32
+    direction_label_above:
+      pt-BR: "sobrancelha espessa"
+    direction_label_below:
+      pt-BR: "sobrancelha fina"
+
+  brow_thickness_r:
+    ideal_type: population_statistical
+    ideal_central_value: 0.20
+    green_range_min: 0.13
+    green_range_max: 0.27
+    yellow_range_min: 0.08
+    yellow_range_max: 0.32
+    direction_label_above:
+      pt-BR: "sobrancelha espessa"
+    direction_label_below:
+      pt-BR: "sobrancelha fina"
+
+  brow_tail_drop_l:
+    ideal_type: canonical
+    ideal_central_value: -0.05
+    green_range_min: -0.13
+    green_range_max: 0.03
+    yellow_range_min: -0.25
+    yellow_range_max: 0.10
+    direction_label_above:
+      pt-BR: "cauda caída"
+    direction_label_below:
+      pt-BR: "cauda muito levantada"
+
+  interbrow_distance_ratio:
+    ideal_type: population_statistical
+    ideal_central_value: 1.0
+    green_range_min: 0.85
+    green_range_max: 1.15
+    yellow_range_min: 0.70
+    yellow_range_max: 1.30
+    direction_label_above:
+      pt-BR: "sobrancelhas muito afastadas"
+    direction_label_below:
+      pt-BR: "sobrancelhas muito próximas"
