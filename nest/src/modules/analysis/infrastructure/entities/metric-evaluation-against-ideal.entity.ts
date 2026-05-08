@@ -88,4 +88,21 @@ export class MetricEvaluationAgainstIdealEntity {
 
   @Column({ name: 'created_at', type: 'timestamptz', default: () => 'NOW()' })
   createdAt!: Date;
+
+  /**
+   * Improvement vector X component in normalised intercanthal units (ICU).
+   * Positive = rightward (subject's right / photo's left).
+   * NULL when the metric has no defined improvement direction.
+   * Source: PLAN_M3_OVERLAYS §2 PR-35; rendered as SVG arrow in PR-36.
+   */
+  @Column({ name: 'improvement_vector_x', type: 'numeric', precision: 10, scale: 6, nullable: true, transformer: numericTransformer })
+  improvementVectorX!: number | null;
+
+  /**
+   * Improvement vector Y component in normalised intercanthal units (ICU).
+   * Positive = downward (screen coordinates).
+   * NULL when the metric has no defined improvement direction.
+   */
+  @Column({ name: 'improvement_vector_y', type: 'numeric', precision: 10, scale: 6, nullable: true, transformer: numericTransformer })
+  improvementVectorY!: number | null;
 }
