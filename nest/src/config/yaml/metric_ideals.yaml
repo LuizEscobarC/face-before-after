@@ -742,3 +742,39 @@ metrics:
       pt-BR: "região temporal larga"
     direction_label_below:
       pt-BR: "região temporal estreita"
+
+# FAMÍLIA: global_shape
+# ──────────────────────────────────────────────
+  face_height_to_width_ratio:
+    ideal_type: population_statistical
+    ideal_central_value: 1.35
+    green_range_min: 1.25
+    green_range_max: 1.45
+    yellow_range_min: 1.15
+    yellow_range_max: 1.55
+    direction_label_above:
+      pt-BR: "rosto oblongo"
+    direction_label_below:
+      pt-BR: "rosto arredondado"
+  face_shape_classification:
+    ideal_type: canonical
+    ideal_central_value: 1.35
+    green_range_min: 1.20
+    green_range_max: 1.50
+    yellow_range_min: 1.00
+    yellow_range_max: 1.65
+    direction_label_above:
+      pt-BR: "formato oblongo"
+    direction_label_below:
+      pt-BR: "formato arredondado"
+  total_facial_convexity:
+    ideal_type: canonical
+    ideal_central_value: 0.98
+    green_range_min: 0.94
+    green_range_max: 1.00
+    yellow_range_min: 0.87
+    yellow_range_max: 1.00
+    direction_label_above:
+      pt-BR: "região temporal cheia"
+    direction_label_below:
+      pt-BR: "afundamento temporal"

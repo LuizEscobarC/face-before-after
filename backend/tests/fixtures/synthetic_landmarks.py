@@ -704,3 +704,128 @@ def short_forehead_face() -> np.ndarray:
     kp[P_BROW_RIGHT_OUTER]  = _FOREHEAD_BROW_OUTER_R
     grid = _base_grid()
     return _set_key_points(grid, kp)
+
+
+# ---------------------------------------------------------------------------
+# Global-shape fixtures (PR-19)
+# ---------------------------------------------------------------------------
+# All fixtures use the same core geometry:
+#   bizygomatic = (600 − 200) px = 400 px = 4.0 ICU
+#   P_LEFT_ZYGOMATIC  at (200, 300)  →  x = −2.0 ICU
+#   P_RIGHT_ZYGOMATIC at (600, 300)  →  x = +2.0 ICU
+#
+# perfect_global_shape_face — ideal oval proportions
+#   P_FOREHEAD_CROWN at (400,  30)  →  y = (30−300)/100  = −2.7 ICU
+#   P_MENTON         at (400, 570)  →  y = (570−300)/100 = +2.7 ICU
+#   face_height = 2.7 − (−2.7) = 5.4 ICU
+#   face_height_to_width_ratio = 5.4 / 4.0 = 1.35  (ideal 1.35)
+#
+#   P_LEFT_GONION    at (240, 490)  →  x = −1.6 ICU  (bigonial = 3.2 ICU)
+#   P_RIGHT_GONION   at (560, 490)  →  x = +1.6 ICU
+#   jaw_taper = 3.2 / 4.0 = 0.80  → oval range [0.74, 0.88] → shape = 'oval'
+#
+#   P_BROW_LEFT_OUTER  at (240, 260) → x = −1.6 ICU  (brow span = 3.2 ICU)
+#   P_BROW_RIGHT_OUTER at (560, 260) → x = +1.6 ICU
+#   zyg at ±2.0 ICU is WIDER than brow ±1.6 → convexity = 1.0
+#
+# round_face — face_height / bizygomatic < 1.15 (short/wide face)
+#   P_FOREHEAD_CROWN at (400, 150) → y = −1.5 ICU
+#   P_MENTON         at (400, 450) → y = +1.5 ICU
+#   face_height = 3.0 ICU   ratio = 3.0 / 4.0 = 0.75  → direction = 'round_face'
+#   shape = 'round' (aspect < 1.10)
+#
+# temporal_hollow_face — convexity < 1.0 (wide brows, narrow midface)
+#   P_BROW_LEFT_OUTER  at (150, 260) → x = −2.5 ICU  (wider than zyg at −2.0)
+#   P_BROW_RIGHT_OUTER at (650, 260) → x = +2.5 ICU
+#   Deficit triangles each ≈ 0.40 ICU²; total polygon/hull ≈ 0.952
+#   direction = 'temporal_hollow'
+
+_GLOBAL_ZYG_L           = (200.0, _FACE_CY)    # bizygomatic = 4.0 ICU
+_GLOBAL_ZYG_R           = (600.0, _FACE_CY)
+_GLOBAL_GONION_L        = (240.0, 490.0)        # bigonial = 3.2 ICU → taper = 0.80 (oval)
+_GLOBAL_GONION_R        = (560.0, 490.0)
+_GLOBAL_BROW_OUTER_L    = (200.0, 260.0)        # brow span = 4.0 ICU (same x as zyg → convex polygon)
+_GLOBAL_BROW_OUTER_R    = (600.0, 260.0)
+_GLOBAL_CROWN_IDEAL     = (_FACE_CX, 30.0)      # face_height = 5.4 ICU → ratio 1.35
+_GLOBAL_MENTON_IDEAL    = (_FACE_CX, 570.0)
+_GLOBAL_CROWN_ROUND     = (_FACE_CX, 150.0)     # face_height = 3.0 ICU → ratio 0.75
+_GLOBAL_MENTON_ROUND    = (_FACE_CX, 450.0)
+_GLOBAL_HOLLOW_BROW_L   = (150.0, 260.0)        # x = −2.5 ICU (wider than zyg → hollow)
+_GLOBAL_HOLLOW_BROW_R   = (650.0, 260.0)
+
+
+def perfect_global_shape_face() -> np.ndarray:
+    """(478, 3) — face at ideal oval proportions for global-shape metrics.
+
+    Metric values after normalization (ICD = 100 px):
+      face_height_to_width_ratio = 5.4 / 4.0 = 1.35  (ideal 1.35)
+      face_shape_classification  = 1.35, jaw_taper 0.80 → direction 'oval'
+      total_facial_convexity     = 1.0  (zyg at ±2.0 ICU wider than brow ±1.6)
+
+    Geometry:
+      bizygomatic  = (600 − 200) px = 400 px = 4.0 ICU
+      face_height  = (570 − 30) px  = 540 px = 5.4 ICU
+      bigonial     = (560 − 240) px = 320 px = 3.2 ICU
+      brow span    = (600 − 200) px = 400 px = 4.0 ICU (same x as zyg → polygon is convex)
+    """
+    kp = _canonical_key_points()
+    kp[P_FOREHEAD_CROWN]   = _GLOBAL_CROWN_IDEAL
+    kp[P_MENTON]           = _GLOBAL_MENTON_IDEAL
+    kp[P_LEFT_ZYGOMATIC]   = _GLOBAL_ZYG_L
+    kp[P_RIGHT_ZYGOMATIC]  = _GLOBAL_ZYG_R
+    kp[P_LEFT_GONION]      = _GLOBAL_GONION_L
+    kp[P_RIGHT_GONION]     = _GLOBAL_GONION_R
+    kp[P_BROW_LEFT_OUTER]  = _GLOBAL_BROW_OUTER_L
+    kp[P_BROW_RIGHT_OUTER] = _GLOBAL_BROW_OUTER_R
+    grid = _base_grid()
+    return _set_key_points(grid, kp)
+
+
+def round_face() -> np.ndarray:
+    """(478, 3) — global-shape fixture with a short, wide face (round).
+
+    Crown and menton placed close together relative to bizygomatic width:
+      face_height = (450 − 150) px = 300 px = 3.0 ICU
+      bizygomatic = 4.0 ICU (unchanged)
+      face_height_to_width_ratio = 3.0 / 4.0 = 0.75  → direction 'round_face'
+      face_shape_classification  = 0.75, jaw_taper 0.80 → direction 'round' (aspect < 1.10)
+      total_facial_convexity     = 1.0  (zyg still widest point at ±2.0 ICU)
+    """
+    kp = _canonical_key_points()
+    kp[P_FOREHEAD_CROWN]   = _GLOBAL_CROWN_ROUND
+    kp[P_MENTON]           = _GLOBAL_MENTON_ROUND
+    kp[P_LEFT_ZYGOMATIC]   = _GLOBAL_ZYG_L
+    kp[P_RIGHT_ZYGOMATIC]  = _GLOBAL_ZYG_R
+    kp[P_LEFT_GONION]      = (240.0, 420.0)     # bigonial = 3.2 ICU, taper = 0.80
+    kp[P_RIGHT_GONION]     = (560.0, 420.0)
+    kp[P_BROW_LEFT_OUTER]  = _GLOBAL_BROW_OUTER_L
+    kp[P_BROW_RIGHT_OUTER] = _GLOBAL_BROW_OUTER_R
+    grid = _base_grid()
+    return _set_key_points(grid, kp)
+
+
+def temporal_hollow_face() -> np.ndarray:
+    """(478, 3) — global-shape fixture with marked temporal hollowing.
+
+    Outer brow endpoints are placed WIDER than the bizygomatic span:
+      brow_outer span = (650 − 150) px = 500 px = 5.0 ICU  (x = ±2.5 ICU)
+      bizygomatic     = 4.0 ICU                              (x = ±2.0 ICU)
+
+    The zygomatic landmarks are now INSIDE the convex hull of the face
+    boundary polygon → total_facial_convexity < 1.0.
+
+    Expected values (approximate, verified via scipy.spatial.ConvexHull):
+      face_height_to_width_ratio ≈ 1.35  (crown/menton unchanged)
+      total_facial_convexity     ≈ 0.952 → direction 'temporal_hollow'
+    """
+    kp = _canonical_key_points()
+    kp[P_FOREHEAD_CROWN]   = _GLOBAL_CROWN_IDEAL
+    kp[P_MENTON]           = _GLOBAL_MENTON_IDEAL
+    kp[P_LEFT_ZYGOMATIC]   = _GLOBAL_ZYG_L
+    kp[P_RIGHT_ZYGOMATIC]  = _GLOBAL_ZYG_R
+    kp[P_LEFT_GONION]      = _GLOBAL_GONION_L
+    kp[P_RIGHT_GONION]     = _GLOBAL_GONION_R
+    kp[P_BROW_LEFT_OUTER]  = _GLOBAL_HOLLOW_BROW_L   # x = −2.5 ICU (wider than zyg)
+    kp[P_BROW_RIGHT_OUTER] = _GLOBAL_HOLLOW_BROW_R
+    grid = _base_grid()
+    return _set_key_points(grid, kp)

@@ -140,6 +140,22 @@ FOREHEAD_POSE_PARAMS = PosePenaltyParams(
     floor=0.17,
 )
 
+# Global-shape metrics blend pitch-sensitive vertical ratios (face_height_to_width,
+# face_shape_classification) with yaw-sensitive convexity (bizygomatic foreshortens
+# with rotation). The two scored metrics split sensitivity evenly, so yaw/pitch weights
+# are balanced (0.50/0.50). Soft thresholds are slightly relaxed vs forehead because
+# crown-to-menton is a long baseline and tolerates moderate head tilt before the ratio
+# changes significantly. Convexity also degrades gracefully under moderate yaw.
+# Floor is slightly higher (0.20) than single-region families — global metrics are
+# intended as summary indicators and should not drop to near-zero confidence from
+# moderate pose variation.
+GLOBAL_SHAPE_POSE_PARAMS = PosePenaltyParams(
+    yaw_soft_deg=6.0, yaw_hard_deg=18.0,
+    pitch_soft_deg=6.0, pitch_hard_deg=18.0,
+    yaw_weight=0.50, pitch_weight=0.50,
+    floor=0.20,
+)
+
 
 def _axis_penalty(angle_deg: float, soft: float, hard: float, floor: float) -> float:
     """Piecewise linear penalty for a single rotation axis."""

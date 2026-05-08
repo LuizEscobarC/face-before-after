@@ -94,3 +94,12 @@ weights:
     forehead_height_ratio: 1.0
     forehead_width_ratio: 1.0
     temporal_width_ratio: 1.1
+
+  global:
+    # PR-19 (M2 global_shape family). face_height_to_width_ratio weighted higher
+    # (primary face-shape signal; Farkas ratio strongly predicts face shape category).
+    # total_facial_convexity at 0.8 (secondary signal; mainly captures temporal hollowing).
+    # face_shape_classification excluded — presentation_only=true (DEC-6).
+    # e_line_deviation excluded — requires_pixel_analysis=true stub (DEC-10).
+    face_height_to_width_ratio: 1.3
+    total_facial_convexity: 0.8
