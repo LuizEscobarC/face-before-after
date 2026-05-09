@@ -1,7 +1,7 @@
-# PLAN_M4_NARRATIVE.md
+# M4_NARRATIVE.md — Marco 4: diagnóstico textual + recomendações + PDF + disclaimer
 
 > Plano detalhado do **Marco 4 — diagnóstico textual + recomendações + PDF + disclaimer**.
-> Releia junto com `PLAN_METRICS.md`, `PLAN_M2_BACKLOG.md` e `PLAN_M3_OVERLAYS.md`.
+> Releia junto com `../PLAN_METRICS.md`, `./M2_BACKLOG.md` e `./M3_OVERLAYS.md`.
 > Atualização: 2026-05-08 (split do PLAN_METRICS §8, ainda não iniciado).
 
 ---

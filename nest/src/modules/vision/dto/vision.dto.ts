@@ -209,6 +209,10 @@ export class CompareResponseDto {
   @ApiProperty({ type: Number }) consistency_score!: number;
   @ApiProperty({ type: [String] }) consistency_issues!: string[];
   @ApiProperty({ type: Boolean }) is_comparable!: boolean;
+  /** Deterministic group ID for the "before" run (beard/glasses/hair_covering state). Null when sidecar missing. */
+  @ApiProperty({ type: String, nullable: true }) baseline_group_id_before!: string | null;
+  /** Deterministic group ID for the "after" run. Null when sidecar missing. */
+  @ApiProperty({ type: String, nullable: true }) baseline_group_id_after!: string | null;
 }
 
 // Suppress unused import warning when validators unused on a class

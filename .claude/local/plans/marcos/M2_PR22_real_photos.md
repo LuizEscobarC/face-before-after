@@ -1,4 +1,4 @@
-# PLAN_PR22_REAL_PHOTOS.md
+# M2_PR22_real_photos.md — Calibração com fotos reais (operação humana)
 
 > Roadmap operacional para **PR-22: Calibração com fotos reais**.
 > Esta é uma tarefa **humana** (operador) — IA pode preparar tooling, mas a coleta + julgamento são seus.

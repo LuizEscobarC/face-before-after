@@ -1,7 +1,7 @@
-# PLAN_M3_OVERLAYS.md
+# M3_OVERLAYS.md — Marco 3: overlays SVG + heatmaps + composição before/ideal
 
 > Plano detalhado do **Marco 3 — overlays visuais (SVG cliente + raster server) + heatmaps + composição before/ideal**.
-> Releia junto com `PLAN_METRICS.md` e `PLAN_M2_BACKLOG.md`.
+> Releia junto com `../PLAN_METRICS.md` e `./M2_BACKLOG.md`.
 > Atualização: 2026-05-08 (split do PLAN_METRICS §7, ainda não iniciado).
 
 ---
@@ -278,4 +278,4 @@ Adiado para depois do M4. Envolve `cv2.warpAffine` ou TPS warp dos pixels reais 
 - [ ] Phi/golden overlay tem legenda em 100% das renderizações.
 - [ ] PDF export funciona end-to-end.
 
-Após isso → **abrir M4** (`PLAN_M4_NARRATIVE.md`).
+Após isso → **abrir M4** (`./M4_NARRATIVE.md`).

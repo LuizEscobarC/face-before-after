@@ -5,6 +5,7 @@ import { VisionClient } from './vision.client.js';
 import {
   CaptureGuidelinesDto,
   CompareRequestDto,
+  CompareResponseDto,
   ComposeBeforeIdealRequestDto,
   FullPipelineRequestDto,
   FullPipelineResponseDto,
@@ -64,7 +65,7 @@ export class VisionController {
   @HttpCode(200)
   @ApiOperation({ summary: 'Compara dois runs antes/depois' })
   @ApiResponse({ status: 200 })
-  compare(@Body() body: CompareRequestDto): Promise<Record<string, unknown>> {
+  compare(@Body() body: CompareRequestDto): Promise<CompareResponseDto> {
     return this.client.compare(body);
   }
 

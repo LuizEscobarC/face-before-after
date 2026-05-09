@@ -1,7 +1,7 @@
-# PLAN_M2_BACKLOG.md
+# M2_BACKLOG.md — Marco 2: calibração + expansão de métricas + scoring rico
 
 > Backlog detalhado do **Marco 2 — calibração + expansão de métricas + scoring rico**.
-> Releia junto com `PLAN_METRICS.md` no início de cada sessão.
+> Releia junto com `../PLAN_METRICS.md` no início de cada sessão.
 > Atualização: 2026-05-08 (após PR-23).
 
 ---
@@ -63,7 +63,7 @@ Todo PR dessa série **DEVE entregar exatamente esses 7 artefatos**, na mesma or
    - M rows em `region_metric_weight` (versão ativa atual `v1.0` recebe linhas adicionais via `INSERT ... ON CONFLICT DO NOTHING` — **não cria nova versão**; isso só acontece em PR-21).
 5. **Atualização do `metric_ideals.yaml`** (espelho declarativo do que está no DB, fonte de verdade para CI).
 6. **Atualização do `region_metric_weights.yaml`** para a região da família (mesma justificativa: fonte de verdade declarativa, CI valida contra DB).
-7. **Atualização da seção 5.4 do `PLAN_METRICS.md`** marcando a família como entregue.
+7. **Atualização da seção 5.4 do `../PLAN_METRICS.md`** marcando a família como entregue.
 
 > **Fora do escopo dos PRs 13–19** (NÃO mexer):
 > - `RegionalScorer` / `GlobalScorer` / `ScoreBander` — já consomem qualquer região via lookup dinâmico.
@@ -124,7 +124,7 @@ Critérios (todos obrigatórios):
 - DEC-8 testado: foto com péssima iluminação → `global_score.is_displayable=FALSE`, banner `no_number`.
 - Pytest verde, Vitest verde, migration log limpo.
 
-Após isso → **abrir M3** (overlays). Ver `PLAN_M3_OVERLAYS.md`.
+Após isso → **abrir M3** (overlays). Ver `./M3_OVERLAYS.md`.
 
 ---
 

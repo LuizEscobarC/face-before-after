@@ -282,7 +282,7 @@ Hardcoded em `OverlayLayer.tsx`:
 | `backend/app/vision/services/before_ideal_composer.py` | Service | TBD | ✅ Active |
 | `backend/app/vision/routers/compose.py` | Endpoint | TBD | ✅ Active |
 | `.claude/local/plans/PLAN_METRICS.md` | Doc | — | ✅ Reference |
-| `.claude/local/plans/PLAN_DDL_REVIEW.md` | Doc | — | ✅ Reference |
+| `.claude/local/plans/DDL_REVIEW.md` | Doc | — | ✅ Reference |
 
 ---
 

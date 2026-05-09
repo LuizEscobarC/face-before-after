@@ -4,7 +4,7 @@ import { ERROR_CODES, ERROR_MESSAGES } from '#shared/errors/error-catalog.js';
 import { VisionClient } from '#modules/vision/vision.client.js';
 import { PhotoQualityService } from '#modules/photo-quality/photo-quality.service.js';
 import type { PhotoQualityDecisionDto } from '#modules/photo-quality/dto/photo-quality.dto.js';
-import type { FullPipelineResponseDto } from '#modules/vision/dto/vision.dto.js';
+import type { CompareResponseDto, FullPipelineResponseDto } from '#modules/vision/dto/vision.dto.js';
 import { AnalyzePhotoDto, CompareRunsDto } from './dto/analysis.dto.js';
 
 export interface AnalysisResultDto {
@@ -86,7 +86,7 @@ export class AnalysisService {
     };
   }
 
-  async compare(payload: CompareRunsDto): Promise<Record<string, unknown>> {
+  async compare(payload: CompareRunsDto): Promise<CompareResponseDto> {
     const result = await this.vision.compare({
       run_id_before: payload.run_id_before,
       run_id_after: payload.run_id_after,

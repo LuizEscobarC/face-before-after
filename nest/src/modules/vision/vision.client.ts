@@ -11,6 +11,7 @@ import { ERROR_CODES, ERROR_MESSAGES } from '#shared/errors/error-catalog.js';
 import {
   CaptureGuidelinesDto,
   CompareRequestDto,
+  CompareResponseDto,
   FullPipelineRequestDto,
   FullPipelineResponseDto,
   LandmarkRequestDto,
@@ -78,8 +79,8 @@ export class VisionClient {
     return this.request<FullPipelineResponseDto>('POST', '/vision/full-pipeline', payload);
   }
 
-  compare(payload: CompareRequestDto): Promise<Record<string, unknown>> {
-    return this.request<Record<string, unknown>>('POST', '/vision/compare', payload);
+  compare(payload: CompareRequestDto): Promise<CompareResponseDto> {
+    return this.request<CompareResponseDto>('POST', '/vision/compare', payload);
   }
 
   /**
