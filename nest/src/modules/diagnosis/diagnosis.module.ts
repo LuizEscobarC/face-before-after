@@ -6,6 +6,7 @@ import { OverlaysModule } from '../overlays/overlays.module.js';
 
 import { DiagnosisService } from './diagnosis.service.js';
 import { DiagnosisController } from './diagnosis.controller.js';
+import { DiagnosticTemplatesController } from './diagnostic-templates.controller.js';
 import { TemplateRendererService } from './template-renderer.service.js';
 import { RecommendationEngine } from './recommendation-engine.service.js';
 import { DiagnosticPriorityService } from './diagnostic-priority.service.js';
@@ -44,7 +45,7 @@ import { GlobalScoreEntity } from '../analysis/infrastructure/entities/global-sc
       GlobalScoreEntity,
     ]),
   ],
-  controllers: [DiagnosisController, NarrativeController, PdfController, RunPdfController],
+  controllers: [DiagnosisController, DiagnosticTemplatesController, NarrativeController, PdfController, RunPdfController],
   providers: [
     DiagnosisService,
     TemplateRendererService,

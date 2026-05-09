@@ -254,3 +254,35 @@ export type NarrativeResponseDto = {
   recommendations: NarrativeRecommendationDto[];
   disclaimer: string;
 };
+
+// ── Diagnostic Templates (Admin CRUD) ────────────────────────────────────
+
+export type DiagnosticTemplate = {
+  id: string;
+  version: string;
+  metricId: string;
+  severity: 'ideal' | 'mild' | 'moderate' | 'strong' | 'extreme';
+  direction: string;
+  size: 'short' | 'medium' | 'long';
+  templatePt: string;
+  placeholdersUsed: string[];
+  createdAt: string;
+};
+
+export type TemplateMetricOption = {
+  metricId: string;
+};
+
+export type TemplateFilter = {
+  metricId?: string;
+  size?: 'short' | 'medium' | 'long';
+};
+
+export type TemplateRenderPreview = {
+  value: string;
+  ideal: string;
+  deviationPct: string;
+  directionLabel: string;
+  regionPt: string;
+  severityPt: string;
+};

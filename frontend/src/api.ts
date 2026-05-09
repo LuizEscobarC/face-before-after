@@ -6,6 +6,8 @@ import type {
   CompareWithConsistency,
   GlossaryTerm,
   NarrativeResponseDto,
+  DiagnosticTemplate,
+  TemplateMetricOption,
 } from "./types";
 
 // Vite dev proxy maps /v1 → orchestrator (see vite.config.ts).
@@ -287,4 +289,53 @@ export async function fetchNarrative(reportId: string): Promise<NarrativeRespons
     throw new Error(await readError(res, 'Falha ao carregar diagnóstico narrativo.'));
   }
   return (await res.json()) as NarrativeResponseDto;
+}
+
+// ---------- Diagnostic Templates (Admin CRUD - PR-53) ----------
+
+export async function fetchTemplateMetrics(): Promise<TemplateMetricOption[]> {
+  const res = await fetch(`${BASE}/v1/diagnosis/templates/metrics`);
+  if (!res.ok) {
+    throw new Error(await readError(res, 'Falha ao carregar métricas de templates.'));
+  }
+  return (await res.json()) as TemplateMetricOption[];
+}
+
+export async function fetchTemplates(filter?: {
+  metricId?: string;
+  size?: string;
+}): Promise<DiagnosticTemplate[]> {
+  const params = new URLSearchParams();
+  if (filter?.metricId) params.append('metricId', filter.metricId);
+  if (filter?.size) params.append('size', filter.size);
+
+  const url = `${BASE}/v1/diagnosis/templates${params.toString() ? `?${params.toString()}` : ''}`;
+  const res = await fetch(url);
+  if (!res.ok) {
+    throw new Error(await readError(res, 'Falha ao carregar templates.'));
+  }
+  return (await res.json()) as DiagnosticTemplate[];
+}
+
+export async function fetchTemplate(id: string): Promise<DiagnosticTemplate> {
+  const res = await fetch(`${BASE}/v1/diagnosis/templates/${id}`);
+  if (!res.ok) {
+    throw new Error(await readError(res, 'Falha ao carregar template.'));
+  }
+  return (await res.json()) as DiagnosticTemplate;
+}
+
+export async function updateTemplate(
+  id: string,
+  templatePt: string,
+): Promise<DiagnosticTemplate> {
+  const res = await fetch(`${BASE}/v1/diagnosis/templates/${id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ templatePt }),
+  });
+  if (!res.ok) {
+    throw new Error(await readError(res, 'Falha ao atualizar template.'));
+  }
+  return (await res.json()) as DiagnosticTemplate;
 }

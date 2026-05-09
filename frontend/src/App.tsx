@@ -4,6 +4,7 @@ import { CapturePage } from "./pages/CapturePage";
 import { CompareResultPage } from "./pages/CompareResultPage";
 import { FreeResultPage } from "./pages/FreeResultPage";
 import { PremiumResultPage } from "./pages/PremiumResultPage";
+import { AdminTemplatesPage } from "./pages/AdminTemplatesPage";
 
 export default function App() {
   return (
@@ -12,6 +13,7 @@ export default function App() {
       <Route path="/resultado/free" element={<FreeResultPage />} />
       <Route path="/resultado/premium" element={<PremiumResultPage />} />
       <Route path="/resultado/compare" element={<CompareResultPage />} />
+      <Route path="/admin/templates" element={<AdminTemplatesPage />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

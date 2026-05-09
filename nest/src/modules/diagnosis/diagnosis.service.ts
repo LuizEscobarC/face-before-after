@@ -1,6 +1,9 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 import type { DiagnosisReportDto, ConcernDto } from './dto/diagnosis.dto.js';
+import { DiagnosticTemplateEntity } from './infrastructure/entities/diagnostic-template.entity.js';
 
 interface AnalysisCompletedPayload {
   session_id?: string;
@@ -13,6 +16,11 @@ interface AnalysisCompletedPayload {
 export class DiagnosisService {
   private readonly logger = new Logger(DiagnosisService.name);
   private readonly reports = new Map<string, DiagnosisReportDto>();
+
+  constructor(
+    @InjectRepository(DiagnosticTemplateEntity)
+    private readonly templateRepository: Repository<DiagnosticTemplateEntity>,
+  ) {}
 
   @OnEvent('analysis.completed')
   handleAnalysisCompleted(payload: AnalysisCompletedPayload): void {
@@ -97,5 +105,49 @@ export class DiagnosisService {
     }
     const labels = topConcerns.map((concern) => concern.label).join(', ');
     return `Principais pontos de atenção: ${labels}.`;
+  }
+
+  // ─────────────────────────────────────────────────────────
+  // PR-53 — Templates CRUD for admin UI
+  // ─────────────────────────────────────────────────────────
+
+  async getTemplates(filter?: { metricId?: string; size?: string }) {
+    let query = this.templateRepository.createQueryBuilder('t');
+
+    if (filter?.metricId) {
+      query = query.where('t.metricId = :metricId', { metricId: filter.metricId });
+    }
+    if (filter?.size) {
+      query = query.andWhere('t.size = :size', { size: filter.size });
+    }
+
+    return query
+      .orderBy('t.metricId', 'ASC')
+      .addOrderBy('t.severity', 'ASC')
+      .addOrderBy('t.size', 'ASC')
+      .getMany();
+  }
+
+  async getTemplateById(id: string) {
+    const template = await this.templateRepository.findOne({ where: { id } });
+    if (!template) {
+      throw new NotFoundException(`Template não encontrado: ${id}`);
+    }
+    return template;
+  }
+
+  async getTemplateMetrics() {
+    const templates = await this.templateRepository
+      .createQueryBuilder('t')
+      .select('DISTINCT t.metricId', 'metricId')
+      .orderBy('t.metricId', 'ASC')
+      .getRawMany();
+    return templates.map((row: any) => ({ metricId: row.metricId }));
+  }
+
+  async updateTemplate(id: string, templatePt: string) {
+    const template = await this.getTemplateById(id);
+    template.templatePt = templatePt;
+    return this.templateRepository.save(template);
   }
 }

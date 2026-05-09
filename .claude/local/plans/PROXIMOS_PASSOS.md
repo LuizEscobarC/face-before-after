@@ -35,7 +35,8 @@ Em uma frase: **o motor que mede um rosto, calcula confiança, pontua e desenha 
 
 Há **dois bloqueios reais** e o restante é trabalho mecânico.
 
-### Bloqueio 1 — Calibração com fotos reais (PR-22)
+### Bloqueio 1 — Calibração com fotos reais (PR-22) **Bloqueio 1 deve ser ignorado, vou revisar depois que o produto estiver pronto**
+
 
 **O quê:** rodar o sistema em ≥30 fotos variadas, ajustar manualmente as faixas verde/amarelo de cada métrica, validar que o score global se distribui bem entre as 4 bandas (`<50`, `50–70`, `70–85`, `>85`).
 
@@ -47,7 +48,7 @@ Há **dois bloqueios reais** e o restante é trabalho mecânico.
 
 **Datasets sugeridos:** CelebA-HQ ou FFHQ (uso interno only — não redistribuir as fotos, só os números agregados). Ou fotos próprias / clientes com consentimento.
 
-### Bloqueio 2 — Promoção dos pesos (PR-21 v2.0)
+### Bloqueio 2 — Promoção dos pesos (PR-21 v2.0) **Bloqueio 1 deve ser ignorado, vou revisar depois que o produto estiver pronto**
 
 **O quê:** depois do PR-22, validar com dados reais que os pesos provisórios v1.5 (symmetry=0.18, eyes=0.16, jaw=0.14, …) batem com o que o operador acha "harmônico". Se Spearman ρ > 0.3 entre score e ranking subjetivo, promove para v2.0; senão, ajusta e volta.
 
