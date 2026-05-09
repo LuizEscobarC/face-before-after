@@ -214,10 +214,12 @@ export async function compareRuns(
   return (await res.json()) as CompareWithConsistency;
 }
 
-// ---------- Glossary (não exposto pelo orchestrator ainda) ----------
+// ---------- Glossary (bundle estático no frontend) ----------
+
+import { GLOSSARY } from "./data/glossary";
 
 export async function fetchGlossary(): Promise<Record<string, GlossaryTerm>> {
-  return {};
+  return GLOSSARY;
 }
 
 // ---------- Client-side landmark submission ----------

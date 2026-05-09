@@ -71,4 +71,32 @@ export class MinioStorageService implements OnModuleInit {
     this.logger.debug(`Uploaded ${objectPath} (${data.length} bytes, ${contentType})`);
     return `minio://${this.bucket}/${objectPath}`;
   }
+
+  /**
+   * PR-67 — Generate a presigned GET URL for an object path.
+   * Expires in `expirySeconds` (default 3600 = 1 h).
+   * Used by PdfService to embed rendered-asset URLs the Python container can fetch.
+   */
+  async presignedGetUrl(objectPath: string, expirySeconds = 3600): Promise<string> {
+    return this.client.presignedGetObject(this.bucket, objectPath, expirySeconds);
+  }
+
+  /**
+   * PR-67 — Convert an internal `minio://{bucket}/{path}` URI to a presigned HTTP URL.
+   * Returns null when the storageUrl format is unexpected.
+   */
+  async storageUrlToPresigned(storageUrl: string, expirySeconds = 3600): Promise<string | null> {
+    const prefix = `minio://${this.bucket}/`;
+    if (!storageUrl.startsWith(prefix)) {
+      this.logger.warn(`storageUrlToPresigned: unexpected format "${storageUrl}"`);
+      return null;
+    }
+    const objectPath = storageUrl.slice(prefix.length);
+    try {
+      return await this.presignedGetUrl(objectPath, expirySeconds);
+    } catch (err) {
+      this.logger.warn(`storageUrlToPresigned failed for "${objectPath}": ${String(err)}`);
+      return null;
+    }
+  }
 }

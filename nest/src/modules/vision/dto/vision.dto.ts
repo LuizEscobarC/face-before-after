@@ -139,6 +139,53 @@ export class FullPipelineRequestDto {
   @ApiPropertyOptional() @IsOptional() @IsString() filename?: string;
 }
 
+/**
+ * PR-66 (M3.3) — Request DTO for POST /v1/vision/render-overlay.
+ *
+ * Stateless streaming variant of overlay rendering: fetches the original
+ * photo from the vision service by runId, calls Python /vision/render,
+ * and streams the resulting PNG back without persisting to MinIO.
+ *
+ * References:
+ *  - backend/app/vision/routers/render.py (PR-32 + PR-37/38)
+ *  - PLAN_M3_OVERLAYS §2 PR-40 follow-up (heatmap_asymmetry wiring)
+ *  - MediaPipe Mesh-478: https://github.com/google-ai-edge/mediapipe/blob/master/docs/solutions/face_mesh.md
+ */
+export class RegionAdherenceSampleDto {
+  @ApiProperty({ description: 'Region name, e.g. "eyes", "nose"' }) @IsString() region!: string;
+  @ApiProperty({ description: 'Adherence score 0–1' }) @IsNumber() @Min(0) @Max(1) adherence!: number;
+  @ApiProperty({ description: 'Confidence 0–1' }) @IsNumber() @Min(0) @Max(1) confidence!: number;
+}
+
+export class RenderOverlayRequestDto {
+  @ApiProperty({ description: 'run_id of the vision pipeline result (used to fetch the base photo)' })
+  @IsString()
+  runId!: string;
+
+  @ApiProperty({
+    description: 'MediaPipe Mesh-478 raw pixel coordinates [[x, y], …] (478 entries)',
+    type: 'array',
+    items: { type: 'array', items: { type: 'number' } },
+  })
+  @IsArray()
+  landmarks!: number[][];
+
+  @ApiProperty({ description: 'Overlay IDs to render, e.g. ["heatmap_asymmetry"]', type: [String] })
+  @IsArray()
+  @IsString({ each: true })
+  overlayIds!: string[];
+
+  @ApiPropertyOptional({
+    description: 'Regional adherence samples — required only when heatmap_ideal_adherence is in overlayIds',
+    type: [RegionAdherenceSampleDto],
+  })
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => RegionAdherenceSampleDto)
+  regionAdherence?: RegionAdherenceSampleDto[];
+}
+
 export class FullPipelineResponseDto {
   @ApiProperty() run_id!: string;
   @ApiProperty() output_dir!: string;

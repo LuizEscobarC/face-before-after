@@ -186,6 +186,75 @@ export class VisionClient {
     return { data: Buffer.from(arrayBuffer), contentType: 'image/png' };
   }
 
+  /**
+   * PR-66 (M3.3) — Stateless overlay render via Python POST /vision/render.
+   *
+   * Fetches the original photo by runId, posts multipart to Python
+   * /vision/render with the landmark array and the requested overlay IDs,
+   * then returns the resulting PNG buffer.
+   *
+   * Supports all overlay IDs in the v1.0 catalog including heatmap_asymmetry
+   * and heatmap_ideal_adherence (the latter requires regionAdherence samples).
+   *
+   * References:
+   *  - backend/app/vision/routers/render.py (PR-32 + PR-37/38)
+   *  - PLAN_M3_OVERLAYS §2 PR-40 follow-up (heatmap wiring)
+   */
+  async renderOverlay(
+    runId: string,
+    landmarks: number[][],
+    overlayIds: string[],
+    regionAdherence?: Array<{ region: string; adherence: number; confidence: number }>,
+  ): Promise<{ data: Buffer; contentType: string }> {
+    const imageResult = await this.fetchOriginal(runId);
+
+    const formData = new FormData();
+    formData.append(
+      'image',
+      new Blob([new Uint8Array(imageResult.data)], { type: 'image/png' }),
+      'photo.png',
+    );
+    formData.append('landmarks_json', JSON.stringify(landmarks));
+    formData.append('overlay_ids_json', JSON.stringify(overlayIds));
+    if (regionAdherence && regionAdherence.length > 0) {
+      formData.append('region_adherence_json', JSON.stringify(regionAdherence));
+    }
+
+    let response: Response;
+    try {
+      response = await fetch(`${this.baseUrl}/vision/render`, {
+        method: 'POST',
+        body: formData,
+        signal: AbortSignal.timeout(30_000),
+      });
+    } catch (err) {
+      this.logger.error(`render-overlay fetch failed: ${String(err)}`);
+      throw new ServiceUnavailableException({
+        code: ERROR_CODES.VISION_UPSTREAM_ERROR,
+        message: ERROR_MESSAGES.vision.upstreamError,
+        details: String(err),
+      });
+    }
+
+    if (!response.ok) {
+      const errText = await response.text().catch(() => '(unreadable)');
+      const status = response.status;
+      this.logger.warn(`render-overlay returned ${status}: ${errText}`);
+      let detail: unknown = errText;
+      try { detail = JSON.parse(errText) as unknown; } catch { /* keep as text */ }
+      throw new HttpException(
+        {
+          code: ERROR_CODES.VISION_UPSTREAM_ERROR,
+          message: `Render overlay failed (${status})`,
+          details: detail,
+        },
+        status >= 400 && status < 600 ? status : HttpStatus.BAD_GATEWAY,
+      );
+    }
+
+    return { data: Buffer.from(await response.arrayBuffer()), contentType: 'image/png' };
+  }
+
   private async fetchBinary(path: string): Promise<{ data: Buffer; contentType: string }> {
     try {
       const response = await this.http.get(path, { responseType: 'arraybuffer' });

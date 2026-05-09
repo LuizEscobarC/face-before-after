@@ -12,6 +12,7 @@ import {
   LandmarkResponseDto,
   MetricsRequestDto,
   MetricsResponseDto,
+  RenderOverlayRequestDto,
 } from './dto/vision.dto.js';
 import { ClientLandmarkPayloadDto } from './dto/client-landmark-payload.dto.js';
 
@@ -130,6 +131,40 @@ export class VisionController {
       body.offsets ?? [],
       body.showGuideLines ?? true,
       body.showActualWireframe ?? true,
+    );
+    void reply.header('Content-Type', 'image/png').send(file.data);
+  }
+
+  /**
+   * POST /v1/vision/render-overlay
+   *
+   * PR-66 (M3.3) — Stateless overlay render streaming proxy.
+   * Fetches the original photo by runId, posts multipart to Python
+   * /vision/render with the requested overlay IDs, and streams the
+   * resulting PNG back to the caller (no MinIO persistence).
+   *
+   * Supports all v1.0 overlay IDs including heatmap_asymmetry.
+   * heatmap_ideal_adherence additionally requires regionAdherence in the body.
+   *
+   * References:
+   *  - backend/app/vision/routers/render.py (PR-32 + PR-37/38, M3.1+M3.3)
+   *  - PLAN_M3_OVERLAYS §2 PR-40 follow-up (heatmap wiring)
+   *  - MediaPipe Mesh-478: https://github.com/google-ai-edge/mediapipe/blob/master/docs/solutions/face_mesh.md
+   */
+  @Post('render-overlay')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Stateless overlay render — streams PNG (PR-66 M3.3)' })
+  @ApiResponse({ status: 200, description: 'PNG with requested overlays drawn on original photo' })
+  @ApiResponse({ status: 422, description: 'Heatmap suppressed (insufficient samples) or invalid input' })
+  async renderOverlay(
+    @Body() body: RenderOverlayRequestDto,
+    @Res({ passthrough: false }) reply: FastifyReply,
+  ): Promise<void> {
+    const file = await this.client.renderOverlay(
+      body.runId,
+      body.landmarks,
+      body.overlayIds,
+      body.regionAdherence,
     );
     void reply.header('Content-Type', 'image/png').send(file.data);
   }

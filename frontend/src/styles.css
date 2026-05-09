@@ -839,3 +839,9 @@ body {
   .main-insight { padding: 18px 18px; }
   .result-layout { padding: 12px 12px 60px; }
 }
+
+/* ── Animation keyframes ─────────────────────────────────── */
+@keyframes pulse {
+  0%, 100% { opacity: 0.5; }
+  50%       { opacity: 1; }
+}

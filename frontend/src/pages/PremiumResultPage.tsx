@@ -265,6 +265,10 @@ export function PremiumResultPage() {
   const [composeError, setComposeError] = useState<string | null>(null);
   const [showGuideLines, setShowGuideLines] = useState(true);
   const [showActualWireframe, setShowActualWireframe] = useState(true);
+  // Mirrors `beforeIdealUrl` so the unmount cleanup (deps=[]) can revoke the
+  // most recent URL. Without this the closure captures the initial null and
+  // leaks the final blob URL on navigation away.
+  const beforeIdealUrlRef = useRef<string | null>(null);
 
   // PR-62 (M4.5) — PDF download state
   const [pdfLoading, setPdfLoading] = useState(false);
@@ -273,6 +277,16 @@ export function PremiumResultPage() {
   // M4.4 — Narrative state (findings + recommendations from NarrativeService)
   const [narrative, setNarrative] = useState<NarrativeResponseDto | null>(null);
   const [narrativeLoading, setNarrativeLoading] = useState(false);
+
+  // PR-63 — analysis_report_id resolved by evaluateFromLandmarks (or from result.report_id).
+  // Used by PR-66 heatmap wiring below.
+  const [reportId, setReportId] = useState<string | null>(null);
+
+  // PR-66 (M3.3) — heatmap PNG blob URLs keyed by overlay_id.
+  const [heatmapAssetUrls, setHeatmapAssetUrls] = useState<Record<string, string>>({});
+  const [heatmapLoading, setHeatmapLoading] = useState(false);
+  // Tracks current blob URLs for cleanup on unmount.
+  const heatmapUrlsRef = useRef<Record<string, string>>({});
 
 
   const handleOverlayToggle = (id: string) => {
@@ -287,17 +301,26 @@ export function PremiumResultPage() {
       .catch(() => {});
   }, []);
 
-  // M4.4 — Load narrative: call evaluate to get report_id, then fetch narrative
+  // M4.4 — Load narrative. If the backend already produced a report_id during the
+  // main analysis, fetch the narrative directly. Only fall back to evaluating
+  // landmarks when report_id is missing (legacy flow). Avoids a duplicate
+  // POST /evaluate on every premium page mount.
   useEffect(() => {
-    if (!result?.landmarks || !result?.run_id) return;
+    if (!result?.run_id) return;
     setNarrativeLoading(true);
     (async () => {
       try {
-        const evaluated = await evaluateFromLandmarks({
-          landmarks: result.landmarks!,
-          quality_score: result.capture_confidence ?? 0.8,
-        });
-        const data = await fetchNarrative(evaluated.analysis_report_id);
+        let reportId = result.report_id;
+        if (!reportId) {
+          if (!result.landmarks) return;
+          const evaluated = await evaluateFromLandmarks({
+            landmarks: result.landmarks,
+            quality_score: result.capture_confidence ?? 0.8,
+          });
+          reportId = evaluated.analysis_report_id;
+        }
+        setReportId(reportId);
+        const data = await fetchNarrative(reportId);
         setNarrative(data);
       } catch (err) {
         console.error("Narrative load failed:", err);
@@ -306,7 +329,7 @@ export function PremiumResultPage() {
       }
     })();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [result?.run_id]);
+  }, [result?.run_id, result?.report_id]);
 
   /**
    * PR-43 (M3.4) — Fetch the before/ideal composition PNG from
@@ -322,7 +345,11 @@ export function PremiumResultPage() {
     if (!result?.run_id || !result?.landmarks || !result?.metric_evaluations) return;
     setComposeLoading(true);
     // Revoke previous object URL to avoid memory leaks.
-    setBeforeIdealUrl((prev) => { if (prev) URL.revokeObjectURL(prev); return null; });
+    if (beforeIdealUrlRef.current) {
+      URL.revokeObjectURL(beforeIdealUrlRef.current);
+      beforeIdealUrlRef.current = null;
+    }
+    setBeforeIdealUrl(null);
     setComposeError(null);
     try {
       const offsets = buildComposeOffsets(result.metric_evaluations);
@@ -343,7 +370,9 @@ export function PremiumResultPage() {
         return;
       }
       const blob = await res.blob();
-      setBeforeIdealUrl(URL.createObjectURL(blob));
+      const url = URL.createObjectURL(blob);
+      beforeIdealUrlRef.current = url;
+      setBeforeIdealUrl(url);
     } catch (e) {
       setComposeError("Falha ao gerar comparação vetorial.");
       console.error("compose-before-ideal failed:", e);
@@ -360,12 +389,80 @@ export function PremiumResultPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [view, fetchCompose]);
 
-  // Revoke object URL on unmount to avoid memory leak.
+  // Revoke last compose object URL on unmount. Reads from ref, so the closure
+  // sees the most recent URL (not the initial null).
   useEffect(() => {
     return () => {
-      if (beforeIdealUrl) URL.revokeObjectURL(beforeIdealUrl);
+      if (beforeIdealUrlRef.current) {
+        URL.revokeObjectURL(beforeIdealUrlRef.current);
+        beforeIdealUrlRef.current = null;
+      }
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // PR-66 (M3.3) — Heatmap overlay IDs (mirrors HEATMAP_OVERLAY_IDS in OverlayLayer.tsx).
+  const HEATMAP_IDS = new Set(["heatmap_asymmetry", "heatmap_ideal_adherence"]);
+
+  // PR-66 (M3.3) — Fetch heatmap PNGs from POST /v1/vision/render-overlay when the
+  // user activates a heatmap toggle in the overlays view. Each PNG is cached in
+  // heatmapAssetUrls[overlayId] to avoid refetching on re-renders.
+  // Only heatmap_asymmetry is fully supported (no regional adherence data needed).
+  // heatmap_ideal_adherence is skipped if no regional scores are available.
+  useEffect(() => {
+    if (view !== "overlays") return;
+    if (!result?.run_id || !result?.landmarks) return;
+    const activeHeatmaps = activeOverlays.filter((id) => HEATMAP_IDS.has(id));
+    if (activeHeatmaps.length === 0) return;
+    const missing = activeHeatmaps.filter((id) => !heatmapAssetUrls[id]);
+    if (missing.length === 0) return;
+
+    setHeatmapLoading(true);
+    void (async () => {
+      try {
+        const newUrls: Record<string, string> = {};
+        await Promise.all(
+          missing.map(async (overlayId) => {
+            // heatmap_ideal_adherence requires region_adherence_json; skip if unavailable.
+            if (overlayId === "heatmap_ideal_adherence") return;
+            try {
+              const res = await fetch("/v1/vision/render-overlay", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  runId: result.run_id,
+                  landmarks: result.landmarks,
+                  overlayIds: [overlayId],
+                }),
+              });
+              if (res.ok) {
+                const blob = await res.blob();
+                const url = URL.createObjectURL(blob);
+                newUrls[overlayId] = url;
+              }
+            } catch (err) {
+              console.warn(`Heatmap fetch failed for ${overlayId}:`, err);
+            }
+          }),
+        );
+        if (Object.keys(newUrls).length > 0) {
+          heatmapUrlsRef.current = { ...heatmapUrlsRef.current, ...newUrls };
+          setHeatmapAssetUrls((prev) => ({ ...prev, ...newUrls }));
+        }
+      } finally {
+        setHeatmapLoading(false);
+      }
+    })();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [view, activeOverlays, result?.run_id]);
+
+  // Revoke heatmap blob URLs on unmount.
+  useEffect(() => {
+    return () => {
+      for (const url of Object.values(heatmapUrlsRef.current)) {
+        URL.revokeObjectURL(url);
+      }
+      heatmapUrlsRef.current = {};
+    };
   }, []);
 
   if (!result) {
@@ -685,14 +782,14 @@ export function PremiumResultPage() {
                       setImgDims({ w: img.naturalWidth, h: img.naturalHeight });
                     }}
                   />
-                  {/* z=30 heatmap layer (PR-40, M3.3) — server-rendered PNG.
-                      heatmapAssetUrls is wired by the caller once Nest exposes a
-                      /v1/overlays/:reportId/render call for heatmap_* overlay_ids;
-                      until then the toggle is visible but the layer is a no-op. */}
+                  {/* z=30 heatmap layer (PR-40/PR-66, M3.3) — server-rendered PNG.
+                      Fetched from POST /v1/vision/render-overlay (stateless proxy).
+                      heatmapLoading shows a subtle spinner while fetching. */}
                   <HeatmapImageLayer
                     imageWidth={imgDims?.w ?? 640}
                     imageHeight={imgDims?.h ?? 480}
                     activeOverlays={activeOverlays}
+                    heatmapAssetUrls={heatmapAssetUrls}
                   />
                   <OverlayLayer
                     landmarks={result.landmarks}

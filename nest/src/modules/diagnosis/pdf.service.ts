@@ -68,6 +68,19 @@ export class PdfService {
     const narrative = await this.narrativeService.narrativeForReport(reportId);
 
     // 3. Build Python request payload
+    // Query existing non-PDF rendered assets for this report and include their
+    // presigned URLs so the Python PdfBuilder can embed them (PR-67).
+    const existingAssets = await this.assetRepo.find({
+      where: { analysisReportId: reportId },
+    });
+    const renderedAssetUrls: string[] = [];
+    for (const asset of existingAssets) {
+      if (asset.assetType === 'report_pdf') continue;
+      if (asset.isExpired) continue;
+      const url = await this.minioStorage.storageUrlToPresigned(asset.storageUrl, 3600);
+      if (url) renderedAssetUrls.push(url);
+    }
+
     const pdfPayload = {
       report_id: reportId,
       generated_at: narrative.generated_at,
@@ -87,7 +100,7 @@ export class PdfService {
         professional_type: r.professional_type,
       })),
       disclaimer: narrative.disclaimer,
-      rendered_asset_urls: [],  // Overlay image URLs — future PR
+      rendered_asset_urls: renderedAssetUrls,
     };
 
     // 4. Call Python PDF generator

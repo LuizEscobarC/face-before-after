@@ -83,8 +83,9 @@ const HEATMAP_OVERLAY_IDS = new Set([
   "heatmap_ideal_adherence",
 ]);
 
-// Default toggle state
-const DEFAULT_OVERLAYS = ["axis_vertical", "axis_intercanthal"];
+// Default toggle state — axes give frame, contour shows oval, improvement
+// vectors surface the "what to fix" arrows immediately (M3.2 hero feature).
+const DEFAULT_OVERLAYS = ["axis_vertical", "axis_intercanthal", "outline_face", "improvement_vectors"];
 
 export interface OverlayLayerProps {
   /** Raw pixel coordinate pairs [x, y] from MediaPipe Mesh-478 (478 entries). */
