@@ -38,6 +38,7 @@ import { Repository } from 'typeorm';
 
 import { TemplateRendererService } from './template-renderer.service.js';
 import { RecommendationEngine } from './recommendation-engine.service.js';
+import { DiagnosticPriorityService } from './diagnostic-priority.service.js';
 import type { RecommendationMatch } from './recommendation-engine.service.js';
 
 import { DiagnosticTemplateEntity } from './infrastructure/entities/diagnostic-template.entity.js';
@@ -115,6 +116,7 @@ export class NarrativeService {
   constructor(
     private readonly renderer: TemplateRendererService,
     private readonly recommendationEngine: RecommendationEngine,
+    private readonly priorityService: DiagnosticPriorityService,
 
     @InjectRepository(DiagnosticTemplateEntity)
     private readonly templateRepo: Repository<DiagnosticTemplateEntity>,
@@ -217,6 +219,19 @@ export class NarrativeService {
     } catch (err) {
       this.logger.error(`RecommendationEngine failed for report=${reportId}`, err);
       // Non-fatal: narrative continues without recommendations
+    }
+
+    // 6b. Apply DiagnosticPriorityService (PR-58) — full I×S×C×A×(1−R)×(1−E×0.5)
+    //     formula + diversity constraint (max 2/category) + top-5 selection.
+    //     Overwrites simple-rank scores from RecommendationEngine with the
+    //     final priority + is_displayed_to_user flags.
+    if (matches.length > 0) {
+      try {
+        matches = await this.priorityService.prioritize(reportId, generatedAt);
+      } catch (err) {
+        this.logger.error(`DiagnosticPriorityService failed for report=${reportId}`, err);
+        // Non-fatal: keep RecommendationEngine baseline ranking
+      }
     }
 
     const recommendations: NarrativeRecommendationDto[] = matches.map((m) => ({

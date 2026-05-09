@@ -8,6 +8,7 @@ import { DiagnosisService } from './diagnosis.service.js';
 import { DiagnosisController } from './diagnosis.controller.js';
 import { TemplateRendererService } from './template-renderer.service.js';
 import { RecommendationEngine } from './recommendation-engine.service.js';
+import { DiagnosticPriorityService } from './diagnostic-priority.service.js';
 import { NarrativeService } from './narrative.service.js';
 import { NarrativeController } from './narrative.controller.js';
 import { PdfService } from './pdf.service.js';
@@ -48,6 +49,7 @@ import { GlobalScoreEntity } from '../analysis/infrastructure/entities/global-sc
     DiagnosisService,
     TemplateRendererService,
     RecommendationEngine,
+    DiagnosticPriorityService,
     NarrativeService,
     PdfService,
   ],
@@ -56,6 +58,7 @@ import { GlobalScoreEntity } from '../analysis/infrastructure/entities/global-sc
     DiagnosisService,
     TemplateRendererService,
     RecommendationEngine,
+    DiagnosticPriorityService,
     NarrativeService,
     PdfService,
   ],
