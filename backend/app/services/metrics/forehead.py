@@ -178,7 +178,15 @@ class ForeheadWidthRatioCalculator(MetricCalculator):
     def compute(self, lm: NormalizedLandmarks, ctx: QualityContext) -> MetricValue:
         biocular    = _hdist(lm, P_LEFT_EYE_OUTER, P_RIGHT_EYE_OUTER)
         bizygomatic = _hdist(lm, P_LEFT_ZYGOMATIC, P_RIGHT_ZYGOMATIC)
-        v  = biocular / bizygomatic if bizygomatic > 1e-9 else 0.0
+        if bizygomatic <= 1e-9:
+            return MetricValue(
+                metric_id=self.metric_id, region=self.region, family=self.family,
+                unit=self.unit, value=None, error=None,
+                confidence_raw=0.0, confidence_final=0.0,
+                is_low_confidence=True, direction="neutral",
+                dependency_landmarks=list(_DEP_WIDTH),
+            )
+        v  = biocular / bizygomatic
         cr = _conf_raw(v, _IDEAL_WIDTH, _MAX_DEV_WIDTH)
         cf = propagate(cr, ctx.quality_score, self.region, ctx.regional_penalties,
                        ctx.get_yaw(), ctx.get_pitch(), FOREHEAD_POSE_PARAMS)
@@ -213,7 +221,15 @@ class TemporalWidthRatioCalculator(MetricCalculator):
     def compute(self, lm: NormalizedLandmarks, ctx: QualityContext) -> MetricValue:
         outer_brow  = _hdist(lm, P_BROW_LEFT_OUTER, P_BROW_RIGHT_OUTER)
         bizygomatic = _hdist(lm, P_LEFT_ZYGOMATIC, P_RIGHT_ZYGOMATIC)
-        v  = outer_brow / bizygomatic if bizygomatic > 1e-9 else 0.0
+        if bizygomatic <= 1e-9:
+            return MetricValue(
+                metric_id=self.metric_id, region=self.region, family=self.family,
+                unit=self.unit, value=None, error=None,
+                confidence_raw=0.0, confidence_final=0.0,
+                is_low_confidence=True, direction="neutral",
+                dependency_landmarks=list(_DEP_TEMPORAL),
+            )
+        v  = outer_brow / bizygomatic
         cr = _conf_raw(v, _IDEAL_TEMPORAL, _MAX_DEV_TEMPORAL)
         cf = propagate(cr, ctx.quality_score, self.region, ctx.regional_penalties,
                        ctx.get_yaw(), ctx.get_pitch(), FOREHEAD_POSE_PARAMS)

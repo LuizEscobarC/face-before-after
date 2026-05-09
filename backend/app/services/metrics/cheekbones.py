@@ -201,7 +201,15 @@ class MalarProjectionIndexCalculator(MetricCalculator):
     def compute(self, lm: NormalizedLandmarks, ctx: QualityContext) -> MetricValue:
         bizygomatic = _hdist(lm, P_LEFT_ZYGOMATIC, P_RIGHT_ZYGOMATIC)
         biocular    = _hdist(lm, P_LEFT_EYE_OUTER, P_RIGHT_EYE_OUTER)
-        v = bizygomatic / biocular if biocular > 1e-9 else 0.0
+        if biocular <= 1e-9:
+            return MetricValue(
+                metric_id=self.metric_id, region=self.region, family=self.family,
+                unit=self.unit, value=None, error=None,
+                confidence_raw=0.0, confidence_final=0.0,
+                is_low_confidence=True, direction="neutral",
+                dependency_landmarks=list(_DEP_MALAR),
+            )
+        v = bizygomatic / biocular
         cr = _conf_raw(v, _IDEAL_MALAR, _MAX_DEV_MALAR)
         cf = propagate(cr, ctx.quality_score, self.region, ctx.regional_penalties,
                        ctx.get_yaw(), ctx.get_pitch(), CHEEKBONE_POSE_PARAMS)
@@ -266,7 +274,15 @@ class CheekboneToJawRatioCalculator(MetricCalculator):
     def compute(self, lm: NormalizedLandmarks, ctx: QualityContext) -> MetricValue:
         bizygomatic = _hdist(lm, P_LEFT_ZYGOMATIC, P_RIGHT_ZYGOMATIC)
         bigonial    = _hdist(lm, P_LEFT_GONION, P_RIGHT_GONION)
-        v = bizygomatic / bigonial if bigonial > 1e-9 else 0.0
+        if bigonial <= 1e-9:
+            return MetricValue(
+                metric_id=self.metric_id, region=self.region, family=self.family,
+                unit=self.unit, value=None, error=None,
+                confidence_raw=0.0, confidence_final=0.0,
+                is_low_confidence=True, direction="neutral",
+                dependency_landmarks=list(_DEP_CBJ),
+            )
+        v = bizygomatic / bigonial
         cr = _conf_raw(v, _IDEAL_CBJ, _MAX_DEV_CBJ)
         cf = propagate(cr, ctx.quality_score, self.region, ctx.regional_penalties,
                        ctx.get_yaw(), ctx.get_pitch(), CHEEKBONE_POSE_PARAMS)

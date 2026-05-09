@@ -203,13 +203,13 @@ def _intercanthal_distance(lm: np.ndarray) -> float:
     return math.hypot(dx, dy)
 
 
-def _clip_offset(value: float) -> float:
-    """Clamp a single ICU offset to the configured magnitude cap."""
-    if value > OFFSET_MAGNITUDE_CAP_ICU:
-        return OFFSET_MAGNITUDE_CAP_ICU
-    if value < -OFFSET_MAGNITUDE_CAP_ICU:
-        return -OFFSET_MAGNITUDE_CAP_ICU
-    return value
+def _clip_offset_pair(dx: float, dy: float) -> tuple[float, float]:
+    """Clamp an (dx, dy) vector to euclidean magnitude cap (DEC-26)."""
+    norm = math.hypot(dx, dy)
+    if norm > OFFSET_MAGNITUDE_CAP_ICU:
+        scale = OFFSET_MAGNITUDE_CAP_ICU / norm
+        return dx * scale, dy * scale
+    return dx, dy
 
 
 def _apply_offsets(
@@ -229,8 +229,9 @@ def _apply_offsets(
                     f"landmark_index={idx}, but only {lm.shape[0]} landmarks were provided."
                 ),
             )
-        dx_px = _clip_offset(off.dx_icu) * icd_px
-        dy_px = _clip_offset(off.dy_icu) * icd_px
+        dx_icu, dy_icu = _clip_offset_pair(off.dx_icu, off.dy_icu)
+        dx_px = dx_icu * icd_px
+        dy_px = dy_icu * icd_px
         lm_ideal[idx, 0] = lm[idx, 0] + dx_px
         lm_ideal[idx, 1] = lm[idx, 1] + dy_px
     return lm_ideal

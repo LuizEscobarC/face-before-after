@@ -23,6 +23,7 @@ a factor of 1.0 (no penalty), preserving full backwards compatibility.
 
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
@@ -263,8 +264,12 @@ def landmark_stability_penalty(
         return 1.0
 
     # Use arithmetic mean: consistent with how regional_penalty_factor
-    # aggregates across the region.
-    return float(sum(valid) / len(valid))
+    # aggregates across the region. Filter NaN to avoid propagating NaN into
+    # confidence_final when stability upstream has insufficient samples.
+    clean = [v for v in valid if not math.isnan(v)]
+    if not clean:
+        return 1.0
+    return float(sum(clean) / len(clean))
 
 
 # ---------------------------------------------------------------------------

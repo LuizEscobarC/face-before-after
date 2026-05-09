@@ -286,7 +286,7 @@ class TestForeheadWidthRatio:
         assert r_low.confidence_final < r_high.confidence_final
 
     def test_degenerate_bizygomatic_zero(self, perfect_nl, default_ctx):
-        """When bizygomatic = 0 the metric returns 0.0 without crashing."""
+        """When bizygomatic = 0 the metric returns value=None, confidence=0."""
         import numpy as np
         from app.domain.landmarks_mesh import P_LEFT_ZYGOMATIC, P_RIGHT_ZYGOMATIC
         from app.services.normalization import normalize
@@ -296,7 +296,10 @@ class TestForeheadWidthRatio:
         raw[P_RIGHT_ZYGOMATIC] = [400.0, 300.0, 0.0]
         nl = normalize(raw)
         r = get("forehead_width_ratio").compute(nl, default_ctx)
-        assert r.value == 0.0
+        assert r.value is None
+        assert r.confidence_raw == 0.0
+        assert r.confidence_final == 0.0
+        assert r.is_low_confidence is True
 
 
 # ---------------------------------------------------------------------------
@@ -356,14 +359,17 @@ class TestTemporalWidthRatio:
         assert abs(fwr - twr) > 0.01  # must be distinct metrics
 
     def test_degenerate_bizygomatic_zero(self, default_ctx):
-        """When bizygomatic collapses to zero, returns 0.0 without crashing."""
+        """When bizygomatic collapses to zero, returns value=None, confidence=0."""
         from app.domain.landmarks_mesh import P_LEFT_ZYGOMATIC, P_RIGHT_ZYGOMATIC
         raw = perfect_forehead_face()
         raw[P_LEFT_ZYGOMATIC]  = [400.0, 300.0, 0.0]
         raw[P_RIGHT_ZYGOMATIC] = [400.0, 300.0, 0.0]
         nl = normalize(raw)
         r = get("temporal_width_ratio").compute(nl, default_ctx)
-        assert r.value == 0.0
+        assert r.value is None
+        assert r.confidence_raw == 0.0
+        assert r.confidence_final == 0.0
+        assert r.is_low_confidence is True
 
 
 # ---------------------------------------------------------------------------

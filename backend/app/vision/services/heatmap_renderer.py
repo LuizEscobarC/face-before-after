@@ -421,10 +421,13 @@ def _build_heatmap_image(
     )
     interp = np.where(density_ok, interp, np.nan)
 
-    # Colormap.
+    # Clamp to colormap range before mapping. Cubic interpolation can produce
+    # values outside sample range (Runge phenomenon); clip preserves NaN.
     if palette == "coolwarm":
+        interp = np.clip(interp, -1.0, 1.0)
         rgba_grid = _coolwarm_rgba(interp)
     elif palette == "adherence":
+        interp = np.clip(interp, 0.0, 1.0)
         rgba_grid = _adherence_rgba(interp)
     else:  # pragma: no cover — guarded by callers
         raise ValueError(f"Unknown palette: {palette}")

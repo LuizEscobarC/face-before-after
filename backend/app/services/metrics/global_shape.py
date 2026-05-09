@@ -221,7 +221,15 @@ class FaceHeightToWidthRatioCalculator(MetricCalculator):
     def compute(self, lm: NormalizedLandmarks, ctx: QualityContext) -> MetricValue:
         face_height   = _vdist(lm, P_FOREHEAD_CROWN, P_MENTON)
         bizygomatic   = _hdist(lm, P_LEFT_ZYGOMATIC, P_RIGHT_ZYGOMATIC)
-        v  = face_height / bizygomatic if bizygomatic > 1e-9 else 0.0
+        if bizygomatic <= 1e-9:
+            return MetricValue(
+                metric_id=self.metric_id, region=self.region, family=self.family,
+                unit=self.unit, value=None, error=None,
+                confidence_raw=0.0, confidence_final=0.0,
+                is_low_confidence=True, direction="neutral",
+                dependency_landmarks=list(_DEP_ASPECT),
+            )
+        v  = face_height / bizygomatic
         cr = _conf_raw(v, _IDEAL_ASPECT, _MAX_DEV_ASPECT)
         cf = propagate(cr, ctx.quality_score, self.region, ctx.regional_penalties,
                        ctx.get_yaw(), ctx.get_pitch(), GLOBAL_SHAPE_POSE_PARAMS)
