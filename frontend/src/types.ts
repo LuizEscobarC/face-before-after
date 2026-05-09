@@ -221,4 +221,36 @@ export type AnalysisResult = {
     detail?: string;
   };
   recommendations?: MetricRecommendation[];
+  /** report_id from POST /v1/analysis/evaluate — set after narrative is resolved (Phase A). */
+  report_id?: string;
+};
+
+// ── Narrative types (M4.4 / PR-59) ──────────────────────────────────────────
+
+export type NarrativeFindingDto = {
+  metric_id: string;
+  severity_3: string | null;
+  severity_5: string | null;
+  direction_label_pt: string | null;
+  narrative_text: string;
+  deviation_normalized: number | null;
+};
+
+export type NarrativeRecommendationDto = {
+  recommendation_id: string;
+  rank: number;
+  score: number;
+  category: string;
+  display_text_short_pt: string;
+  requires_professional: boolean;
+  professional_type: string | null;
+};
+
+export type NarrativeResponseDto = {
+  report_id: string;
+  generated_at: string;
+  global_score: number | null;
+  findings: NarrativeFindingDto[];
+  recommendations: NarrativeRecommendationDto[];
+  disclaimer: string;
 };

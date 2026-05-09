@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { fetchGlossary } from "../api";
+import { evaluateFromLandmarks, fetchGlossary, fetchNarrative } from "../api";
 import { MetricExplainer } from "../components/MetricExplainer";
 import { DEFAULT_OVERLAYS, HeatmapImageLayer, OverlayLayer, OverlayToggleBar } from "../components/OverlayLayer";
 import { feynmanFor } from "../data/feynman";
-import type { AnalysisResult, GlossaryTerm, MetricEvaluationResult, PremiumMetricCategory } from "../types";
+import type { AnalysisResult, GlossaryTerm, MetricEvaluationResult, NarrativeResponseDto, PremiumMetricCategory } from "../types";
 
 type LocationState = { result?: AnalysisResult };
 type ViewMode = "landmarks" | "ideal" | "compare" | "overlays" | "before_ideal";
@@ -152,6 +152,103 @@ function BeforeAfterSlider({ beforeSrc, afterSrc }: { beforeSrc: string; afterSr
   );
 }
 
+function narrativeSeverityColor(severity: string | null): string {
+  if (!severity) return "var(--muted)";
+  const s = severity.toUpperCase();
+  if (s === "LEVE") return "#22d3ee";      // cyan
+  if (s === "MODERADO") return "#6366f1";  // indigo
+  if (s === "SEVERO") return "#a78bfa";    // violet
+  return "var(--muted)";
+}
+
+function metricLabel(metricId: string): string {
+  return metricId.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+function FindingsSection({ narrative, loading }: { narrative: NarrativeResponseDto | null; loading: boolean }) {
+  if (!loading && !narrative) return null;
+  return (
+    <section className="section">
+      <h2 className="section-title">🔍 Diagnóstico Narrativo</h2>
+      <p className="section-sub">Análise das métricas de maior impacto com base nos parâmetros clínicos de referência.</p>
+      {loading && (
+        <div style={{ display: "grid", gap: 12 }}>
+          {[0, 1, 2].map((i) => (
+            <div key={i} style={{ height: 80, background: "var(--surface2)", borderRadius: 12, opacity: 0.5, animation: "pulse 1.5s infinite" }} />
+          ))}
+        </div>
+      )}
+      {!loading && narrative && narrative.findings.length === 0 && (
+        <p style={{ color: "var(--muted)", fontSize: 13 }}>Nenhuma discrepância relevante identificada.</p>
+      )}
+      {!loading && narrative && narrative.findings.map((f) => {
+        const color = narrativeSeverityColor(f.severity_3);
+        return (
+          <div key={f.metric_id} style={{ background: "var(--surface2)", border: "1px solid var(--border)", borderRadius: 12, padding: "14px 16px", marginBottom: 12 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", marginBottom: 8 }}>
+              <span style={{ fontWeight: 600, color: "var(--text)", fontSize: 14 }}>{metricLabel(f.metric_id)}</span>
+              {f.severity_3 && (
+                <span style={{ fontSize: 11, padding: "2px 10px", borderRadius: 99, background: `${color}1e`, border: `1px solid ${color}4d`, color }}>
+                  {f.severity_3.toUpperCase()}
+                </span>
+              )}
+              {f.deviation_normalized !== null && f.deviation_normalized !== undefined && (
+                <span style={{ fontSize: 11, color: "var(--muted)", marginLeft: "auto" }}>
+                  Desvio: {(f.deviation_normalized * 100).toFixed(1)}%
+                </span>
+              )}
+            </div>
+            <p style={{ margin: 0, fontSize: 13, color: "var(--text)", lineHeight: 1.6 }}>{f.narrative_text}</p>
+          </div>
+        );
+      })}
+      {!loading && narrative?.disclaimer && (
+        <p style={{ marginTop: 12, fontSize: 11, color: "var(--muted)", fontStyle: "italic", lineHeight: 1.5 }}>{narrative.disclaimer}</p>
+      )}
+    </section>
+  );
+}
+
+function RecommendationsSection({ narrative, loading }: { narrative: NarrativeResponseDto | null; loading: boolean }) {
+  if (!loading && !narrative) return null;
+  return (
+    <section className="section">
+      <h2 className="section-title">💊 Recomendações Clínicas</h2>
+      <p className="section-sub">Protocolo personalizado ordenado por prioridade e impacto.</p>
+      {loading && (
+        <div style={{ display: "grid", gap: 10 }}>
+          {[0, 1, 2].map((i) => (
+            <div key={i} style={{ height: 56, background: "var(--surface2)", borderRadius: 12, opacity: 0.5, animation: "pulse 1.5s infinite" }} />
+          ))}
+        </div>
+      )}
+      {!loading && narrative && narrative.recommendations.length === 0 && (
+        <p style={{ color: "var(--muted)", fontSize: 13 }}>Nenhuma recomendação disponível para este perfil.</p>
+      )}
+      {!loading && narrative && narrative.recommendations.map((r) => (
+        <div key={r.recommendation_id} style={{ display: "flex", gap: 12, alignItems: "flex-start", background: "var(--surface2)", border: "1px solid var(--border)", borderRadius: 12, padding: "12px 16px", marginBottom: 10 }}>
+          <div style={{ flexShrink: 0, width: 28, height: 28, borderRadius: 99, background: "rgba(99,102,241,0.18)", border: "1px solid rgba(99,102,241,0.3)", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 13, color: "#a5b4fc" }}>
+            {r.rank}
+          </div>
+          <div style={{ flex: 1 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 4 }}>
+              <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text)" }}>{r.display_text_short_pt}</span>
+              <span style={{ fontSize: 11, padding: "2px 8px", borderRadius: 99, background: "rgba(34,211,238,0.12)", border: "1px solid rgba(34,211,238,0.3)", color: "#22d3ee" }}>
+                {r.category}
+              </span>
+              {r.requires_professional && (
+                <span style={{ fontSize: 11, padding: "2px 8px", borderRadius: 99, background: "rgba(239,68,68,0.10)", border: "1px solid rgba(239,68,68,0.28)", color: "#fca5a5" }}>
+                  👨‍⚕️ {r.professional_type ?? "Profissional"}
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+      ))}
+    </section>
+  );
+}
+
 export function PremiumResultPage() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -165,12 +262,18 @@ export function PremiumResultPage() {
   // PR-43 (M3.4) — before/ideal composition state
   const [beforeIdealUrl, setBeforeIdealUrl] = useState<string | null>(null);
   const [composeLoading, setComposeLoading] = useState(false);
+  const [composeError, setComposeError] = useState<string | null>(null);
   const [showGuideLines, setShowGuideLines] = useState(true);
   const [showActualWireframe, setShowActualWireframe] = useState(true);
 
   // PR-62 (M4.5) — PDF download state
   const [pdfLoading, setPdfLoading] = useState(false);
   const [pdfError, setPdfError] = useState<string | null>(null);
+
+  // M4.4 — Narrative state (findings + recommendations from NarrativeService)
+  const [narrative, setNarrative] = useState<NarrativeResponseDto | null>(null);
+  const [narrativeLoading, setNarrativeLoading] = useState(false);
+
 
   const handleOverlayToggle = (id: string) => {
     setActiveOverlays((prev) =>
@@ -183,6 +286,27 @@ export function PremiumResultPage() {
       .then(setGlossary)
       .catch(() => {});
   }, []);
+
+  // M4.4 — Load narrative: call evaluate to get report_id, then fetch narrative
+  useEffect(() => {
+    if (!result?.landmarks || !result?.run_id) return;
+    setNarrativeLoading(true);
+    (async () => {
+      try {
+        const evaluated = await evaluateFromLandmarks({
+          landmarks: result.landmarks!,
+          quality_score: result.capture_confidence ?? 0.8,
+        });
+        const data = await fetchNarrative(evaluated.analysis_report_id);
+        setNarrative(data);
+      } catch (err) {
+        console.error("Narrative load failed:", err);
+      } finally {
+        setNarrativeLoading(false);
+      }
+    })();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [result?.run_id]);
 
   /**
    * PR-43 (M3.4) — Fetch the before/ideal composition PNG from
@@ -199,6 +323,7 @@ export function PremiumResultPage() {
     setComposeLoading(true);
     // Revoke previous object URL to avoid memory leaks.
     setBeforeIdealUrl((prev) => { if (prev) URL.revokeObjectURL(prev); return null; });
+    setComposeError(null);
     try {
       const offsets = buildComposeOffsets(result.metric_evaluations);
       const res = await fetch("/v1/vision/compose-before-ideal", {
@@ -213,12 +338,14 @@ export function PremiumResultPage() {
         }),
       });
       if (!res.ok) {
-        console.error(`compose-before-ideal: HTTP ${res.status}`);
+        const errBody = await res.text().catch(() => "");
+        setComposeError(`Erro ${res.status}: ${errBody.slice(0, 120)}`);
         return;
       }
       const blob = await res.blob();
       setBeforeIdealUrl(URL.createObjectURL(blob));
     } catch (e) {
+      setComposeError("Falha ao gerar comparação vetorial.");
       console.error("compose-before-ideal failed:", e);
     } finally {
       setComposeLoading(false);
@@ -230,12 +357,16 @@ export function PremiumResultPage() {
     if (view === "before_ideal") {
       void fetchCompose();
     }
-  // Revoke object URL when component unmounts to avoid memory leak.
-  return () => {
-    if (beforeIdealUrl) URL.revokeObjectURL(beforeIdealUrl);
-  };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [view, fetchCompose]);
+
+  // Revoke object URL on unmount to avoid memory leak.
+  useEffect(() => {
+    return () => {
+      if (beforeIdealUrl) URL.revokeObjectURL(beforeIdealUrl);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   if (!result) {
     return (
@@ -433,28 +564,47 @@ export function PremiumResultPage() {
                 setPdfLoading(true);
                 setPdfError(null);
                 try {
-                  // Build findings from metric_evaluations for PDF content
-                  const findings = (result.metric_evaluations ?? [])
-                    .filter((m) => m.severity_5 && m.severity_5 !== "ideal")
-                    .sort((a, b) => {
-                      const order: Record<string, number> = { extreme: 5, strong: 4, moderate: 3, mild: 2, minimal: 1 };
-                      return (order[b.severity_5 ?? ""] ?? 0) - (order[a.severity_5 ?? ""] ?? 0);
-                    })
-                    .slice(0, 3)
-                    .map((m) => ({
-                      metric_id: m.metric_id,
-                      severity_3: m.severity_3 ?? null,
-                      narrative_text: `${m.metric_id.replace(/_/g, " ")} — severidade ${m.severity_3?.toLowerCase() ?? "indeterminada"}.`,
-                      deviation_normalized: m.deviation_normalized ?? null,
-                    }));
+                  // Use narrative findings/recommendations when available (M4.4),
+                  // fall back to metric_evaluations for PDF content.
+                  const findings = narrative
+                    ? narrative.findings.map((f) => ({
+                        metric_id: f.metric_id,
+                        severity_3: f.severity_3,
+                        narrative_text: f.narrative_text,
+                        deviation_normalized: f.deviation_normalized,
+                      }))
+                    : (result.metric_evaluations ?? [])
+                        .filter((m) => m.severity_5 && m.severity_5 !== "ideal")
+                        .sort((a, b) => {
+                          const order: Record<string, number> = { extreme: 5, strong: 4, moderate: 3, mild: 2, minimal: 1 };
+                          return (order[b.severity_5 ?? ""] ?? 0) - (order[a.severity_5 ?? ""] ?? 0);
+                        })
+                        .slice(0, 3)
+                        .map((m) => ({
+                          metric_id: m.metric_id,
+                          severity_3: m.severity_3 ?? null,
+                          narrative_text: `${m.metric_id.replace(/_/g, " ")} — severidade ${m.severity_3?.toLowerCase() ?? "indeterminada"}.`,
+                          deviation_normalized: m.deviation_normalized ?? null,
+                        }));
+
+                  const recommendations = narrative
+                    ? narrative.recommendations.map((r) => ({
+                        recommendation_id: r.recommendation_id,
+                        rank: r.rank,
+                        category: r.category,
+                        display_text_short_pt: r.display_text_short_pt,
+                        requires_professional: r.requires_professional,
+                        professional_type: r.professional_type,
+                      }))
+                    : [];
 
                   const res = await fetch(`/v1/analysis/run/${result.run_id}/pdf`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
-                      global_score: result.score ?? null,
+                      global_score: narrative?.global_score ?? result.score ?? null,
                       findings,
-                      recommendations: [],
+                      recommendations,
                     }),
                   });
 
@@ -596,7 +746,12 @@ export function PremiumResultPage() {
                       style={{ width: "100%", borderRadius: "var(--radius)", display: "block" }}
                     />
                   )}
-                  {!composeLoading && !beforeIdealUrl && (
+                  {!composeLoading && composeError && (
+                    <div style={{ color: "#f87171", fontSize: 13, padding: 40, textAlign: "center" }}>
+                      ⚠️ {composeError}
+                    </div>
+                  )}
+                  {!composeLoading && !beforeIdealUrl && !composeError && (
                     <div style={{ color: "var(--muted)", fontSize: 13, padding: 40 }}>
                       Clique em "Vetores ideais" para gerar a comparação.
                     </div>
@@ -689,6 +844,9 @@ export function PremiumResultPage() {
               )}
             </div>
           </section>
+
+          {/* ── Diagnóstico Narrativo (M4.4) ── */}
+          <FindingsSection narrative={narrative} loading={narrativeLoading} />
 
           {/* ── Simulação Visual (comparativo full grid, se disponível) ── */}
           {result.simulation_error && (
@@ -891,6 +1049,9 @@ export function PremiumResultPage() {
               ))}
             </section>
           )}
+
+          {/* ── Recomendações Clínicas (M4.4) ── */}
+          <RecommendationsSection narrative={narrative} loading={narrativeLoading} />
 
           {/* ── Plano de Ação Detalhado ── */}
           {result.recommendations && result.recommendations.filter(r => !r.severity.toLowerCase().includes("excel")).length > 0 && (

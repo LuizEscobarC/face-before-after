@@ -5,6 +5,7 @@ import type {
   CompareResult,
   CompareWithConsistency,
   GlossaryTerm,
+  NarrativeResponseDto,
 } from "./types";
 
 // Vite dev proxy maps /v1 → orchestrator (see vite.config.ts).
@@ -245,3 +246,43 @@ export async function submitLandmarkPayload(
 // ---------- Consistency types (E3) ----------
 
 export type { CompareWithConsistency } from "./types";
+
+// ---------- Evaluate landmarks → report_id ----------
+
+export interface EvaluateFromLandmarksParams {
+  landmarks: number[][];
+  quality_score: number;
+  session_id?: string;
+}
+
+export interface EvaluateResult {
+  analysis_report_id: string;
+}
+
+export async function evaluateFromLandmarks(
+  params: EvaluateFromLandmarksParams,
+): Promise<EvaluateResult> {
+  const res = await fetch(`${BASE}/v1/analysis/evaluate`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      landmarks: params.landmarks,
+      quality_context: { quality_score: params.quality_score },
+      session_id: params.session_id,
+    }),
+  });
+  if (!res.ok) {
+    throw new Error(await readError(res, 'Falha ao avaliar landmarks.'));
+  }
+  return (await res.json()) as EvaluateResult;
+}
+
+// ---------- Fetch narrative (M4.4) ----------
+
+export async function fetchNarrative(reportId: string): Promise<NarrativeResponseDto> {
+  const res = await fetch(`${BASE}/v1/analysis/${reportId}/narrative`);
+  if (!res.ok) {
+    throw new Error(await readError(res, 'Falha ao carregar diagnóstico narrativo.'));
+  }
+  return (await res.json()) as NarrativeResponseDto;
+}

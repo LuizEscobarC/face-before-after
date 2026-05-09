@@ -29,7 +29,7 @@ const P_RIGHT_EYE_OUTER = 263;
 const P_BROW_LEFT_INNER  = 107;
 const P_BROW_RIGHT_INNER = 336;
 const P_SUBNASALE = 2;
-const LM_JAWLINE  = [10, 338, 297, 332, 284, 251, 389, 356, 454, 323, 361, 288, 397, 365, 379, 378, 400];
+const LM_JAWLINE  = [10, 338, 297, 332, 284, 251, 389, 356, 454, 323, 361, 288, 397, 365, 379, 378, 400, 377, 152, 148, 176, 149, 150, 136, 172, 58, 132, 93, 234, 127, 162, 21, 54, 103, 67, 109, 10];
 
 // Anchor landmark per metric_id — hardcoded for the 4 calculators that emit improvement_vector (PR-34).
 // Reference: PLAN_M3_OVERLAYS §2, backend/app/services/metrics/{symmetry,jaw,brows}.py
@@ -213,7 +213,7 @@ function OutlineFace({ landmarks }: { landmarks: Array<[number, number]> }) {
   const pts = LM_JAWLINE.map((i) => lm(landmarks, i).join(",")).join(" ");
   const s = OVERLAY_STYLES.outline_face;
   return (
-    <polyline
+    <polygon
       points={pts}
       stroke={s.stroke} strokeWidth={s.strokeWidth}
       fill="none"
