@@ -53,10 +53,22 @@ export class MinioStorageService implements OnModuleInit {
    * Returns a `minio://{bucket}/{objectPath}` URI for storage in rendered_asset.
    */
   async uploadPng(data: Buffer, objectPath: string): Promise<string> {
+    return this.uploadBuffer(data, objectPath, 'image/png');
+  }
+
+  /**
+   * Upload any Buffer to MinIO with the given content type.
+   * Returns a `minio://{bucket}/{objectPath}` URI.
+   */
+  async uploadBuffer(
+    data: Buffer,
+    objectPath: string,
+    contentType: string,
+  ): Promise<string> {
     await this.client.putObject(this.bucket, objectPath, data, data.length, {
-      'Content-Type': 'image/png',
+      'Content-Type': contentType,
     });
-    this.logger.debug(`Uploaded ${objectPath} (${data.length} bytes)`);
+    this.logger.debug(`Uploaded ${objectPath} (${data.length} bytes, ${contentType})`);
     return `minio://${this.bucket}/${objectPath}`;
   }
 }

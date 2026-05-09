@@ -32,6 +32,7 @@ import { MetricEvaluationAgainstIdealEntity } from '../infrastructure/entities/m
 import { RegionalScoreEntity } from '../infrastructure/entities/regional-score.entity.js';
 import { GlobalScoreEntity } from '../infrastructure/entities/global-score.entity.js';
 import { MetricDefinitionEntity } from '../infrastructure/entities/metric-definition.entity.js';
+import { LandmarkPayloadEntity } from '../infrastructure/entities/landmark-payload.entity.js';
 
 import type {
   EvaluateResponseDto,
@@ -63,6 +64,9 @@ export class ReportReaderService {
 
     @InjectRepository(MetricDefinitionEntity)
     private readonly definitionRepo: Repository<MetricDefinitionEntity>,
+
+    @InjectRepository(LandmarkPayloadEntity)
+    private readonly landmarkRepo: Repository<LandmarkPayloadEntity>,
   ) {}
 
   // ---------------------------------------------------------------------------
@@ -106,11 +110,17 @@ export class ReportReaderService {
   private async buildResponseDto(report: AnalysisReportEntity): Promise<EvaluateResponseDto> {
     const generatedAt = report.generatedAt;
 
-    // Load all four child datasets in parallel.
-    // metric_evaluation: pruned by (analysis_report_id, analysis_report_generated_at).
+    // Load all child datasets in parallel.
+    // metric_evaluation + landmark_payload: pruned by (analysis_report_id, analysis_report_generated_at).
     // regional_score + global_score: plain tables, pruned by analysis_report_id.
-    const [evals, regionalScores, globalScore] = await Promise.all([
+    const [evals, landmarkPayload, regionalScores, globalScore] = await Promise.all([
       this.evalRepo.find({
+        where: {
+          analysisReportId: report.id,
+          analysisReportGeneratedAt: generatedAt,
+        },
+      }),
+      this.landmarkRepo.findOne({
         where: {
           analysisReportId: report.id,
           analysisReportGeneratedAt: generatedAt,
@@ -202,6 +212,11 @@ export class ReportReaderService {
       global_weights_version: report.globalWeightsVersion,
     };
 
+    // Extract landmarks from payload (convert {x, y, z} back to [x, y]).
+    const landmarks = landmarkPayload?.rawLandmarks
+      ? landmarkPayload.rawLandmarks.map((lm: { x: number; y: number }) => [lm.x, lm.y] as [number, number])
+      : undefined;
+
     return {
       analysis_report_id: report.id,
       session_id: report.sessionId,
@@ -210,6 +225,10 @@ export class ReportReaderService {
       quality_score: report.qualityScore,
       metric_count: metrics.length,
       metrics,
+      /** Alias for frontend (AnalysisResult.metric_evaluations). Same as metrics array. PR-36 M3.2. */
+      metric_evaluations: metrics,
+      /** Raw pixel landmarks from MediaPipe Mesh-478 (PR-31 M3.1 overlays). */
+      landmarks,
       regional_scores: regionalScoresDto,
       global_score: globalScoreDto,
       versions,

@@ -1,5 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsArray, IsBase64, IsBoolean, IsIn, IsInt, IsNumber, IsObject, IsOptional, IsString, Max, Min } from 'class-validator';
+import { Type } from 'class-transformer';
+import { IsArray, IsBase64, IsBoolean, IsIn, IsInt, IsNumber, IsObject, IsOptional, IsString, Max, Min, ValidateNested } from 'class-validator';
 
 export class LandmarkRequestDto {
   @ApiProperty({ description: 'Base64 da imagem (com ou sem data URL prefix)' })
@@ -113,6 +114,8 @@ export class ComposeBeforeIdealRequestDto {
   @ApiPropertyOptional({ description: 'Ideal landmark offsets in ICU; empty = ideal wireframe matches actual', type: [OffsetDto] })
   @IsOptional()
   @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => OffsetDto)
   offsets?: OffsetDto[];
 
   @ApiPropertyOptional({ description: 'Draw guide lines (vertical midline + horizontal intercanthal) on right pane', default: true })

@@ -35,6 +35,12 @@ from app.domain.layers.evolution_path import build_evolution_path
 from app.domain.simulate import simulate as simulate_before_after
 import app.domain.layers.recommendations as rec
 
+# V2 metrics for frontend overlays (landmarks + improvement vectors)
+import app.services.metrics  # noqa: F401 — populates @register decorators
+from app.services.normalization import normalize as _normalize_v2
+from app.services.metrics.registry import compute_all as _compute_metrics_v2
+from app.services.metrics.base import QualityContext as _QualityContext
+
 
 # ============================================================================
 # CONFIGURAÇÃO DE MÉTRICAS E LIMITES
@@ -1221,6 +1227,35 @@ def run(image_path: str, output_dir: str, mode: str = "premium") -> dict:
             top_leverage=top_leverage,
         )
 
+    # V2 metric evaluations with improvement vectors (for frontend overlays).
+    _metric_evaluations_v2: list = []
+    try:
+        _yaw_deg = float(photo_quality_metrics.get("head_pose_yaw_deg", 0.0))
+        _pitch_deg = float(photo_quality_metrics.get("head_pose_pitch_deg", 0.0))
+        _h, _w = canonical.image.shape[:2]
+        _normalised_v2 = _normalize_v2(
+            canonical.landmarks,
+            yaw_deg=_yaw_deg,
+            pitch_deg=_pitch_deg,
+            image_size=(_w, _h),
+        )
+        _qctx_v2 = _QualityContext(
+            quality_score=capture_confidence,
+            regional_penalties={},
+            pose={"yaw": _yaw_deg, "pitch": _pitch_deg, "roll": 0.0},
+            landmark_stability_scores=None,
+            capture_count=1,
+        )
+        _mv_list = _compute_metrics_v2(_normalised_v2, _qctx_v2)
+        for _mv in _mv_list:
+            _d = _mv.to_dict()
+            _iv = _d.pop("improvement_vector", None)
+            _d["improvement_vector_x"] = float(_iv[0]) if _iv is not None else None
+            _d["improvement_vector_y"] = float(_iv[1]) if _iv is not None else None
+            _metric_evaluations_v2.append(_d)
+    except Exception:  # pylint: disable=broad-except
+        pass
+
     # 4. Gerar relatório texto
     report_txt = build_shareable_report(
         image_path=resolved_image_path,
@@ -1295,6 +1330,11 @@ def run(image_path: str, output_dir: str, mode: str = "premium") -> dict:
         'recommendations': rec_plan,
         'benchmark_message': score_context_data['benchmark_message'],
         'score_context': score_context_data['score_context'],
+        # --- Frontend overlays (PR-42/43) ---
+        # MediaPipe Mesh-478 pixel landmarks [[x, y], ...] for overlay rendering.
+        'landmarks': [[float(canonical.landmarks[i, 0]), float(canonical.landmarks[i, 1])] for i in range(len(canonical.landmarks))],
+        # Flat metric evaluations with improvement vectors for "Vetores ideais" view.
+        'metric_evaluations': _metric_evaluations_v2,
     }
 
     # 6. Salvar outputs

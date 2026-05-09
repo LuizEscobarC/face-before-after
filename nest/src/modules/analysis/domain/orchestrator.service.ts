@@ -422,6 +422,10 @@ export class AnalysisOrchestratorService {
       quality_score: dto.quality_context.quality_score,
       metric_count: rawMetrics.length,
       metrics: metricResults,
+      /** Alias for frontend (AnalysisResult.metric_evaluations). Same as metrics array. PR-36 M3.2 improvement vectors. */
+      metric_evaluations: metricResults,
+      /** Raw pixel landmarks from MediaPipe Mesh-478 (PR-31 M3.1 overlays). Each entry [x, y]. */
+      landmarks: dto.landmarks.map(([x, y]) => [x, y] as [number, number]),
       regional_scores: regionalScoresDto,
       global_score: globalScoreDto,
       versions: {

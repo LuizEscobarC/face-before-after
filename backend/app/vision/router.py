@@ -10,6 +10,7 @@ from app.vision.routers import (
     meta,
     metrics,
     metrics_v2,
+    pdf,
     render,
     results,
 )
@@ -25,3 +26,4 @@ router.include_router(compare.router)
 router.include_router(results.router)
 router.include_router(render.router)
 router.include_router(compose.router)
+router.include_router(pdf.router)

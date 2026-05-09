@@ -42,7 +42,8 @@ RUN pip install --no-cache-dir --target=/app/site-packages \
     "pillow>=10.0.0" \
     "scipy>=1.11.0" \
     "minio>=7.2.0" \
-    "python-dotenv>=1.0.0"
+    "python-dotenv>=1.0.0" \
+    "reportlab>=4.2.0"
 
 # Download MediaPipe FaceLandmarker model (~3MB) for Mesh-478 native detection.
 RUN mkdir -p /app/backend/models && \

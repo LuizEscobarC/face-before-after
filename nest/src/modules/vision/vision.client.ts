@@ -82,6 +82,22 @@ export class VisionClient {
     return this.request<Record<string, unknown>>('POST', '/vision/compare', payload);
   }
 
+  /**
+   * Calls ``POST /vision/generate-pdf`` on the Python vision service.
+   * Returns the raw PDF bytes.
+   * PR-61 (M4.5).
+   */
+  async generatePdf(payload: Record<string, unknown>): Promise<Buffer> {
+    try {
+      const response = await this.http.post('/vision/generate-pdf', payload, {
+        responseType: 'arraybuffer',
+      });
+      return Buffer.from(response.data as ArrayBuffer);
+    } catch (error) {
+      throw this.toHttpException(error, 'POST /vision/generate-pdf');
+    }
+  }
+
   async fetchOriginal(runId: string): Promise<{ data: Buffer; contentType: string }> {
     return this.fetchBinary(`/vision/results/${runId}/original`);
   }
@@ -119,8 +135,8 @@ export class VisionClient {
     showGuideLines = true,
     showActualWireframe = true,
   ): Promise<{ data: Buffer; contentType: string }> {
-    // 1. Fetch the annotated base image from Python (uses existing fetchBinary).
-    const imageResult = await this.fetchAnnotated(runId);
+    // 1. Fetch the original (clean) base image from Python (uses existing fetchBinary).
+    const imageResult = await this.fetchOriginal(runId);
 
     // 2. POST multipart to Python /vision/compose-before-ideal (native fetch for FormData).
     const formData = new FormData();

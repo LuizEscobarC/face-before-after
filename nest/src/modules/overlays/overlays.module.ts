@@ -31,6 +31,6 @@ import { OverlaysController } from './overlays.controller.js';
   ],
   controllers: [OverlaysController],
   providers: [MinioStorageService, RenderedAssetService],
-  exports: [TypeOrmModule, RenderedAssetService],
+  exports: [TypeOrmModule, RenderedAssetService, MinioStorageService],
 })
 export class OverlaysModule {}

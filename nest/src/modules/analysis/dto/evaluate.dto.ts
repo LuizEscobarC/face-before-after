@@ -143,7 +143,12 @@ export interface EvaluateResponseDto {
   status: string;
   quality_score: number | null;
   metric_count: number;
+  /** Metrics evaluations array. Frontend alias: metric_evaluations (PR-36, M3.2 improvement vectors). */
   metrics: MetricEvaluationResultDto[];
+  /** Alias for frontend (AnalysisResult.metric_evaluations). Same as metrics array. */
+  metric_evaluations?: MetricEvaluationResultDto[];
+  /** Raw pixel landmarks from MediaPipe Mesh-478 (PR-31, M3.1 overlays). Each entry [x, y]. */
+  landmarks?: Array<[number, number]>;
   regional_scores: RegionalScoreResultDto[];
   global_score: GlobalScoreResultDto;
   versions: EvaluateVersionsDto;

@@ -168,6 +168,10 @@ export function PremiumResultPage() {
   const [showGuideLines, setShowGuideLines] = useState(true);
   const [showActualWireframe, setShowActualWireframe] = useState(true);
 
+  // PR-62 (M4.5) — PDF download state
+  const [pdfLoading, setPdfLoading] = useState(false);
+  const [pdfError, setPdfError] = useState<string | null>(null);
+
   const handleOverlayToggle = (id: string) => {
     setActiveOverlays((prev) =>
       prev.includes(id) ? prev.filter((o) => o !== id) : [...prev, id]
@@ -410,6 +414,77 @@ export function PremiumResultPage() {
           >
             ← Nova análise
           </button>
+
+          {/* PR-62: PDF download button */}
+          {result.run_id && (
+            <button
+              className="btn btn-ghost"
+              style={{
+                marginTop: 8,
+                width: "100%",
+                fontSize: 13,
+                borderColor: "var(--accent)",
+                color: "var(--accent)",
+                opacity: pdfLoading ? 0.6 : 1,
+              }}
+              disabled={pdfLoading}
+              onClick={async () => {
+                if (!result.run_id) return;
+                setPdfLoading(true);
+                setPdfError(null);
+                try {
+                  // Build findings from metric_evaluations for PDF content
+                  const findings = (result.metric_evaluations ?? [])
+                    .filter((m) => m.severity_5 && m.severity_5 !== "ideal")
+                    .sort((a, b) => {
+                      const order: Record<string, number> = { extreme: 5, strong: 4, moderate: 3, mild: 2, minimal: 1 };
+                      return (order[b.severity_5 ?? ""] ?? 0) - (order[a.severity_5 ?? ""] ?? 0);
+                    })
+                    .slice(0, 3)
+                    .map((m) => ({
+                      metric_id: m.metric_id,
+                      severity_3: m.severity_3 ?? null,
+                      narrative_text: `${m.metric_id.replace(/_/g, " ")} — severidade ${m.severity_3?.toLowerCase() ?? "indeterminada"}.`,
+                      deviation_normalized: m.deviation_normalized ?? null,
+                    }));
+
+                  const res = await fetch(`/v1/analysis/run/${result.run_id}/pdf`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                      global_score: result.score ?? null,
+                      findings,
+                      recommendations: [],
+                    }),
+                  });
+
+                  if (!res.ok) {
+                    setPdfError("Erro ao gerar PDF. Tente novamente.");
+                    return;
+                  }
+
+                  const blob = await res.blob();
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement("a");
+                  a.href = url;
+                  a.download = `relatorio_${result.run_id}.pdf`;
+                  a.click();
+                  URL.revokeObjectURL(url);
+                } catch {
+                  setPdfError("Falha na conexão. Tente novamente.");
+                } finally {
+                  setPdfLoading(false);
+                }
+              }}
+            >
+              {pdfLoading ? "Gerando PDF…" : "↓ Baixar relatório (PDF)"}
+            </button>
+          )}
+          {pdfError && (
+            <p style={{ fontSize: 11, color: "#ef4444", marginTop: 4, textAlign: "center" }}>
+              {pdfError}
+            </p>
+          )}
         </aside>
 
         {/* MAIN CONTENT */}
@@ -448,10 +523,10 @@ export function PremiumResultPage() {
                 />
               )}
 
-              {view === "overlays" && annotatedUrl && result.landmarks && (
+              {view === "overlays" && originalUrl && result.landmarks && (
                 <div style={{ position: "relative", display: "inline-block" }}>
                   <img
-                    src={annotatedUrl}
+                    src={originalUrl}
                     alt="Rosto com overlays de referência"
                     className="panel-img"
                     style={{ display: "block" }}
