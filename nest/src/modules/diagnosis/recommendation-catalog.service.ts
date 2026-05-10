@@ -46,10 +46,10 @@ export class RecommendationCatalogService {
     }
 
     if (filter?.version) {
-      query = query.where('r.version = :version', { version: filter.version });
+      query = query.andWhere('r.version = :version', { version: filter.version });
     } else {
       // Default to latest active version if not specified
-      query = query.where('r.version = :version', { version: 'v1.0' });
+      query = query.andWhere('r.version = :version', { version: 'v1.0' });
     }
 
     return query

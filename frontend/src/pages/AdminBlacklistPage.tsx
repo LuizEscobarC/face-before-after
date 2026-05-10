@@ -11,6 +11,14 @@ import './admin-shared.css';
 
 const CATEGORIES = ['diagnostic_verb', 'pathology_word', 'guarantee_word', 'medical_intervention', 'pejorative'];
 
+const CATEGORY_LABELS: Record<string, string> = {
+  diagnostic_verb: 'Verbo Diagnóstico',
+  pathology_word: 'Patologia',
+  guarantee_word: 'Garantia / Promessa',
+  medical_intervention: 'Intervenção Médica',
+  pejorative: 'Pejorativo',
+};
+
 export default function AdminBlacklistPage() {
   const [versions, setVersions] = useState<{ version: string }[]>([]);
   const [items, setItems] = useState<BlacklistTerm[]>([]);
@@ -116,7 +124,7 @@ export default function AdminBlacklistPage() {
             Categoria
             <select value={filterCategory} onChange={(e) => setFilterCategory(e.target.value)}>
               <option value="">Todas</option>
-              {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
+              {CATEGORIES.map((c) => <option key={c} value={c}>{CATEGORY_LABELS[c] || c}</option>)}
             </select>
           </label>
         </div>
@@ -153,7 +161,7 @@ export default function AdminBlacklistPage() {
               <label>Categoria</label>
               <select value={newCategory} onChange={(e) => setNewCategory(e.target.value)}>
                 <option value="">-- Selecione --</option>
-                {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
+                {CATEGORIES.map((c) => <option key={c} value={c}>{CATEGORY_LABELS[c] || c}</option>)}
               </select>
             </div>
           </div>
@@ -174,7 +182,7 @@ export default function AdminBlacklistPage() {
               <div className="admin-field">
                 <label>Categoria</label>
                 <select value={editCategory} onChange={(e) => setEditCategory(e.target.value)}>
-                  {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
+                  {CATEGORIES.map((c) => <option key={c} value={c}>{CATEGORY_LABELS[c] || c}</option>)}
                 </select>
               </div>
               <div className="admin-field">
