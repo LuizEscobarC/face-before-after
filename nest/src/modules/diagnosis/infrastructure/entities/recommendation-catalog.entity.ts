@@ -16,6 +16,7 @@ import {
   type ProfessionalType,
   type RecommendationReference,
   type AnimationConfig,
+  type BiometricExerciseConfig,
 } from '../../domain/types/recommendation.types.js';
 import { RecommendationCatalogVersionEntity } from './recommendation-catalog-version.entity.js';
 import { RecommendationTriggerEntity } from './recommendation-trigger.entity.js';
@@ -144,6 +145,19 @@ export class RecommendationCatalogEntity {
    */
   @Column({ name: 'animation_config', type: 'jsonb', nullable: true })
   animationConfig!: AnimationConfig | null;
+
+  /**
+   * PR-A — Declarative biometric exercise config (anatomical zones + verbs).
+   * NULL = no biometric animation (uses static fallback or animationConfig).
+   *
+   * DB CHECK `recommendation_catalog_biometric_config_chk` enforces:
+   *   - schema_version = 1
+   *   - steps array length ≥ 1
+   *   - cycle_ms > 0
+   *   - repeat ∈ {'infinite','once','reverse'}
+   */
+  @Column({ name: 'biometric_config', type: 'jsonb', nullable: true })
+  biometricConfig!: BiometricExerciseConfig | null;
 
   @Column({ name: 'created_at', type: 'timestamptz', default: () => 'NOW()' })
   createdAt!: Date;

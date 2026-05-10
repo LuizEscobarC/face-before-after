@@ -16,6 +16,7 @@ import type {
   ThresholdConfig,
 } from "./types";
 import type { AnimationConfig } from './types/animationConfig';
+import type { BiometricExerciseConfig } from './biometric/types';
 
 // Vite dev proxy maps /v1 → orchestrator (see vite.config.ts).
 const BASE = "";
@@ -406,6 +407,7 @@ export async function updateRecommendation(
     references?: { citation: string; url?: string }[];
     disclaimerTemplate?: string | null;
     animationConfig?: AnimationConfig | null;
+    biometricConfig?: BiometricExerciseConfig | null;
   },
 ): Promise<RecommendationCatalog> {
   const res = await fetch(`${BASE}/v1/diagnosis/recommendations/${id}`, {

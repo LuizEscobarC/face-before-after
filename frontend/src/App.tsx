@@ -11,6 +11,7 @@ import AdminGlobalWeightsPage from "./pages/AdminGlobalWeightsPage";
 import AdminBlacklistPage from "./pages/AdminBlacklistPage";
 import AdminThresholdPage from "./pages/AdminThresholdPage";
 import AdminAnimationsPreviewPage from "./pages/AdminAnimationsPreviewPage";
+import AdminBiometricPreviewPage from "./pages/AdminBiometricPreviewPage";
 
 export default function App() {
   return (
@@ -26,6 +27,7 @@ export default function App() {
       <Route path="/admin/blacklist" element={<AdminBlacklistPage />} />
       <Route path="/admin/threshold" element={<AdminThresholdPage />} />
       <Route path="/admin/animations/preview" element={<AdminAnimationsPreviewPage />} />
+      <Route path="/admin/biometric/preview" element={<AdminBiometricPreviewPage />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

@@ -1,0 +1,70 @@
+// TODO: This repo has no test runner configured (no vitest/jest in package.json).
+// To enable: install vitest, add `"test": "vitest"` to scripts, then rename this file
+// from `.test.ts.skip` -> `.test.ts`. The cases below are written for vitest's API.
+
+import { describe, it, expect } from 'vitest';
+import {
+  stretch,
+  compress,
+  massage_circular,
+  isometric_hold,
+  rotate_around_pivot,
+} from '../movementVerbs';
+
+const C = { x: 0.5, y: 0.5 };
+const V0 = { x: 0, y: 0 };
+
+describe('movement verbs', () => {
+  it('stretch translates by vector*amp*t', () => {
+    const out = stretch([{ x: 0, y: 0 }], C, { x: 1, y: 0 }, 0.1, 1);
+    expect(out[0].x).toBeCloseTo(0.1, 9);
+    expect(out[0].y).toBeCloseTo(0, 9);
+  });
+
+  it('compress at t=1 amp=1 collapses points to centroid', () => {
+    const out = compress(
+      [{ x: 0, y: 0 }, { x: 1, y: 1 }],
+      { x: 0.5, y: 0.5 },
+      V0,
+      1,
+      1,
+    );
+    expect(out[0].x).toBeCloseTo(0.5, 9);
+    expect(out[0].y).toBeCloseTo(0.5, 9);
+    expect(out[1].x).toBeCloseTo(0.5, 9);
+    expect(out[1].y).toBeCloseTo(0.5, 9);
+  });
+
+  it('massage_circular at t=0 shifts by (amp, 0)', () => {
+    const out = massage_circular([{ x: 0, y: 0 }], C, V0, 0.2, 0);
+    expect(out[0].x).toBeCloseTo(0.2, 9);
+    expect(out[0].y).toBeCloseTo(0, 9);
+  });
+
+  it('massage_circular at t=0.25 shifts by (0, amp)', () => {
+    const out = massage_circular([{ x: 0, y: 0 }], C, V0, 0.2, 0.25);
+    expect(out[0].x).toBeCloseTo(0, 9);
+    expect(out[0].y).toBeCloseTo(0.2, 9);
+  });
+
+  it('isometric_hold at t=0 returns identity', () => {
+    const pts = [{ x: 0.1, y: 0.2 }, { x: 0.3, y: 0.4 }];
+    const out = isometric_hold(pts, C, V0, 0.1, 0);
+    expect(out[0].x).toBeCloseTo(pts[0].x, 9);
+    expect(out[0].y).toBeCloseTo(pts[0].y, 9);
+    expect(out[1].x).toBeCloseTo(pts[1].x, 9);
+    expect(out[1].y).toBeCloseTo(pts[1].y, 9);
+  });
+
+  it('rotate_around_pivot 90deg sends (1,0) -> (0,1)', () => {
+    const out = rotate_around_pivot([{ x: 1, y: 0 }], { x: 0, y: 0 }, Math.PI / 2, 1);
+    expect(out[0].x).toBeCloseTo(0, 9);
+    expect(out[0].y).toBeCloseTo(1, 9);
+  });
+
+  it('rotate_around_pivot at t=0 is identity', () => {
+    const out = rotate_around_pivot([{ x: 0.7, y: 0.3 }], { x: 0.1, y: 0.1 }, Math.PI, 0);
+    expect(out[0].x).toBeCloseTo(0.7, 9);
+    expect(out[0].y).toBeCloseTo(0.3, 9);
+  });
+});

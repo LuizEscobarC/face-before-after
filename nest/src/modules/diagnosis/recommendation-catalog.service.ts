@@ -22,6 +22,10 @@ import {
   type RecommendationCategory,
   type RecommendationReference,
   type AnimationConfig,
+  ANATOMICAL_ZONE_IDS,
+  MOVEMENT_VERBS,
+  PIVOT_IDS,
+  type BiometricExerciseConfig,
 } from './domain/types/recommendation.types.js';
 
 function validateAnimationConfig(c: AnimationConfig): string | null {
@@ -38,6 +42,33 @@ function validateAnimationConfig(c: AnimationConfig): string | null {
     for (const hr of c.heat_regions)
       if (!(HEAT_REGION_IDS as readonly string[]).includes(hr.region)) return `heat_region inválida: "${hr.region}".`;
   return null;
+}
+
+function validateBiometricConfig(cfg: BiometricExerciseConfig | null): void {
+  if (cfg === null) return;
+  if (cfg.schema_version !== 1) {
+    throw new BadRequestException('biometricConfig.schema_version deve ser 1.');
+  }
+  if (!Array.isArray(cfg.steps) || cfg.steps.length < 1) {
+    throw new BadRequestException('biometricConfig.steps deve conter ao menos 1 item.');
+  }
+  for (const step of cfg.steps) {
+    if (!(ANATOMICAL_ZONE_IDS as readonly string[]).includes(step.zone)) {
+      throw new BadRequestException(`biometricConfig zone inválida: "${step.zone}".`);
+    }
+    if (!(MOVEMENT_VERBS as readonly string[]).includes(step.verb)) {
+      throw new BadRequestException(`biometricConfig verb inválido: "${step.verb}".`);
+    }
+    if (step.pivot !== undefined && !(PIVOT_IDS as readonly string[]).includes(step.pivot)) {
+      throw new BadRequestException(`biometricConfig pivot inválido: "${step.pivot}".`);
+    }
+  }
+  if (typeof cfg.cycle_ms !== 'number' || cfg.cycle_ms <= 0) {
+    throw new BadRequestException('biometricConfig.cycle_ms deve ser > 0.');
+  }
+  if (!['infinite', 'once', 'reverse'].includes(cfg.repeat)) {
+    throw new BadRequestException('biometricConfig.repeat deve ser "infinite", "once" ou "reverse".');
+  }
 }
 
 @Injectable()
@@ -131,6 +162,7 @@ export class RecommendationCatalogService {
       references?: RecommendationReference[];
       disclaimerTemplate?: string | null;
       animationConfig?: AnimationConfig | null;
+      biometricConfig?: BiometricExerciseConfig | null;
     },
   ) {
     const recommendation = await this.getRecommendationById(id);
@@ -212,6 +244,10 @@ export class RecommendationCatalogService {
     if (updates.animationConfig !== undefined && updates.animationConfig !== null) {
       const animErr = validateAnimationConfig(updates.animationConfig);
       if (animErr) throw new BadRequestException(animErr);
+    }
+
+    if (updates.biometricConfig !== undefined) {
+      validateBiometricConfig(updates.biometricConfig);
     }
 
     Object.assign(recommendation, updates);

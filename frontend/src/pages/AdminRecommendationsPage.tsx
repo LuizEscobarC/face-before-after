@@ -16,8 +16,56 @@ import {
 } from '../api';
 import type { RecommendationCatalog, RecommendationCategory_Option } from '../types';
 import { SvgFaceInstructor } from '../components/SvgFaceInstructor';
+import { BiometricFaceSimulator } from '../components/BiometricFaceSimulator';
 import type { AnimationConfig } from '../types/animationConfig';
+import type { BiometricExerciseConfig } from '../biometric/types';
 import './AdminRecommendationsPage.css';
+
+const BIOMETRIC_PRESETS: Array<{ id: string; label: string; config: BiometricExerciseConfig }> = [
+  {
+    id: 'masseter_stretch',
+    label: 'Masseter — alongamento bilateral',
+    config: {
+      schema_version: 1,
+      steps: [
+        { zone: 'masseter_l', verb: 'stretch', vector: { x: -0.7, y: 0.3 }, amplitude: 0.18, duration_ms: 1500, hold_ms: 4000, heat_intensity: 1 },
+        { zone: 'masseter_r', verb: 'stretch', vector: { x: 0.7, y: 0.3 }, amplitude: 0.18, duration_ms: 1500, hold_ms: 4000, heat_intensity: 1 },
+      ],
+      cycle_ms: 5500,
+      repeat: 'infinite',
+      caption_pt: 'Empurre a mandíbula para fora — sinta o masseter alongar bilateralmente.',
+    },
+  },
+  {
+    id: 'orbicularis_oris_pucker',
+    label: 'Orbicularis oris — beicinho',
+    config: {
+      schema_version: 1,
+      steps: [
+        { zone: 'orbicularis_oris', verb: 'compress', vector: { x: 0, y: 0 }, amplitude: 0.25, duration_ms: 1200, hold_ms: 3000, heat_intensity: 1 },
+        { zone: 'orbicularis_oris', verb: 'isometric_hold', amplitude: 0.05, duration_ms: 3000, delay_ms: 1200, heat_intensity: 0.6 },
+      ],
+      cycle_ms: 4200,
+      repeat: 'infinite',
+      caption_pt: 'Beicinho sustentado — comprima e segure a tensão nos lábios.',
+    },
+  },
+  {
+    id: 'mandibular_rotation',
+    label: 'Mandíbula — rotação na ATM',
+    config: {
+      schema_version: 1,
+      steps: [
+        { zone: 'mentalis', verb: 'rotate_around_pivot', pivot: 'tmj_center', angle_deg: 25, duration_ms: 1500, hold_ms: 3000, heat_intensity: 0.8 },
+        { zone: 'masseter_l', verb: 'rotate_around_pivot', pivot: 'tmj_l', angle_deg: 25, duration_ms: 1500, hold_ms: 3000, heat_intensity: 1 },
+        { zone: 'masseter_r', verb: 'rotate_around_pivot', pivot: 'tmj_r', angle_deg: 25, duration_ms: 1500, hold_ms: 3000, heat_intensity: 1 },
+      ],
+      cycle_ms: 4500,
+      repeat: 'infinite',
+      caption_pt: 'Abra a mandíbula até 2 dedos — rotação articular controlada na ATM.',
+    },
+  },
+];
 
 const CATEGORY_LABELS: Record<string, string> = {
   photo: 'Foto / Captura',
@@ -79,6 +127,9 @@ export default function AdminRecommendationsPage() {
   const [editedAnimationJson, setEditedAnimationJson] = useState('');
   const [animationParseError, setAnimationParseError] = useState<string | null>(null);
   const [parsedAnimationConfig, setParsedAnimationConfig] = useState<AnimationConfig | null>(null);
+  const [editedBiometricConfig, setEditedBiometricConfig] = useState('');
+  const [biometricParseError, setBiometricParseError] = useState<string | null>(null);
+  const [parsedBiometricConfig, setParsedBiometricConfig] = useState<BiometricExerciseConfig | null>(null);
 
   // Filter state
   const [filterCategory, setFilterCategory] = useState('');
@@ -134,6 +185,10 @@ export default function AdminRecommendationsPage() {
       setEditedAnimationJson(animJson);
       setAnimationParseError(null);
       setParsedAnimationConfig(full.animationConfig ?? null);
+      const bioJson = full.biometricConfig ? JSON.stringify(full.biometricConfig, null, 2) : '';
+      setEditedBiometricConfig(bioJson);
+      setBiometricParseError(null);
+      setParsedBiometricConfig((full.biometricConfig as BiometricExerciseConfig | null | undefined) ?? null);
       setSaveMessage('');
     } catch (err) {
       console.error('Erro ao carregar recomendação completa:', err);
@@ -176,6 +231,7 @@ export default function AdminRecommendationsPage() {
         clinicalPathwayRequired: editedClinicalPathway,
         disclaimerTemplate: editedDisclaimer.trim() ? editedDisclaimer : null,
         animationConfig: parsedAnimationConfig,
+        biometricConfig: parsedBiometricConfig,
       });
 
       setSelectedRecommendation(updated);
@@ -202,6 +258,28 @@ export default function AdminRecommendationsPage() {
   };
 
   const handleClearAnimation = () => { setEditedAnimationJson(''); setAnimationParseError(null); setParsedAnimationConfig(null); };
+
+  const handleBiometricJsonChange = (value: string) => {
+    setEditedBiometricConfig(value);
+    if (!value.trim()) { setBiometricParseError(null); setParsedBiometricConfig(null); return; }
+    try {
+      const parsed = JSON.parse(value) as BiometricExerciseConfig;
+      setParsedBiometricConfig(parsed);
+      setBiometricParseError(null);
+    } catch {
+      setBiometricParseError('JSON inválido — preview mostrando último estado válido.');
+    }
+  };
+
+  const handleClearBiometric = () => { setEditedBiometricConfig(''); setBiometricParseError(null); setParsedBiometricConfig(null); };
+
+  const handleLoadBiometricPreset = (presetId: string) => {
+    const preset = BIOMETRIC_PRESETS.find((p) => p.id === presetId);
+    if (!preset) return;
+    setEditedBiometricConfig(JSON.stringify(preset.config, null, 2));
+    setParsedBiometricConfig(preset.config);
+    setBiometricParseError(null);
+  };
 
   const handleLoadPreset = (presetId: string) => {
     const preset = ANIMATION_PRESETS.find((p) => p.id === presetId);
@@ -492,6 +570,88 @@ export default function AdminRecommendationsPage() {
                       padding: 12,
                     }}>
                       {editedAnimationJson ? 'JSON inválido' : 'Sem animação configurada'}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* ── Biometric Config (PR-D) ── */}
+            <div className="editor-section">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                <span style={{ fontWeight: 600, fontSize: 13, color: 'var(--text)' }}>
+                  Biometric Config
+                  <span style={{ color: 'var(--muted)', fontWeight: 400, marginLeft: 6 }}>
+                    (simulador anatômico — wireframe + heatmap)
+                  </span>
+                </span>
+                <span style={{ fontSize: 11, color: parsedBiometricConfig ? '#22d3ee' : biometricParseError ? '#ef4444' : 'var(--muted)' }}>
+                  {parsedBiometricConfig ? '✓ Config válida' : biometricParseError ? '✗ JSON inválido' : 'sem config'}
+                </span>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 240px', gap: 12, alignItems: 'start' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <select
+                      style={{ flex: 1, padding: '6px 10px', background: 'var(--surface2)', border: '1px solid var(--border)', borderRadius: 8, color: 'var(--text)', fontSize: 12 }}
+                      value=""
+                      onChange={(e) => { if (e.target.value) handleLoadBiometricPreset(e.target.value); }}
+                    >
+                      <option value="">Carregar template…</option>
+                      {BIOMETRIC_PRESETS.map((p) => <option key={p.id} value={p.id}>{p.label}</option>)}
+                    </select>
+                    <button
+                      onClick={handleClearBiometric}
+                      style={{ padding: '6px 12px', background: 'var(--surface2)', border: '1px solid var(--border)', borderRadius: 8, color: 'var(--muted)', fontSize: 12, cursor: 'pointer' }}
+                    >
+                      Limpar
+                    </button>
+                  </div>
+                  <textarea
+                    value={editedBiometricConfig}
+                    onChange={(e) => handleBiometricJsonChange(e.target.value)}
+                    rows={14}
+                    spellCheck={false}
+                    placeholder={`{\n  "schema_version": 1,\n  "steps": [{"zone": "masseter_l", "verb": "stretch", "duration_ms": 1500}],\n  "cycle_ms": 5500,\n  "repeat": "infinite"\n}`}
+                    style={{
+                      fontFamily: 'ui-monospace, "SF Mono", Menlo, Consolas, monospace',
+                      fontSize: 12,
+                      lineHeight: 1.5,
+                      background: 'var(--bg)',
+                      color: 'var(--text)',
+                      border: biometricParseError ? '1px solid #ef4444' : '1px solid var(--border)',
+                      borderRadius: 8,
+                      padding: 10,
+                      resize: 'vertical',
+                      width: '100%',
+                    }}
+                  />
+                  {biometricParseError && <div style={{ color: '#ef4444', fontSize: 11 }}>{biometricParseError}</div>}
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
+                  <span style={{ fontSize: 11, color: 'var(--muted)' }}>Preview ao vivo</span>
+                  {parsedBiometricConfig ? (
+                    <BiometricFaceSimulator
+                      config={parsedBiometricConfig}
+                      size={220}
+                      showCaption={!!parsedBiometricConfig.caption_pt}
+                    />
+                  ) : (
+                    <div style={{
+                      width: 220,
+                      height: 220,
+                      background: 'var(--surface2)',
+                      borderRadius: 12,
+                      border: '1px solid var(--border)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: 'var(--muted)',
+                      fontSize: 12,
+                      textAlign: 'center',
+                      padding: 12,
+                    }}>
+                      {editedBiometricConfig ? 'JSON inválido' : 'Sem biometric config'}
                     </div>
                   )}
                 </div>

@@ -1,4 +1,5 @@
 import type { AnimationConfig } from './types/animationConfig';
+import type { BiometricExerciseConfig } from './biometric/types';
 
 export type ClientLandmarkPayload = {
   landmarks: number[][];
@@ -337,6 +338,7 @@ export type RecommendationCatalog = {
   references: RecommendationReference[];
   disclaimerTemplate: string | null;
   animationConfig: AnimationConfig | null;
+  biometricConfig: BiometricExerciseConfig | null;
   createdAt: string;
 };
 

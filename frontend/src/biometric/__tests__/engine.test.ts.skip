@@ -1,0 +1,76 @@
+// TODO: Repo has no test runner configured. See verbs.test.ts.skip for setup.
+
+import { describe, it, expect } from 'vitest';
+import { BiometricEngine } from '../engine';
+import { AVATAR_LANDMARKS } from '../avatarLandmarks';
+import type { BiometricExerciseConfig } from '../types';
+
+const mockMasseterConfig: BiometricExerciseConfig = {
+  schema_version: 1,
+  steps: [
+    {
+      zone: 'masseter_l',
+      verb: 'stretch',
+      vector: { x: -0.7, y: 0.3 },
+      amplitude: 0.18,
+      duration_ms: 1500,
+      hold_ms: 4000,
+      heat_intensity: 1,
+    },
+    {
+      zone: 'masseter_r',
+      verb: 'stretch',
+      vector: { x: 0.7, y: 0.3 },
+      amplitude: 0.18,
+      duration_ms: 1500,
+      hold_ms: 4000,
+      heat_intensity: 1,
+    },
+  ],
+  cycle_ms: 5500,
+  repeat: 'infinite',
+};
+
+const mockMandibularRotation: BiometricExerciseConfig = {
+  schema_version: 1,
+  steps: [
+    {
+      zone: 'mentalis',
+      verb: 'rotate_around_pivot',
+      pivot: 'tmj_center',
+      angle_deg: 25,
+      duration_ms: 1500,
+      hold_ms: 3000,
+    },
+  ],
+  cycle_ms: 4500,
+  repeat: 'infinite',
+};
+
+describe('BiometricEngine', () => {
+  it('compiles masseter config with non-empty basePoints', () => {
+    const compiled = BiometricEngine.compile(mockMasseterConfig, null);
+    expect(compiled).toHaveLength(2);
+    for (const c of compiled) {
+      expect(c.basePoints.length).toBeGreaterThan(0);
+      expect(c.hullIndices.length).toBeGreaterThanOrEqual(1);
+    }
+  });
+
+  it('resolves tmj_center pivot to midpoint of landmarks 234 and 454', () => {
+    const compiled = BiometricEngine.compile(mockMandibularRotation, null);
+    const expectedX = (AVATAR_LANDMARKS[234].x + AVATAR_LANDMARKS[454].x) / 2;
+    const expectedY = (AVATAR_LANDMARKS[234].y + AVATAR_LANDMARKS[454].y) / 2;
+    expect(compiled[0].pivot.x).toBeCloseTo(expectedX, 9);
+    expect(compiled[0].pivot.y).toBeCloseTo(expectedY, 9);
+  });
+
+  it('toSvgPath emits expected polygon string', () => {
+    const out = BiometricEngine.toSvgPath([
+      { x: 0, y: 0 },
+      { x: 1, y: 0 },
+      { x: 1, y: 1 },
+    ]);
+    expect(out).toBe('M 0.000 0.000 L 100.000 0.000 L 100.000 100.000 Z');
+  });
+});
