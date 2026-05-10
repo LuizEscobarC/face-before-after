@@ -10,6 +10,16 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { RecommendationCatalogEntity } from './infrastructure/entities/recommendation-catalog.entity.js';
 import { RecommendationTriggerEntity } from './infrastructure/entities/recommendation-trigger.entity.js';
+import {
+  CATEGORY_TO_INVASIVENESS,
+  EVIDENCE_LEVELS,
+  PROFESSIONAL_TYPES,
+  RECOMMENDATION_CATEGORIES,
+  type EvidenceLevel,
+  type ProfessionalType,
+  type RecommendationCategory,
+  type RecommendationReference,
+} from './domain/types/recommendation.types.js';
 
 @Injectable()
 export class RecommendationCatalogService {
@@ -78,7 +88,12 @@ export class RecommendationCatalogService {
   }
 
   /**
-   * Update recommendation text fields
+   * Update recommendation text fields and ladder metadata.
+   *
+   * PR-55b additions: invasivenessLevel, evidenceLevel,
+   * clinicalPathwayRequired, references, disclaimerTemplate.
+   * If category changes and invasivenessLevel is not provided, it is auto-
+   * derived from CATEGORY_TO_INVASIVENESS.
    */
   async updateRecommendation(
     id: string,
@@ -91,11 +106,15 @@ export class RecommendationCatalogService {
       riskLevel?: number;
       requiresProfessional?: boolean;
       professionalType?: string | null;
+      invasivenessLevel?: number;
+      evidenceLevel?: string;
+      clinicalPathwayRequired?: boolean;
+      references?: RecommendationReference[];
+      disclaimerTemplate?: string | null;
     },
   ) {
     const recommendation = await this.getRecommendationById(id);
 
-    // Validate required fields
     if (updates.displayTextShortPt !== undefined && !updates.displayTextShortPt?.trim()) {
       throw new BadRequestException('displayTextShortPt não pode estar vazio.');
     }
@@ -116,7 +135,60 @@ export class RecommendationCatalogService {
       }
     }
 
-    // Apply updates
+    if (updates.category !== undefined) {
+      if (!RECOMMENDATION_CATEGORIES.includes(updates.category as RecommendationCategory)) {
+        throw new BadRequestException(
+          `category inválida. Aceitos: ${RECOMMENDATION_CATEGORIES.join(', ')}.`,
+        );
+      }
+    }
+
+    if (updates.evidenceLevel !== undefined) {
+      if (!EVIDENCE_LEVELS.includes(updates.evidenceLevel as EvidenceLevel)) {
+        throw new BadRequestException(
+          `evidenceLevel inválido. Aceitos: ${EVIDENCE_LEVELS.join(', ')}.`,
+        );
+      }
+    }
+
+    if (updates.professionalType !== undefined && updates.professionalType !== null) {
+      if (!PROFESSIONAL_TYPES.includes(updates.professionalType as ProfessionalType)) {
+        throw new BadRequestException(
+          `professionalType inválido. Aceitos: ${PROFESSIONAL_TYPES.join(', ')}.`,
+        );
+      }
+    }
+
+    if (updates.invasivenessLevel !== undefined) {
+      if (
+        typeof updates.invasivenessLevel !== 'number' ||
+        updates.invasivenessLevel < 0 ||
+        updates.invasivenessLevel > 4
+      ) {
+        throw new BadRequestException('invasivenessLevel deve estar entre 0 e 4.');
+      }
+    }
+
+    // Auto-derive invasivenessLevel when category changes and caller didn't pin it.
+    if (updates.category !== undefined && updates.invasivenessLevel === undefined) {
+      updates = {
+        ...updates,
+        invasivenessLevel: CATEGORY_TO_INVASIVENESS[updates.category as RecommendationCategory],
+      };
+    }
+
+    // Anecdotal evidence requires disclaimer (mirrors DB CHECK).
+    const nextEvidence = (updates.evidenceLevel ?? recommendation.evidenceLevel) as EvidenceLevel;
+    const nextDisclaimer =
+      updates.disclaimerTemplate !== undefined
+        ? updates.disclaimerTemplate
+        : recommendation.disclaimerTemplate;
+    if (nextEvidence === 'anecdotal' && (!nextDisclaimer || !nextDisclaimer.trim())) {
+      throw new BadRequestException(
+        'evidenceLevel=anecdotal exige disclaimerTemplate não-vazio.',
+      );
+    }
+
     Object.assign(recommendation, updates);
 
     return this.catalogRepository.save(recommendation);

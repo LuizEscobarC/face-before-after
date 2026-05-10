@@ -73,6 +73,22 @@ export class RecommendationTriggerEntity {
   @Column({ name: 'additional_conditions', type: 'jsonb', nullable: true })
   additionalConditions!: Record<string, unknown> | null;
 
+  /**
+   * PR-55b: optional floor on the invasiveness ladder. NULL = no floor.
+   * Engine selects the lowest available level globally; this lets a
+   * specific trigger pin to a minimum level when needed.
+   */
+  @Column({ name: 'min_invasiveness_level', type: 'smallint', nullable: true })
+  minInvasivenessLevel!: number | null;
+
+  /**
+   * PR-55b: when TRUE, this trigger bypasses the severity=extreme gate for
+   * level-4b professional_referral. Use only for clinically-mandated
+   * regions (oclusão dentária, função respiratória, derma clara).
+   */
+  @Column({ name: 'clinical_pathway_required', type: 'boolean', default: false })
+  clinicalPathwayRequired!: boolean;
+
   @Column({ name: 'created_at', type: 'timestamptz', default: () => 'NOW()' })
   createdAt!: Date;
 }

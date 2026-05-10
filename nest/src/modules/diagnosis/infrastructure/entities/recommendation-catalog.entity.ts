@@ -12,7 +12,9 @@ import {
   RECOMMENDATION_CATEGORIES,
   type RecommendationCategory,
   type EffortEstimate,
+  type EvidenceLevel,
   type ProfessionalType,
+  type RecommendationReference,
 } from '../../domain/types/recommendation.types.js';
 import { RecommendationCatalogVersionEntity } from './recommendation-catalog-version.entity.js';
 import { RecommendationTriggerEntity } from './recommendation-trigger.entity.js';
@@ -95,6 +97,37 @@ export class RecommendationCatalogEntity {
 
   @Column({ name: 'professional_type', type: 'text', nullable: true })
   professionalType!: ProfessionalType | null;
+
+  /** Invasiveness ladder 0..4 — see CATEGORY_TO_INVASIVENESS in domain types. */
+  @Column({ name: 'invasiveness_level', type: 'smallint' })
+  invasivenessLevel!: number;
+
+  @Column({
+    name: 'evidence_level',
+    type: 'enum',
+    enum: ['strong', 'moderate', 'anecdotal'],
+    enumName: 'evidence_level_enum',
+    default: 'moderate',
+  })
+  evidenceLevel!: EvidenceLevel;
+
+  /** Generated column — read-only mirror of (evidence_level = 'anecdotal'). */
+  @Column({
+    name: 'requires_anecdotal_disclaimer',
+    type: 'boolean',
+    insert: false,
+    update: false,
+  })
+  requiresAnecdotalDisclaimer!: boolean;
+
+  @Column({ name: 'clinical_pathway_required', type: 'boolean', default: false })
+  clinicalPathwayRequired!: boolean;
+
+  @Column({ name: 'references_jsonb', type: 'jsonb', default: () => "'[]'::jsonb" })
+  references!: RecommendationReference[];
+
+  @Column({ name: 'disclaimer_template', type: 'text', nullable: true })
+  disclaimerTemplate!: string | null;
 
   @Column({ name: 'created_at', type: 'timestamptz', default: () => 'NOW()' })
   createdAt!: Date;

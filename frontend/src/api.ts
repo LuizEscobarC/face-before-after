@@ -399,6 +399,11 @@ export async function updateRecommendation(
     riskLevel?: number;
     requiresProfessional?: boolean;
     professionalType?: string | null;
+    invasivenessLevel?: number;
+    evidenceLevel?: string;
+    clinicalPathwayRequired?: boolean;
+    references?: { citation: string; url?: string }[];
+    disclaimerTemplate?: string | null;
   },
 ): Promise<RecommendationCatalog> {
   const res = await fetch(`${BASE}/v1/diagnosis/recommendations/${id}`, {

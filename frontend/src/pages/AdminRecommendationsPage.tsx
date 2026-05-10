@@ -19,11 +19,27 @@ import './AdminRecommendationsPage.css';
 
 const CATEGORY_LABELS: Record<string, string> = {
   photo: 'Foto / Captura',
+  presentation_only: 'Apenas Informativo',
   posture: 'Postura',
   lifestyle: 'Estilo de Vida',
-  styling: 'Styling / Aparência',
+  exercise: 'Exercício / Mioterapia',
+  styling: 'Styling / Visagismo',
+  aesthetic_procedure: 'Procedimento Estético (não-invasivo)',
   professional_referral: 'Encaminhamento Profissional',
-  presentation_only: 'Apenas Informativo',
+};
+
+const EVIDENCE_LABELS: Record<string, string> = {
+  strong: 'Forte (RCT / consenso)',
+  moderate: 'Moderada (prática clínica)',
+  anecdotal: 'Popular (sem RCT)',
+};
+
+const INVASIVENESS_LABELS: Record<number, string> = {
+  0: '0 — Foto / Info',
+  1: '1 — Postura / Lifestyle',
+  2: '2 — Exercício',
+  3: '3 — Styling',
+  4: '4 — Procedimento / Profissional',
 };
 
 export default function AdminRecommendationsPage() {
@@ -46,6 +62,10 @@ export default function AdminRecommendationsPage() {
   const [editedRiskLevel, setEditedRiskLevel] = useState(0);
   const [editedRequiresProfessional, setEditedRequiresProfessional] = useState(false);
   const [editedProfessionalType, setEditedProfessionalType] = useState('');
+  const [editedInvasivenessLevel, setEditedInvasivenessLevel] = useState(0);
+  const [editedEvidenceLevel, setEditedEvidenceLevel] = useState<'strong' | 'moderate' | 'anecdotal'>('moderate');
+  const [editedClinicalPathway, setEditedClinicalPathway] = useState(false);
+  const [editedDisclaimer, setEditedDisclaimer] = useState('');
 
   // Filter state
   const [filterCategory, setFilterCategory] = useState('');
@@ -93,6 +113,10 @@ export default function AdminRecommendationsPage() {
       setEditedRiskLevel(full.riskLevel);
       setEditedRequiresProfessional(full.requiresProfessional);
       setEditedProfessionalType(full.professionalType || '');
+      setEditedInvasivenessLevel(full.invasivenessLevel ?? 0);
+      setEditedEvidenceLevel(full.evidenceLevel ?? 'moderate');
+      setEditedClinicalPathway(full.clinicalPathwayRequired ?? false);
+      setEditedDisclaimer(full.disclaimerTemplate ?? '');
       setSaveMessage('');
     } catch (err) {
       console.error('Erro ao carregar recomendação completa:', err);
@@ -115,6 +139,12 @@ export default function AdminRecommendationsPage() {
 
     setIsSaving(true);
     try {
+      if (editedEvidenceLevel === 'anecdotal' && !editedDisclaimer.trim()) {
+        setSaveMessage('evidenceLevel=anecdotal exige disclaimer não-vazio.');
+        setIsSaving(false);
+        return;
+      }
+
       const updated = await updateRecommendation(selectedRecommendation.id, {
         displayTextShortPt: editedShortText,
         displayTextLongPt: editedLongText,
@@ -124,6 +154,10 @@ export default function AdminRecommendationsPage() {
         riskLevel: editedRiskLevel,
         requiresProfessional: editedRequiresProfessional,
         professionalType: editedProfessionalType || null,
+        invasivenessLevel: editedInvasivenessLevel,
+        evidenceLevel: editedEvidenceLevel,
+        clinicalPathwayRequired: editedClinicalPathway,
+        disclaimerTemplate: editedDisclaimer.trim() ? editedDisclaimer : null,
       });
 
       setSelectedRecommendation(updated);
@@ -168,6 +202,12 @@ export default function AdminRecommendationsPage() {
               <div className="rec-id">{rec.id}</div>
               <div className="rec-category">{CATEGORY_LABELS[rec.category] || rec.category}</div>
               <div style={{ fontSize: 10, color: 'var(--muted)' }}>{rec.category}</div>
+              <div style={{ fontSize: 10, color: 'var(--muted)', marginTop: 2 }}>
+                {INVASIVENESS_LABELS[rec.invasivenessLevel] ?? `nível ${rec.invasivenessLevel}`}
+                {' · '}
+                {EVIDENCE_LABELS[rec.evidenceLevel] ?? rec.evidenceLevel}
+                {rec.requiresAnecdotalDisclaimer ? ' ⚠' : ''}
+              </div>
               <div className="rec-preview">{rec.displayTextShortPt.substring(0, 60)}...</div>
             </div>
           ))}
@@ -280,6 +320,58 @@ export default function AdminRecommendationsPage() {
                   />
                 </label>
               )}
+            </div>
+
+            <div className="editor-row">
+              <label>
+                <span>Nível de Invasividade (0-4)</span>
+                <select
+                  value={editedInvasivenessLevel}
+                  onChange={(e) => setEditedInvasivenessLevel(parseInt(e.target.value, 10))}
+                >
+                  {[0, 1, 2, 3, 4].map((n) => (
+                    <option key={n} value={n}>{INVASIVENESS_LABELS[n]}</option>
+                  ))}
+                </select>
+              </label>
+
+              <label>
+                <span>Nível de Evidência</span>
+                <select
+                  value={editedEvidenceLevel}
+                  onChange={(e) => setEditedEvidenceLevel(e.target.value as 'strong' | 'moderate' | 'anecdotal')}
+                >
+                  {(['strong', 'moderate', 'anecdotal'] as const).map((ev) => (
+                    <option key={ev} value={ev}>{EVIDENCE_LABELS[ev]}</option>
+                  ))}
+                </select>
+              </label>
+
+              <label>
+                <span>Caminho clínico obrigatório?</span>
+                <input
+                  type="checkbox"
+                  checked={editedClinicalPathway}
+                  onChange={(e) => setEditedClinicalPathway(e.target.checked)}
+                />
+              </label>
+            </div>
+
+            <div className="editor-section">
+              <label>
+                <span>
+                  Disclaimer{' '}
+                  {editedEvidenceLevel === 'anecdotal' && (
+                    <span style={{ color: '#f59e0b' }}>(obrigatório para evidência popular)</span>
+                  )}
+                </span>
+                <textarea
+                  value={editedDisclaimer}
+                  onChange={(e) => setEditedDisclaimer(e.target.value)}
+                  rows={3}
+                  placeholder="Texto adicional informativo, não-prescritivo. Suporta {professional_type_pt}."
+                />
+              </label>
             </div>
 
             <div className="editor-actions">

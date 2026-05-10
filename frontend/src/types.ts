@@ -289,23 +289,33 @@ export type TemplateRenderPreview = {
 
 // ── Recommendation Catalog (Admin CRUD - PR-56) ────────────────────────────────
 
-export type RecommendationCategory = 
+export type RecommendationCategory =
   | 'photo'
+  | 'presentation_only'
   | 'posture'
   | 'lifestyle'
+  | 'exercise'
   | 'styling'
-  | 'professional_referral'
-  | 'presentation_only';
+  | 'aesthetic_procedure'
+  | 'professional_referral';
 
 export type EffortEstimate = 'minimal' | 'low' | 'medium' | 'high' | 'very_high';
 
+export type EvidenceLevel = 'strong' | 'moderate' | 'anecdotal';
+
 export type ProfessionalType =
-  | 'orthodontist'
-  | 'dermatologist'
-  | 'surgeon'
-  | 'therapist'
   | 'dentist'
-  | null;
+  | 'physiotherapist'
+  | 'dermatologist'
+  | 'otolaryngologist'
+  | 'plastic_surgeon'
+  | 'orthodontist'
+  | 'oral_maxillofacial_surgeon';
+
+export type RecommendationReference = {
+  citation: string;
+  url?: string;
+};
 
 export type RecommendationCatalog = {
   id: string;
@@ -317,7 +327,13 @@ export type RecommendationCatalog = {
   effortEstimate: EffortEstimate;
   riskLevel: number;
   requiresProfessional: boolean;
-  professionalType: ProfessionalType;
+  professionalType: ProfessionalType | null;
+  invasivenessLevel: number;
+  evidenceLevel: EvidenceLevel;
+  requiresAnecdotalDisclaimer: boolean;
+  clinicalPathwayRequired: boolean;
+  references: RecommendationReference[];
+  disclaimerTemplate: string | null;
   createdAt: string;
 };
 

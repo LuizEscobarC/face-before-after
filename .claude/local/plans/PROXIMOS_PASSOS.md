@@ -120,7 +120,7 @@ M2 ✅ ────────────────────────�
 
 Não dá pra começar M4 sem responder estas três:
 
-### 4.1 Quem revisa o tom dos textos?
+### 4.1 Quem revisa o tom dos textos? Decisão: **(c)** Aceito o output do Opus sem revisão humana (risco legal/reputacional não-zero).
 
 PR-53 produz ~300-500 strings em português que vão sair direto pro usuário. A regra é "linha vermelha — nunca diagnosticar". A IA segue a regra, mas **decisões de tom** (quão assertivo? quão emocional? quão "produto premium"?) são editoriais.
 
@@ -131,13 +131,29 @@ PR-53 produz ~300-500 strings em português que vão sair direto pro usuário. A
 
 Recomendação: **(a) ou (b)**. (c) só se você tem cobertura legal já pensada.
 
-### 4.2 Onde fica a fronteira `lifestyle` vs `professional_referral` em PR-56?
+### 4.2 Onde fica a fronteira `lifestyle` vs `professional_referral` em PR-56? **DECIDIDO (2026-05-09)**
 
-Para cada métrica × severidade, você precisa decidir: a recomendação é "ajuste a postura"/"mude o ângulo da foto" (lifestyle) ou "procure um ortodontista/dermatologista/cirurgião" (professional referral).
+Não é uma fronteira binária — é uma **escada de 5 níveis de invasividade** com 8 categorias:
 
-Critério proposto no plano: se a única intervenção viável é clínica, é `professional_referral`. Se há ajuste viável de postura/styling/foto, é `lifestyle`.
+| nível | categoria(s) | exemplo |
+|---|---|---|
+| 0 | `photo`, `presentation_only` | "refaça a foto com câmera ao nível dos olhos" |
+| 1 | `posture`, `lifestyle` | postura cervical, sono, hidratação, respiração nasal |
+| 2 | `exercise` *(novo)* | mioterapia mandibular, exercício orofacial, face yoga |
+| 3 | `styling` | corte de cabelo, design de sobrancelha, barba |
+| 4a | `aesthetic_procedure` *(novo)* | botox masseter, preenchimento, fios de PDO |
+| 4b | `professional_referral` | ortodontia, rinoplastia, ortognática, derma |
 
-**Cinza intencional:** `gonial_angle_asymmetry` severo. Ortognática? Postura cervical? Os dois? Decidir junto com produto antes de PR-56.
+**Regra do engine (PR-57):** sempre exibir o degrau mais baixo disponível primeiro. Pode listar até 2 níveis em paralelo. Nível 4b só dispara quando `severity=extreme` OU flag `clinical_pathway_required=true` no trigger (oclusão dentária, função respiratória, derma clara).
+
+**Pseudo-ciência** (mewing, face yoga sem RCT) entra com `evidence_level='anecdotal'` e disclaimer obrigatório. Estudos com evidência (mioterapia em TMJ, postura cervical) ficam como `'moderate'`. RCTs / consensos viram `'strong'`.
+
+**`gonial_angle_asymmetry` resolvido:**
+- mild → moderate: mioterapia mandibular + postura cervical (níveis 1-2).
+- strong: adiciona barba estruturada (3) + botox masseter (4a, com disclaimer estético).
+- extreme: aí sim libera professional_referral para bucomaxilo.
+
+Plano detalhado da implementação: [`/home/luizescobal/.claude/plans/fa-a-mais-uma-revis-o-quirky-hopper.md`](../../../.claude/plans/fa-a-mais-uma-revis-o-quirky-hopper.md). Migration aditiva: `1746000230000-M44RecommendationLadder.ts`.
 
 ### 4.3 Banding do PDF — relatório só com score >70 ou todos?
 

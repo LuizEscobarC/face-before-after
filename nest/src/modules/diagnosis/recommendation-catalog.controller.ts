@@ -163,6 +163,11 @@ export class RecommendationCatalogController {
       riskLevel?: number;
       requiresProfessional?: boolean;
       professionalType?: string | null;
+      invasivenessLevel?: number;
+      evidenceLevel?: string;
+      clinicalPathwayRequired?: boolean;
+      references?: { citation: string; url?: string }[];
+      disclaimerTemplate?: string | null;
     },
   ) {
     if (!body || Object.keys(body).length === 0) {
