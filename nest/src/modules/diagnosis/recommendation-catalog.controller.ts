@@ -31,6 +31,7 @@ import {
 } from '@nestjs/swagger';
 import { RecommendationCatalogService } from './recommendation-catalog.service.js';
 import { RecommendationCatalogEntity } from './infrastructure/entities/recommendation-catalog.entity.js';
+import type { AnimationConfig } from './domain/types/recommendation.types.js';
 
 @ApiTags('Diagnosis / Recommendations (Admin)')
 @Controller('v1/diagnosis/recommendations')
@@ -168,6 +169,7 @@ export class RecommendationCatalogController {
       clinicalPathwayRequired?: boolean;
       references?: { citation: string; url?: string }[];
       disclaimerTemplate?: string | null;
+      animationConfig?: AnimationConfig | null;
     },
   ) {
     if (!body || Object.keys(body).length === 0) {

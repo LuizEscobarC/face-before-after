@@ -10,6 +10,7 @@ import AdminMetricIdealPage from "./pages/AdminMetricIdealPage";
 import AdminGlobalWeightsPage from "./pages/AdminGlobalWeightsPage";
 import AdminBlacklistPage from "./pages/AdminBlacklistPage";
 import AdminThresholdPage from "./pages/AdminThresholdPage";
+import AdminAnimationsPreviewPage from "./pages/AdminAnimationsPreviewPage";
 
 export default function App() {
   return (
@@ -24,6 +25,7 @@ export default function App() {
       <Route path="/admin/global-weights" element={<AdminGlobalWeightsPage />} />
       <Route path="/admin/blacklist" element={<AdminBlacklistPage />} />
       <Route path="/admin/threshold" element={<AdminThresholdPage />} />
+      <Route path="/admin/animations/preview" element={<AdminAnimationsPreviewPage />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

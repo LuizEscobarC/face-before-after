@@ -15,6 +15,7 @@ import type {
   BlacklistTerm,
   ThresholdConfig,
 } from "./types";
+import type { AnimationConfig } from './types/animationConfig';
 
 // Vite dev proxy maps /v1 → orchestrator (see vite.config.ts).
 const BASE = "";
@@ -404,6 +405,7 @@ export async function updateRecommendation(
     clinicalPathwayRequired?: boolean;
     references?: { citation: string; url?: string }[];
     disclaimerTemplate?: string | null;
+    animationConfig?: AnimationConfig | null;
   },
 ): Promise<RecommendationCatalog> {
   const res = await fetch(`${BASE}/v1/diagnosis/recommendations/${id}`, {

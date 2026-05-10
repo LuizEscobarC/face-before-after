@@ -15,11 +15,30 @@ import {
   EVIDENCE_LEVELS,
   PROFESSIONAL_TYPES,
   RECOMMENDATION_CATEGORIES,
+  FACIAL_PRIMITIVE_IDS,
+  HEAT_REGION_IDS,
   type EvidenceLevel,
   type ProfessionalType,
   type RecommendationCategory,
   type RecommendationReference,
+  type AnimationConfig,
 } from './domain/types/recommendation.types.js';
+
+function validateAnimationConfig(c: AnimationConfig): string | null {
+  if (c.schema_version !== 1) return 'schema_version deve ser 1.';
+  if (!Array.isArray(c.primitives) || c.primitives.length === 0) return 'primitives[] não pode estar vazio.';
+  for (const p of c.primitives) {
+    if (!(FACIAL_PRIMITIVE_IDS as readonly string[]).includes(p.id)) return `primitive.id inválido: "${p.id}".`;
+    if (p.intensity !== undefined && (p.intensity < 0 || p.intensity > 1))
+      return `intensity fora de 0..1 (id="${p.id}").`;
+  }
+  if (typeof c.duration_ms !== 'number' || c.duration_ms <= 0) return 'duration_ms deve ser número positivo.';
+  if (!['infinite', 'reverse', 'once'].includes(c.repeat)) return 'repeat deve ser "infinite", "reverse" ou "once".';
+  if (c.heat_regions)
+    for (const hr of c.heat_regions)
+      if (!(HEAT_REGION_IDS as readonly string[]).includes(hr.region)) return `heat_region inválida: "${hr.region}".`;
+  return null;
+}
 
 @Injectable()
 export class RecommendationCatalogService {
@@ -111,6 +130,7 @@ export class RecommendationCatalogService {
       clinicalPathwayRequired?: boolean;
       references?: RecommendationReference[];
       disclaimerTemplate?: string | null;
+      animationConfig?: AnimationConfig | null;
     },
   ) {
     const recommendation = await this.getRecommendationById(id);
@@ -187,6 +207,11 @@ export class RecommendationCatalogService {
       throw new BadRequestException(
         'evidenceLevel=anecdotal exige disclaimerTemplate não-vazio.',
       );
+    }
+
+    if (updates.animationConfig !== undefined && updates.animationConfig !== null) {
+      const animErr = validateAnimationConfig(updates.animationConfig);
+      if (animErr) throw new BadRequestException(animErr);
     }
 
     Object.assign(recommendation, updates);

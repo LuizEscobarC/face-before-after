@@ -1,3 +1,5 @@
+import type { AnimationConfig } from './types/animationConfig';
+
 export type ClientLandmarkPayload = {
   landmarks: number[][];
   pose: { yaw: number; pitch: number; roll: number };
@@ -334,6 +336,7 @@ export type RecommendationCatalog = {
   clinicalPathwayRequired: boolean;
   references: RecommendationReference[];
   disclaimerTemplate: string | null;
+  animationConfig: AnimationConfig | null;
   createdAt: string;
 };
 

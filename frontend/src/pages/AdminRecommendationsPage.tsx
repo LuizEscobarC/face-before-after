@@ -15,6 +15,8 @@ import {
   updateRecommendation,
 } from '../api';
 import type { RecommendationCatalog, RecommendationCategory_Option } from '../types';
+import { SvgFaceInstructor } from '../components/SvgFaceInstructor';
+import type { AnimationConfig } from '../types/animationConfig';
 import './AdminRecommendationsPage.css';
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -42,6 +44,14 @@ const INVASIVENESS_LABELS: Record<number, string> = {
   4: '4 — Procedimento / Profissional',
 };
 
+const ANIMATION_PRESETS: Array<{ id: string; label: string; config: AnimationConfig }> = [
+  { id: 'brow_lift', label: 'Levantamento de sobrancelha', config: { schema_version: 1, primitives: [{ id: 'brow_lift_both', intensity: 0.8 }], duration_ms: 2000, hold_ms: 500, repeat: 'infinite', heat_regions: [{ region: 'frontalis', pulse: true }], caption_pt: 'Levante as sobrancelhas com firmeza moderada.' } },
+  { id: 'jaw_clench', label: 'Masseter isométrico (morder)', config: { schema_version: 1, primitives: [{ id: 'jaw_clench', intensity: 0.7 }], duration_ms: 1500, hold_ms: 5000, repeat: 'infinite', heat_regions: [{ region: 'masseter_l', pulse: true }, { region: 'masseter_r', pulse: true }], caption_pt: 'Cerre os dentes com firmeza moderada — sinta a lateral da mandíbula.' } },
+  { id: 'lip_pucker', label: 'Bico / Beijo', config: { schema_version: 1, primitives: [{ id: 'lip_pucker', intensity: 1 }], duration_ms: 2000, repeat: 'infinite', heat_regions: [{ region: 'orbicularis_oris', pulse: true }], caption_pt: 'Faça bico com os lábios como se fosse assobiar.' } },
+  { id: 'tongue_mewing', label: 'Mewing (pressão palatal)', config: { schema_version: 1, primitives: [{ id: 'tongue_palate_press', intensity: 0.9 }], duration_ms: 3000, hold_ms: 3000, repeat: 'infinite', show_xray: true, caption_pt: 'Pressione toda a língua no palato com força moderada.' } },
+  { id: 'neck_chin_tuck', label: 'Chin tuck (retração cervical)', config: { schema_version: 1, primitives: [{ id: 'neck_chin_tuck', intensity: 1 }], duration_ms: 2000, hold_ms: 2000, repeat: 'infinite', heat_regions: [{ region: 'suboccipital', pulse: true }, { region: 'scm_l', pulse: false }, { region: 'scm_r', pulse: false }], caption_pt: 'Recue o queixo como se fosse criar uma papada — alongue a nuca.' } },
+];
+
 export default function AdminRecommendationsPage() {
   // Category filter options
   const [categoryOptions, setCategoryOptions] = useState<RecommendationCategory_Option[]>([]);
@@ -66,6 +76,9 @@ export default function AdminRecommendationsPage() {
   const [editedEvidenceLevel, setEditedEvidenceLevel] = useState<'strong' | 'moderate' | 'anecdotal'>('moderate');
   const [editedClinicalPathway, setEditedClinicalPathway] = useState(false);
   const [editedDisclaimer, setEditedDisclaimer] = useState('');
+  const [editedAnimationJson, setEditedAnimationJson] = useState('');
+  const [animationParseError, setAnimationParseError] = useState<string | null>(null);
+  const [parsedAnimationConfig, setParsedAnimationConfig] = useState<AnimationConfig | null>(null);
 
   // Filter state
   const [filterCategory, setFilterCategory] = useState('');
@@ -117,6 +130,10 @@ export default function AdminRecommendationsPage() {
       setEditedEvidenceLevel(full.evidenceLevel ?? 'moderate');
       setEditedClinicalPathway(full.clinicalPathwayRequired ?? false);
       setEditedDisclaimer(full.disclaimerTemplate ?? '');
+      const animJson = full.animationConfig ? JSON.stringify(full.animationConfig, null, 2) : '';
+      setEditedAnimationJson(animJson);
+      setAnimationParseError(null);
+      setParsedAnimationConfig(full.animationConfig ?? null);
       setSaveMessage('');
     } catch (err) {
       console.error('Erro ao carregar recomendação completa:', err);
@@ -158,6 +175,7 @@ export default function AdminRecommendationsPage() {
         evidenceLevel: editedEvidenceLevel,
         clinicalPathwayRequired: editedClinicalPathway,
         disclaimerTemplate: editedDisclaimer.trim() ? editedDisclaimer : null,
+        animationConfig: parsedAnimationConfig,
       });
 
       setSelectedRecommendation(updated);
@@ -169,6 +187,28 @@ export default function AdminRecommendationsPage() {
     } finally {
       setIsSaving(false);
     }
+  };
+
+  const handleAnimationJsonChange = (value: string) => {
+    setEditedAnimationJson(value);
+    if (!value.trim()) { setAnimationParseError(null); setParsedAnimationConfig(null); return; }
+    try {
+      const parsed = JSON.parse(value) as AnimationConfig;
+      setParsedAnimationConfig(parsed);
+      setAnimationParseError(null);
+    } catch {
+      setAnimationParseError('JSON inválido — SVG mostrando último estado válido.');
+    }
+  };
+
+  const handleClearAnimation = () => { setEditedAnimationJson(''); setAnimationParseError(null); setParsedAnimationConfig(null); };
+
+  const handleLoadPreset = (presetId: string) => {
+    const preset = ANIMATION_PRESETS.find((p) => p.id === presetId);
+    if (!preset) return;
+    setEditedAnimationJson(JSON.stringify(preset.config, null, 2));
+    setParsedAnimationConfig(preset.config);
+    setAnimationParseError(null);
   };
 
   return (
@@ -372,6 +412,90 @@ export default function AdminRecommendationsPage() {
                   placeholder="Texto adicional informativo, não-prescritivo. Suporta {professional_type_pt}."
                 />
               </label>
+            </div>
+
+            {/* ── Animação SVG ── */}
+            <div className="editor-section">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                <span style={{ fontWeight: 600, fontSize: 13, color: 'var(--text)' }}>
+                  Animação SVG
+                  <span style={{ color: 'var(--muted)', fontWeight: 400, marginLeft: 6 }}>
+                    ({editedCategory === 'exercise' ? 'recomendado para exercícios' : 'opcional'})
+                  </span>
+                </span>
+                <span style={{ fontSize: 11, color: parsedAnimationConfig ? '#22d3ee' : animationParseError ? '#ef4444' : 'var(--muted)' }}>
+                  {parsedAnimationConfig ? '✓ Config válida' : animationParseError ? '✗ JSON inválido' : 'sem animação'}
+                </span>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 220px', gap: 12, alignItems: 'start' }}>
+                {/* Left: JSON editor + toolbar */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <select
+                      style={{ flex: 1, padding: '6px 10px', background: 'var(--surface2)', border: '1px solid var(--border)', borderRadius: 8, color: 'var(--text)', fontSize: 12 }}
+                      value=""
+                      onChange={(e) => { if (e.target.value) handleLoadPreset(e.target.value); }}
+                    >
+                      <option value="">Carregar template…</option>
+                      {ANIMATION_PRESETS.map((p) => <option key={p.id} value={p.id}>{p.label}</option>)}
+                    </select>
+                    <button
+                      onClick={handleClearAnimation}
+                      style={{ padding: '6px 12px', background: 'var(--surface2)', border: '1px solid var(--border)', borderRadius: 8, color: 'var(--muted)', fontSize: 12, cursor: 'pointer' }}
+                    >
+                      Limpar
+                    </button>
+                  </div>
+                  <textarea
+                    value={editedAnimationJson}
+                    onChange={(e) => handleAnimationJsonChange(e.target.value)}
+                    rows={14}
+                    spellCheck={false}
+                    placeholder={`{\n  "schema_version": 1,\n  "primitives": [{"id": "brow_lift_both"}],\n  "duration_ms": 2000,\n  "repeat": "infinite"\n}`}
+                    style={{
+                      fontFamily: 'ui-monospace, "SF Mono", Menlo, Consolas, monospace',
+                      fontSize: 12,
+                      lineHeight: 1.5,
+                      background: 'var(--bg)',
+                      color: 'var(--text)',
+                      border: animationParseError ? '1px solid #ef4444' : '1px solid var(--border)',
+                      borderRadius: 8,
+                      padding: 10,
+                      resize: 'vertical',
+                      width: '100%',
+                    }}
+                  />
+                  {animationParseError && <div style={{ color: '#ef4444', fontSize: 11 }}>{animationParseError}</div>}
+                </div>
+                {/* Right: live preview */}
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
+                  <span style={{ fontSize: 11, color: 'var(--muted)' }}>Preview ao vivo</span>
+                  {parsedAnimationConfig ? (
+                    <SvgFaceInstructor
+                      config={parsedAnimationConfig}
+                      width={200}
+                      showCaption={!!parsedAnimationConfig.caption_pt}
+                    />
+                  ) : (
+                    <div style={{
+                      width: 200,
+                      aspectRatio: '100 / 115',
+                      background: 'var(--surface2)',
+                      borderRadius: 12,
+                      border: '1px solid var(--border)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: 'var(--muted)',
+                      fontSize: 12,
+                      textAlign: 'center',
+                      padding: 12,
+                    }}>
+                      {editedAnimationJson ? 'JSON inválido' : 'Sem animação configurada'}
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
 
             <div className="editor-actions">
