@@ -22,7 +22,7 @@ export function BiometricFaceSimulator({
   return (
     <div className="biometric-face-simulator" style={{ width: size }}>
       <div className="bfs-stage" style={{ width: size, height: size }}>
-        <Wireframe frames={frames} />
+        <Wireframe config={config} landmarks={landmarks ?? null} />
         <Heatmap frames={frames} />
       </div>
       {showCaption && config.caption_pt && (

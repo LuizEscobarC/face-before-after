@@ -29,6 +29,9 @@ const P_RIGHT_EYE_OUTER = 263;
 const P_BROW_LEFT_INNER  = 107;
 const P_BROW_RIGHT_INNER = 336;
 const P_SUBNASALE = 2;
+const P_FOREHEAD_CROWN  = 10;  // hairline proxy
+const P_LEFT_ZYGOMATIC  = 338; // LM_JAWLINE[1] — left temple x
+const P_RIGHT_ZYGOMATIC = 379; // LM_JAWLINE[15] — right temple x
 const LM_JAWLINE  = [10, 338, 297, 332, 284, 251, 389, 356, 454, 323, 361, 288, 397, 365, 379, 378, 400, 377, 152, 148, 176, 149, 150, 136, 172, 58, 132, 93, 234, 127, 162, 21, 54, 103, 67, 109, 10];
 
 // Anchor landmark per metric_id — hardcoded for the 4 calculators that emit improvement_vector (PR-34).
@@ -59,6 +62,7 @@ const OVERLAY_STYLES: Record<string, {
   grid_thirds:             { stroke: "#a5b4fc", strokeWidth: 1,   strokeDasharray: "6 3" },
   grid_fifths:             { stroke: "#a5b4fc", strokeWidth: 1,   strokeDasharray: "6 3" },
   outline_face:            { stroke: "#67e8f9", strokeWidth: 1.5 },
+  face_extents:            { stroke: "#ffffff", strokeWidth: 1.5 },
   improvement_vectors:     { stroke: "#f97316", strokeWidth: 2 },  // swatch colour only; arrows use per-severity colours
   // Heatmaps (PR-37/38, M3.3) — swatch colour reflects the colormap mid-tone.
   heatmap_asymmetry:       { stroke: "#b40426", strokeWidth: 8 },  // coolwarm hot end
@@ -72,6 +76,7 @@ const OVERLAY_LABELS: Record<string, string> = {
   grid_thirds:             "Terços faciais",
   grid_fifths:             "Quintos faciais",
   outline_face:            "Contorno facial",
+  face_extents:            "Extremidades da face",
   improvement_vectors:     "Vetores de melhoria",
   heatmap_asymmetry:       "Mapa de calor — assimetria",
   heatmap_ideal_adherence: "Mapa de calor — aderência",
@@ -85,7 +90,7 @@ const HEATMAP_OVERLAY_IDS = new Set([
 
 // Default toggle state — axes give frame, contour shows oval, improvement
 // vectors surface the "what to fix" arrows immediately (M3.2 hero feature).
-const DEFAULT_OVERLAYS = ["axis_vertical", "axis_intercanthal", "outline_face", "improvement_vectors"];
+const DEFAULT_OVERLAYS = ["axis_vertical", "axis_intercanthal", "outline_face", "face_extents", "grid_thirds", "improvement_vectors"];
 
 export interface OverlayLayerProps {
   /** Raw pixel coordinate pairs [x, y] from MediaPipe Mesh-478 (478 entries). */
@@ -184,29 +189,98 @@ function AxisIntercanthal({ landmarks, w }: { landmarks: Array<[number, number]>
   );
 }
 
-function GridThirds({ landmarks, w }: { landmarks: Array<[number, number]>; w: number; h: number }) {
-  const yBrow = (lm(landmarks, P_BROW_LEFT_INNER)[1] + lm(landmarks, P_BROW_RIGHT_INNER)[1]) / 2;
-  const ySub  = lm(landmarks, P_SUBNASALE)[1];
-  const s = OVERLAY_STYLES.grid_thirds;
+function _devColor(deviationPct: number): string {
+  const a = Math.abs(deviationPct);
+  if (a <= 2) return "#22c55e";   // verde
+  if (a <= 5) return "#f97316";   // laranja
+  return "#ef4444";                // vermelho
+}
+
+/**
+ * FaceExtents — desenha linhas sólidas brancas nas extremidades da face
+ * (hairline, queixo, têmpora L, têmpora R) com labels.
+ */
+function FaceExtents({ landmarks }: { landmarks: Array<[number, number]>; w: number; h: number }) {
+  const yTop = lm(landmarks, P_FOREHEAD_CROWN)[1];
+  const yMenton = lm(landmarks, P_MENTON)[1];
+  const xL = lm(landmarks, P_LEFT_ZYGOMATIC)[0];
+  const xR = lm(landmarks, P_RIGHT_ZYGOMATIC)[0];
+  const stroke = "#ffffff";
   return (
-    <>
-      <line x1={0} y1={yBrow} x2={w} y2={yBrow} stroke={s.stroke} strokeWidth={s.strokeWidth} strokeDasharray={s.strokeDasharray} />
-      <line x1={0} y1={ySub}  x2={w} y2={ySub}  stroke={s.stroke} strokeWidth={s.strokeWidth} strokeDasharray={s.strokeDasharray} />
-    </>
+    <g>
+      <line x1={xL} y1={yTop}    x2={xR} y2={yTop}    stroke={stroke} strokeWidth={1.5} />
+      <line x1={xL} y1={yMenton} x2={xR} y2={yMenton} stroke={stroke} strokeWidth={1.5} />
+      <line x1={xL} y1={yTop}    x2={xL} y2={yMenton} stroke={stroke} strokeWidth={1.5} />
+      <line x1={xR} y1={yTop}    x2={xR} y2={yMenton} stroke={stroke} strokeWidth={1.5} />
+      <text x={xL + 4} y={yTop - 4} fill={stroke} fontSize={11} fontWeight={600}
+        style={{ paintOrder: "stroke", stroke: "#000", strokeWidth: 2 }}>Hairline</text>
+      <text x={xL + 4} y={yMenton + 14} fill={stroke} fontSize={11} fontWeight={600}
+        style={{ paintOrder: "stroke", stroke: "#000", strokeWidth: 2 }}>Menton</text>
+    </g>
   );
 }
 
-function GridFifths({ landmarks, h }: { landmarks: Array<[number, number]>; w: number; h: number }) {
-  const xs = [P_LEFT_EYE_OUTER, P_LEFT_EYE_INNER, P_RIGHT_EYE_INNER, P_RIGHT_EYE_OUTER].map(
-    (idx) => lm(landmarks, idx)[0]
+function GridThirds({ landmarks, w }: { landmarks: Array<[number, number]>; w: number; h: number }) {
+  const yTop  = lm(landmarks, P_FOREHEAD_CROWN)[1];
+  const yBrow = (lm(landmarks, P_BROW_LEFT_INNER)[1] + lm(landmarks, P_BROW_RIGHT_INNER)[1]) / 2;
+  const ySub  = lm(landmarks, P_SUBNASALE)[1];
+  const yMen  = lm(landmarks, P_MENTON)[1];
+  const xR    = lm(landmarks, P_RIGHT_ZYGOMATIC)[0];
+
+  const faceH = Math.max(1, yMen - yTop);
+  const upperPct  = ((yBrow - yTop) / faceH) * 100;
+  const middlePct = ((ySub  - yBrow) / faceH) * 100;
+  const lowerPct  = ((yMen  - ySub) / faceH) * 100;
+
+  const yT1 = yTop + faceH / 3;
+  const yT2 = yTop + (2 * faceH) / 3;
+
+  const s = OVERLAY_STYLES.grid_thirds;
+  // Linhas tracejadas verdes nas posições ideais (33% e 66%)
+  // Linhas sólidas laranjas nas posições reais (sobrancelhas + subnasal)
+  const labelX = xR + 8;
+  return (
+    <g>
+      <line x1={0} y1={yT1} x2={w} y2={yT1} stroke={s.stroke} strokeWidth={s.strokeWidth} strokeDasharray={s.strokeDasharray} />
+      <line x1={0} y1={yT2} x2={w} y2={yT2} stroke={s.stroke} strokeWidth={s.strokeWidth} strokeDasharray={s.strokeDasharray} />
+      <line x1={0} y1={yBrow} x2={w} y2={yBrow} stroke="#f97316" strokeWidth={1} opacity={0.8} />
+      <line x1={0} y1={ySub}  x2={w} y2={ySub}  stroke="#f97316" strokeWidth={1} opacity={0.8} />
+      {[
+        { y: yTop  + (yBrow - yTop) / 2,  pct: upperPct,  label: "T1" },
+        { y: yBrow + (ySub  - yBrow) / 2, pct: middlePct, label: "T2" },
+        { y: ySub  + (yMen  - ySub) / 2,  pct: lowerPct,  label: "T3" },
+      ].map(({ y, pct, label }) => (
+        <text key={label} x={labelX} y={y + 4} fill={_devColor(pct - 33)} fontSize={11} fontWeight={700}
+          style={{ paintOrder: "stroke", stroke: "#000", strokeWidth: 2 }}>
+          {label} {pct.toFixed(0)}% (33%)
+        </text>
+      ))}
+    </g>
   );
+}
+
+function GridFifths({ landmarks }: { landmarks: Array<[number, number]>; w: number; h: number }) {
+  const yTop = lm(landmarks, P_FOREHEAD_CROWN)[1];
+  const yMen = lm(landmarks, P_MENTON)[1];
+  const xL   = lm(landmarks, P_LEFT_ZYGOMATIC)[0];
+  const xR   = lm(landmarks, P_RIGHT_ZYGOMATIC)[0];
+  const faceW = Math.max(1, xR - xL);
+  const fifth = faceW / 5;
   const s = OVERLAY_STYLES.grid_fifths;
   return (
-    <>
-      {xs.map((x, i) => (
-        <line key={i} x1={x} y1={0} x2={x} y2={h} stroke={s.stroke} strokeWidth={s.strokeWidth} strokeDasharray={s.strokeDasharray} />
-      ))}
-    </>
+    <g>
+      {[1, 2, 3, 4].map((i) => {
+        const x = xL + i * fifth;
+        return (
+          <line key={i} x1={x} y1={yTop} x2={x} y2={yMen}
+            stroke={s.stroke} strokeWidth={s.strokeWidth} strokeDasharray={s.strokeDasharray} />
+        );
+      })}
+      <text x={xL + 2} y={yTop - 14} fill={s.stroke} fontSize={11} fontWeight={600}
+        style={{ paintOrder: "stroke", stroke: "#000", strokeWidth: 2 }}>
+        Quintos ideais (cada = 20%)
+      </text>
+    </g>
   );
 }
 
@@ -326,6 +400,7 @@ export function OverlayLayer({ landmarks, imageWidth, imageHeight, activeOverlay
       {active.has("grid_fifths")       && <GridFifths       landmarks={landmarks} w={w} h={h} />}
       {/* z=20: contour */}
       {active.has("outline_face")      && <OutlineFace      landmarks={landmarks} />}
+      {active.has("face_extents")      && <FaceExtents      landmarks={landmarks} w={w} h={h} />}
       {/* z=40: improvement vectors (rendered last = topmost) */}
       {active.has("improvement_vectors") && metricEvaluations && metricEvaluations.length > 0 && (
         <ImprovementVectors landmarks={landmarks} metricEvaluations={metricEvaluations} />

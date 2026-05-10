@@ -25,9 +25,11 @@ from app.domain.landmarks_mesh import (
     P_BROW_RIGHT_INNER,
     P_BROW_RIGHT_MID,
     P_BROW_RIGHT_OUTER,
+    P_FOREHEAD_CROWN,
     P_LEFT_EYE_INNER,
     P_LEFT_EYE_OUTER,
     P_LEFT_MOUTH,
+    P_LEFT_ZYGOMATIC,
     P_MENTON,
     P_NASION,
     P_NOSE_LEFT,
@@ -35,6 +37,7 @@ from app.domain.landmarks_mesh import (
     P_RIGHT_EYE_INNER,
     P_RIGHT_EYE_OUTER,
     P_RIGHT_MOUTH,
+    P_RIGHT_ZYGOMATIC,
     P_SUBNASALE,
     TOTAL_LANDMARKS,
 )
@@ -99,6 +102,14 @@ def _deviation_color(deviation_deg: float) -> Tuple[int, int, int]:
     return _RED
 
 
+try:  # PIL é usado para texto Unicode (°, acentos) — cv2.putText só aceita ASCII.
+    from PIL import Image, ImageDraw, ImageFont  # type: ignore
+
+    _PIL_OK = True
+except Exception:  # pragma: no cover
+    _PIL_OK = False
+
+
 def _label(
     img: np.ndarray,
     text: str,
@@ -107,8 +118,36 @@ def _label(
     color: Tuple[int, int, int] = _WHITE,
     thickness: int = 1,
 ) -> None:
-    cv2.putText(img, text, pos, _FONT, scale, (0, 0, 0), thickness + 1, cv2.LINE_AA)
-    cv2.putText(img, text, pos, _FONT, scale, color, thickness, cv2.LINE_AA)
+    """Renderiza texto com contorno preto + preenchimento colorido.
+
+    Usa PIL quando disponível para suportar Unicode (°, acentos). Fallback ASCII
+    via cv2.putText caso contrário (substitui caracteres não-ASCII por '?').
+    """
+    if _PIL_OK:
+        # cv2 usa BGR; PIL usa RGB — converter no draw.
+        rgb_color = (color[2], color[1], color[0])
+        pil_img = Image.fromarray(cv2.cvtColor(img, cv2.COLOR_BGR2RGB))
+        draw = ImageDraw.Draw(pil_img)
+        # Tamanho da fonte aproximado a partir do scale do cv2 (FONT_HERSHEY ~ 22px @ scale=1)
+        font_size = max(10, int(scale * 32))
+        try:
+            font = ImageFont.truetype("DejaVuSans.ttf", font_size)
+        except OSError:
+            try:
+                font = ImageFont.truetype(
+                    "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", font_size
+                )
+            except OSError:
+                font = ImageFont.load_default()
+        x, y = pos
+        # Contorno preto (stroke) + preenchimento
+        draw.text((x, y - font_size), text, font=font, fill=rgb_color,
+                  stroke_width=thickness + 1, stroke_fill=(0, 0, 0))
+        img[:] = cv2.cvtColor(np.array(pil_img), cv2.COLOR_RGB2BGR)
+        return
+    safe = text.encode("ascii", "replace").decode("ascii")
+    cv2.putText(img, safe, pos, _FONT, scale, (0, 0, 0), thickness + 1, cv2.LINE_AA)
+    cv2.putText(img, safe, pos, _FONT, scale, color, thickness, cv2.LINE_AA)
 
 
 # ---------------------------------------------------------------------------
@@ -204,40 +243,85 @@ def annotate_ideal_proportions(
     lm = landmarks
 
     # ------------------------------------------------------------------
-    # 1. Terços horizontais
+    # 1. Extremidades da face (linhas sólidas brancas)
+    #    - y_top    : topo da testa / hairline (proxy = forehead crown, idx 10)
+    #    - y_brow   : linha das sobrancelhas (glabella)
+    #    - y_sub    : subnasale (base do nariz)
+    #    - y_menton : base do queixo
+    #    - x_temple_l/r : têmporas (zigomáticos)
     # ------------------------------------------------------------------
-    # Aproximação: y_top_face = lm[19][1] (sobrancelha esq topo) estimado
-    # y_glabella ~ média lm[21][1] e lm[22][1]
-    # y_nasion ~ lm[27][1]
-    # y_menton ~ lm[8][1]
-    y_top = min(lm[P_BROW_LEFT_MID][1], lm[P_BROW_RIGHT_MID][1])  # topo sobrancelhas
-    y_glabella = int((lm[P_BROW_LEFT_INNER][1] + lm[P_BROW_RIGHT_INNER][1]) / 2)
-    y_nasion = lm[P_NASION][1]
-    y_menton = lm[P_MENTON][1]
+    y_top = int(lm[P_FOREHEAD_CROWN][1])
+    y_brow = int((lm[P_BROW_LEFT_INNER][1] + lm[P_BROW_RIGHT_INNER][1]) / 2)
+    y_sub = int(lm[P_SUBNASALE][1])
+    y_menton = int(lm[P_MENTON][1])
+    x_temple_l = int(lm[P_LEFT_ZYGOMATIC][0])
+    x_temple_r = int(lm[P_RIGHT_ZYGOMATIC][0])
 
-    face_h = y_menton - y_top
-    y_t1 = y_top + face_h // 3
-    y_t2 = y_top + 2 * face_h // 3
+    # Linhas sólidas nas extremidades verticais (hairline + queixo)
+    cv2.line(img, (x_temple_l, y_top), (x_temple_r, y_top), _WHITE, 2, cv2.LINE_AA)
+    cv2.line(img, (x_temple_l, y_menton), (x_temple_r, y_menton), _WHITE, 2, cv2.LINE_AA)
+    # Linhas sólidas nas extremidades horizontais (têmporas)
+    cv2.line(img, (x_temple_l, y_top), (x_temple_l, y_menton), _WHITE, 2, cv2.LINE_AA)
+    cv2.line(img, (x_temple_r, y_top), (x_temple_r, y_menton), _WHITE, 2, cv2.LINE_AA)
+    _label(img, "Hairline", (x_temple_l + 4, y_top - 4), color=_WHITE)
+    _label(img, "Menton", (x_temple_l + 4, y_menton + 16), color=_WHITE)
 
-    for y_line in [y_t1, y_t2]:
+    # ------------------------------------------------------------------
+    # 2. Terços horizontais reais (hairline → sobrancelhas → subnasale → menton)
+    #    Mostra a porcentagem real de cada banda + alvo ideal de 33%.
+    # ------------------------------------------------------------------
+    face_h = max(1, y_menton - y_top)
+    upper_pct = (y_brow - y_top) * 100.0 / face_h
+    middle_pct = (y_sub - y_brow) * 100.0 / face_h
+    lower_pct = (y_menton - y_sub) * 100.0 / face_h
+
+    # Linhas reais (sólidas amarelas) nas fronteiras anatômicas dos terços
+    for y_line in (y_brow, y_sub):
+        cv2.line(img, (x_temple_l, y_line), (x_temple_r, y_line), _ORANGE, 1, cv2.LINE_AA)
+
+    # Linhas ideais (tracejadas verdes) — terços perfeitos a 33%
+    y_t1_ideal = y_top + face_h // 3
+    y_t2_ideal = y_top + 2 * face_h // 3
+    for y_line in (y_t1_ideal, y_t2_ideal):
         _draw_dashed_line(img, (0, y_line), (w, y_line), _GREEN, thickness=1)
-    _label(img, "Tercos ideais", (5, y_t1 - 5), color=_GREEN)
+
+    # Labels com porcentagens dentro de cada terço
+    label_x = max(4, x_temple_r + 6)
+    if label_x + 160 > w:
+        label_x = max(4, x_temple_l - 165)
+    _label(
+        img,
+        f"T1 {upper_pct:.0f}% (33%)",
+        (label_x, y_top + (y_brow - y_top) // 2),
+        color=_deviation_color(upper_pct - 33.0),
+    )
+    _label(
+        img,
+        f"T2 {middle_pct:.0f}% (33%)",
+        (label_x, y_brow + (y_sub - y_brow) // 2),
+        color=_deviation_color(middle_pct - 33.0),
+    )
+    _label(
+        img,
+        f"T3 {lower_pct:.0f}% (33%)",
+        (label_x, y_sub + (y_menton - y_sub) // 2),
+        color=_deviation_color(lower_pct - 33.0),
+    )
+    _label(img, "Terços ideais", (5, y_t1_ideal - 5), color=_GREEN)
 
     # ------------------------------------------------------------------
-    # 2. Quintos verticais
+    # 3. Quintos verticais (têmpora L → têmpora R, divididos em 5)
     # ------------------------------------------------------------------
-    x_left_temple = lm[LM_JAWLINE[0]][0]
-    x_right_temple = lm[LM_JAWLINE[16]][0]
-    face_w = x_right_temple - x_left_temple
+    face_w = max(1, x_temple_r - x_temple_l)
     fifth = face_w // 5
 
     for i in range(1, 5):
-        x_line = x_left_temple + i * fifth
+        x_line = x_temple_l + i * fifth
         _draw_dashed_line(img, (x_line, y_top), (x_line, y_menton), _GREEN, thickness=1)
-    _label(img, "Quintos ideais", (x_left_temple + 2, y_top - 8), color=_GREEN)
+    _label(img, "Quintos ideais (cada = 20%)", (x_temple_l + 2, y_top - 12), color=_GREEN)
 
     # ------------------------------------------------------------------
-    # 3. Ângulo cantal ideal (+5°) vs real
+    # 4. Ângulo cantal ideal (+5°) vs real
     # ------------------------------------------------------------------
     for eye_med_idx, eye_lat_idx, label_prefix in [
         (P_LEFT_EYE_INNER, P_LEFT_EYE_OUTER, "OE"),
@@ -257,41 +341,48 @@ def annotate_ideal_proportions(
         # Linha real
         cv2.line(img, med, lat, color, 2, cv2.LINE_AA)
 
-        # Linha ideal (+5° a partir do canto medial)
+        # Linha ideal (+5° a partir do canto medial, na direção do canto lateral)
         eye_w = int(np.hypot(dx_real, lat[1] - med[1]))
-        ideal_x = med[0] + int(eye_w * np.cos(np.radians(5.0)))
+        sign_x = 1 if dx_real >= 0 else -1
+        ideal_x = med[0] + sign_x * int(eye_w * np.cos(np.radians(5.0)))
         ideal_y = med[1] - int(eye_w * np.sin(np.radians(5.0)))
         cv2.line(img, med, (ideal_x, ideal_y), _GREEN, 1, cv2.LINE_AA)
 
         _label(
             img,
-            f"{label_prefix} {angle_real:+.1f}° (ideal+5°)",
-            (med[0], med[1] - 8),
+            f"{label_prefix} {angle_real:+.1f}° (ideal +5°)",
+            (med[0], med[1] - 10),
             color=color,
         )
 
     # ------------------------------------------------------------------
-    # 4. Guia largura ideal do nariz (70% da boca)
+    # 5. Largura do nariz vs ideal (70% da boca)
     # ------------------------------------------------------------------
-    x_alar_l = lm[P_NOSE_LEFT][0]
-    x_alar_r = lm[P_NOSE_RIGHT][0]
-    x_mouth_l = lm[P_LEFT_MOUTH][0]
-    x_mouth_r = lm[P_RIGHT_MOUTH][0]
+    x_alar_l = int(lm[P_NOSE_LEFT][0])
+    x_alar_r = int(lm[P_NOSE_RIGHT][0])
+    x_mouth_l = int(lm[P_LEFT_MOUTH][0])
+    x_mouth_r = int(lm[P_RIGHT_MOUTH][0])
 
-    mouth_w = x_mouth_r - x_mouth_l
+    mouth_w = max(1, x_mouth_r - x_mouth_l)
+    real_alar_w = max(1, x_alar_r - x_alar_l)
     ideal_alar_w = int(mouth_w * 0.70)
+    real_pct = real_alar_w * 100.0 / mouth_w  # % do nariz em relação à boca
+
     alar_center = (x_alar_l + x_alar_r) // 2
     ideal_alar_l = alar_center - ideal_alar_w // 2
     ideal_alar_r = alar_center + ideal_alar_w // 2
 
-    real_alar_w = x_alar_r - x_alar_l
-    alar_dev = abs(real_alar_w - ideal_alar_w)
-    alar_color = _deviation_color(float(alar_dev) / max(1, mouth_w) * 20)
+    alar_color = _deviation_color((real_pct - 70.0) / 2.0)  # tolerância ~±4 pp
 
-    y_alar = lm[P_SUBNASALE][1] + 8
+    y_alar = y_sub + 10
     cv2.line(img, (x_alar_l, y_alar), (x_alar_r, y_alar), alar_color, 2)
-    cv2.line(img, (ideal_alar_l, y_alar + 6), (ideal_alar_r, y_alar + 6), _GREEN, 1)
-    _label(img, "Nariz ideal (70% boca)", (ideal_alar_l, y_alar + 18), color=_GREEN)
+    cv2.line(img, (ideal_alar_l, y_alar + 8), (ideal_alar_r, y_alar + 8), _GREEN, 1)
+    _label(
+        img,
+        f"Nariz {real_pct:.0f}% boca (ideal 70%)",
+        (ideal_alar_l, y_alar + 22),
+        color=alar_color,
+    )
 
     return img
 
