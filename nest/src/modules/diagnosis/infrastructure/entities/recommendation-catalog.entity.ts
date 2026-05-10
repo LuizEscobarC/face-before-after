@@ -15,6 +15,7 @@ import {
   type EvidenceLevel,
   type ProfessionalType,
   type RecommendationReference,
+  type AnimationConfig,
 } from '../../domain/types/recommendation.types.js';
 import { RecommendationCatalogVersionEntity } from './recommendation-catalog-version.entity.js';
 import { RecommendationTriggerEntity } from './recommendation-trigger.entity.js';
@@ -128,6 +129,21 @@ export class RecommendationCatalogEntity {
 
   @Column({ name: 'disclaimer_template', type: 'text', nullable: true })
   disclaimerTemplate!: string | null;
+
+  /**
+   * PR-A — Declarative SVG animation config for the Facial Exercise Instructor.
+   * NULL = no animation (static fallback). Non-NULL only for category='exercise'
+   * rows with visible facial movement. Populated by migration
+   * 1746000260000-M44AnimationConfigSeed (PR-D).
+   *
+   * DB CHECK `chk_rec_animation_config_schema` enforces:
+   *   - schema_version = 1
+   *   - primitives array length ≥ 1
+   *
+   * Frontend component: <SvgFaceInstructor> (PR-B).
+   */
+  @Column({ name: 'animation_config', type: 'jsonb', nullable: true })
+  animationConfig!: AnimationConfig | null;
 
   @Column({ name: 'created_at', type: 'timestamptz', default: () => 'NOW()' })
   createdAt!: Date;

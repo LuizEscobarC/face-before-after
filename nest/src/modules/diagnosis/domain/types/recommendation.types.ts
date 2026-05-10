@@ -85,3 +85,142 @@ export type RecommendationReference = {
   citation: string;
   url?: string;
 };
+
+// ---------------------------------------------------------------------------
+// PR-A — SVG Facial Exercise Instructor declarative animation types
+// Full schema: `.claude/plans/fa-a-mais-uma-revis-o-quirky-hopper.md` §PR-A
+// Mirror in frontend: `frontend/src/types/animationConfig.ts` (PR-B)
+// ---------------------------------------------------------------------------
+
+/**
+ * All primitive movement IDs supported by <SvgFaceInstructor> (PR-B).
+ * Grouped by region for readability.
+ */
+export type FacialPrimitiveId =
+  // --- Brow ---
+  | 'brow_lift_both'
+  | 'brow_lift_left'
+  | 'brow_lift_right'
+  | 'brow_furrow'
+  | 'brow_relax'
+  // --- Eye ---
+  | 'eye_squeeze_both'
+  | 'eye_squeeze_lower'
+  | 'eye_wide_open'
+  | 'eye_blink_asymmetric'
+  | 'eye_track_horizontal'
+  | 'eye_track_figure8'
+  // --- Lip / Mouth ---
+  | 'lip_pucker'
+  | 'lip_seal'
+  | 'lip_wide_smile'
+  | 'lip_corner_lift_left'
+  | 'lip_corner_lift_right'
+  | 'lip_resistance_pull'
+  | 'lip_trill_vibration'
+  // --- Tongue (x-ray overlay when show_xray=true) ---
+  | 'tongue_palate_press'
+  | 'tongue_lateral_left'
+  | 'tongue_lateral_right'
+  | 'tongue_extra_oral_down'
+  | 'tongue_click'
+  | 'tongue_sweep_circular'
+  // --- Jaw ---
+  | 'jaw_clench'
+  | 'jaw_protrusion'
+  | 'jaw_retrusion'
+  | 'jaw_lateral_left'
+  | 'jaw_lateral_right'
+  | 'jaw_open_wide'
+  | 'jaw_infinity'
+  // --- Cheek ---
+  | 'cheek_puff_both'
+  | 'cheek_puff_left'
+  | 'cheek_puff_right'
+  | 'cheek_lift_smile'
+  // --- Neck / Cervical ---
+  | 'neck_chin_tuck'
+  | 'neck_extension'
+  | 'neck_rotation_left'
+  | 'neck_rotation_right'
+  | 'neck_lateral_flex'
+  // --- Static / informational ---
+  | 'static_breathing_indicator'
+  | 'static_posture_silhouette';
+
+/** All supported heat-region identifiers (anatomical muscle zones). */
+export type HeatRegionId =
+  | 'frontalis'
+  | 'masseter_l'
+  | 'masseter_r'
+  | 'orbicularis_oris'
+  | 'orbicularis_oculi_l'
+  | 'orbicularis_oculi_r'
+  | 'platysma'
+  | 'mentalis'
+  | 'zygomaticus_l'
+  | 'zygomaticus_r'
+  | 'corrugator'
+  | 'buccinator_l'
+  | 'buccinator_r'
+  | 'temporalis'
+  | 'suboccipital'
+  | 'scm_l'
+  | 'scm_r';
+
+/**
+ * Declarative animation config stored in `recommendation_catalog.animation_config`.
+ * Interpreted by `<SvgFaceInstructor>` (frontend PR-B).
+ *
+ * Invariants (enforced by DB CHECK `chk_rec_animation_config_schema`):
+ *   - schema_version === 1
+ *   - primitives.length >= 1
+ */
+export type AnimationConfig = {
+  /** Always 1. Guard for future schema migrations. */
+  schema_version: 1;
+
+  /** One or more movement primitives to activate. Rendered in order. */
+  primitives: Array<{
+    id: FacialPrimitiveId;
+    /** Movement amplitude 0..1. Default 1. */
+    intensity?: number;
+    /** Delay before this primitive starts animating, in ms. Default 0. */
+    delay_ms?: number;
+  }>;
+
+  /** Duration of one full animation cycle in ms. Default 2000. */
+  duration_ms: number;
+
+  /**
+   * How long (ms) to hold the peak position before returning.
+   * Use for isometric exercises (masseter clench, mewing press). Default 0.
+   */
+  hold_ms?: number;
+
+  /** Animation repeat mode. */
+  repeat: 'infinite' | 'reverse' | 'once';
+
+  /**
+   * Anatomical heat regions to highlight with a pulsing blur overlay.
+   * These are the muscles the user should feel contracting.
+   */
+  heat_regions?: Array<{
+    region: HeatRegionId;
+    /** If true, region pulses in/out to indicate active contraction. */
+    pulse: boolean;
+  }>;
+
+  /**
+   * Short Portuguese caption to display below the SVG.
+   * Tells the user what they should feel (e.g. "Sinta o músculo tensionar aqui").
+   */
+  caption_pt?: string;
+
+  /**
+   * When true, the face skin is rendered semi-transparent (opacity 0.4),
+   * revealing tongue/jaw primitives as a pseudo-X-ray effect.
+   * Required for tongue primitives (tongue_palate_press, tongue_lateral_*, etc.).
+   */
+  show_xray?: boolean;
+};
