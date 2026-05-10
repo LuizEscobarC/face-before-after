@@ -98,8 +98,12 @@ O disclaimer é **TEXT congelado** em `analysis_report.disclaimer_text_snapshot`
 | DEC-32 | **Onde a recomendação aparece?** | Na narrativa (medium/long) **e** no PDF. Card resumo só mostra `short` da recomendação top-1. |
 | DEC-33 | **Limite de recommendations exibidas** | top-5. `is_displayed_to_user=FALSE` para o resto. |
 | DEC-34 | **Quando dispara `professional_referral`** | **REVISADO 2026-05-09** — fronteira é uma escada de 5 níveis (0–4) com 8 categorias: `photo`/`presentation_only` (0), `posture`/`lifestyle` (1), `exercise` (2, novo), `styling` (3), `aesthetic_procedure` (4a, novo), `professional_referral` (4b). Engine sempre tenta o menor nível primeiro; max 2 categorias por sessão. Nível 4b (cirúrgico/clínico) só dispara em `severity=extreme` **OU** trigger marca `clinical_pathway_required=true` (oclusão dentária, função respiratória, derma clara). Caso `gonial_angle_asymmetry strong`: resolve em mioterapia (2) + barba (3) + botox masseter (4a); só `extreme` libera bucomaxilo (4b). Pseudo-ciência (mewing, face yoga) entra com `evidence_level='anecdotal'` + disclaimer obrigatório. Plano: `.claude/plans/fa-a-mais-uma-revis-o-quirky-hopper.md`. |
-| DEC-35 | **Disclaimer de cada recomendação `professional_referral`** | adicional a `analysis_report.disclaimer_text_snapshot`: "Esta sugestão de buscar avaliação profissional é genérica e não substitui consulta com profissional qualificado." |
+| DEC-35 | **Disclaimer de cada recomendação `professional_referral`** | **REVISADO 2026-05-09** — tom informativo não-prescritivo, sobrepõe o texto defensivo: "A rotina do app cobre as principais melhorias possíveis sem intervenção clínica. Em casos como o seu, alguns usuários optam por consultar [{professional_type_pt}] para resolução estrutural — não é exigência nem condição de melhora. Esta menção é informativa, não prescrição médica." Implementado em `recommendation_catalog.disclaimer_template` (CHECK obrigatório quando `evidence_level='anecdotal'`). |
 | DEC-36 | **Validação humana antes de produção** | PR-53 (templates) + PR-56 (recomendações) **devem** passar por revisor humano (prompt-author + alguém com background de produto/legal). Sem isso, M4 não é "DONE". |
+| DEC-37 | **NOVO — Linha vermelha editorial** (B2C+B2B) | Banido: "você precisa", "isso só se resolve com", "é necessário", "indispensável". Permitido: "alguns usuários optam por", "para resolução estrutural completa, há a opção de", "o app cobre as melhorias possíveis sem intervenção clínica". Templates **devem** comunicar quanto da melhoria o app cobre **antes** de mencionar profissional. |
+| DEC-38 | **NOVO — Regra de seleção do engine (PR-57)** | (1) Sempre exibir o degrau mais baixo da escada disponível primeiro. (2) Listar até 2 níveis em paralelo. (3) Nível 4b (`professional_referral`) **nunca isolado** — se entra no top-5, **pelo menos 2** das outras 4 vagas devem ser nível ≤3 (rotina do app). (4) Max 2 recomendações da mesma `category` no top-5 (mitiga armadilha #7). |
+| DEC-39 | **NOVO — Asset pipeline para exercícios** | MVP: Lottie/Rive 2D (PR-63 + PR-64). State-of-the-art: Three.js + Ready Player Me + 52 ARKit BlendShapes (PR-65). Diferencial: MediaPipe FaceMesh AR overlay (PR-66). Schema: nova tabela `recommendation_asset` 1:N com `recommendation_catalog`. Prioridade: 30 animações iniciais para os exercícios de maior peso (categoria=`exercise` + `priority_default<=2`). |
+| DEC-40 | **NOVO — Tracking longitudinal (PR-67, futuro)** | Modelo de assinatura: rotina diária + before/after semanal/mensal. Tabelas `treatment_routine` (rotina ativa do usuário) + `progress_snapshot` (foto + métricas + delta). Justifica o app como "protagonista do tratamento", não consultório. |
 
 ---
 
@@ -152,11 +156,22 @@ Templates que usem placeholder fora dessa lista **falham no render** com `Unknow
 
 ## 7. Critérios de saída do M4
 
-- [ ] PRs 50–62 mergeados.
+- [x] **PR-50/51/52 (M4.1 infra de templates)** ✅ DONE.
+- [x] **PR-55 (DDL recommendation_catalog)** ✅ DONE.
+- [x] **PR-55b (escada de invasividade — `exercise` + `aesthetic_procedure` + `evidence_level` + `clinical_pathway_required`)** ✅ DONE (migration 1746000225000+230000).
+- [x] **PR-56 (catálogo Opus)** ✅ DONE — **427 recomendações** populadas (vs ~50 originalmente planejadas), 8.352 triggers, 84 anecdotal com disclaimer obrigatório.
+- [ ] **PR-53 (templates v1.0)** — 168 entregues em medium-only (PR-53a); falta short+long e cobertura para ~30 métricas restantes.
+- [ ] **PR-56b** — catálogo `aesthetic_procedure` (nível 4a): botox, preenchimentos, fios PDO, rinomodelação. ~10–15 entradas.
+- [ ] **PR-57 (RecommendationEngine)** com regra DEC-38 (menor invasiveness primeiro, max 2 categorias, nunca 4b isolado).
+- [ ] **PR-58 (DiagnosticPriorityService)** — usar `risk_level` + `effort_estimate` + `invasiveness_level` na fórmula.
+- [ ] **PR-59 (endpoint narrative)**, **PR-60–62 (PDF)**.
+- [ ] **PR-63 + PR-64 (Lottie/Rive — DEC-39 MVP)** — schema `recommendation_asset` + player frontend.
 - [ ] Lint de blacklist verde em CI.
 - [ ] Revisor humano aprovou catálogo de templates e recomendações.
 - [ ] Em ≥10 fotos reais distintas, narrative + PDF inspecionados manualmente sem ressalvas.
 - [ ] Disclaimer aparece em 100% dos PDFs e em 100% das narrativas.
-- [ ] Recomendação `professional_referral` carrega disclaimer adicional sempre.
+- [ ] Recomendação `professional_referral` carrega disclaimer adicional sempre **e nunca aparece isolada no top-5** (DEC-38).
 
 Após isso → produto pode entrar em soft-launch interno. **Hard-launch externo exige revisão jurídica final** sobre o disclaimer e sobre `professional_referral`.
+
+**Pós-MVP** (futuro, fora do M4): PR-65 (3D Three.js + ARKit BlendShapes), PR-66 (MediaPipe AR feedback em tempo real), PR-67 (módulo de assinatura + tracking longitudinal).

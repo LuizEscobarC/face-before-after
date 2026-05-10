@@ -1,7 +1,7 @@
 # Próximos passos — onde estamos e o que falta
 
 > Documento humano. Leia em voz de café, não de tabela de PR.
-> Última atualização: 2026-05-09.
+> Última atualização: 2026-05-09 (revisão pós-PR-55/56).
 > Para a tabela técnica completa, ver [`PLAN_METRICS.md`](./PLAN_METRICS.md). Para detalhes por marco, ver [`marcos/`](./marcos/).
 
 ---
@@ -95,24 +95,33 @@ M2 ✅ ────────────────────────�
                                        🎉 produto completo
 ```
 
-### Detalhamento dos próximos PRs
+### Detalhamento dos próximos PRs (revisado 2026-05-09 pós-PR-55/56)
 
-| PR | O que entrega | Modelo | Esforço |
-|----|---------------|--------|---------|
-| **PR-22** | 30–50 fotos analisadas + planilha de override de faixas | humano | 3h–1 dia |
-| **PR-21 v2.0** | Pesos validados empiricamente, promove `is_active=TRUE` | Opus | 1 dia |
-| **PR-53** | ~300–500 templates de diagnóstico em PT-BR (`diagnostic_template`) | **Opus** | 2–3 dias (revisão de tom é o gargalo) |
-| **PR-54** | Revisão humana dos templates antes de virar v1.0 | humano + Opus | 1 dia |
-| **PR-55** | DDL `recommendation_catalog` + 4 tabelas | Sonnet | 4h |
-| **PR-56** | ~50 recomendações com gatilho `metric × severity` + categoria | **Opus** | 2 dias |
-| **PR-57** | `RecommendationEngine` que faz match + ranqueia + persiste | Sonnet | 1 dia |
-| **PR-58** | `DiagnosticPriorityService` (fórmula I×S×C×A) | **Opus** | 1 dia |
-| **PR-59** | `GET /v1/analysis/:id/narrative` (top-3 findings + top-5 recs + disclaimer) | Sonnet | 4h |
-| **PR-60** | Python `PdfBuilder` (capa → score → findings → overlays → recs → disclaimer) | Sonnet | 1–2 dias |
-| **PR-61** | Nest endpoint que dispara PDF, salva em MinIO | Sonnet | 4h |
-| **PR-62** | Botão "Baixar relatório completo" no frontend | Sonnet | 4h |
+| PR | O que entrega | Status | Modelo | Esforço |
+|----|---------------|--------|--------|---------|
+| **PR-22** | 30–50 fotos analisadas + planilha de override de faixas | ⏳ humano (adiado) | humano | 3h–1 dia |
+| **PR-21 v2.0** | Pesos validados empiricamente, promove `is_active=TRUE` | ⏳ bloqueado em PR-22 | Opus | 1 dia |
+| **PR-53** | ~300–500 templates de diagnóstico em PT-BR (`diagnostic_template`) — escrita Opus + revisão | 🟡 168 entregues em PR-53a (medium-only); falta short+long e cobrir ~30 métricas restantes | Opus | 1–2 dias |
+| **PR-54** | Revisão humana dos templates antes de virar v1.0 | ⏳ depende de PR-53 fechar | humano + Opus | 1 dia |
+| **PR-55** | DDL `recommendation_catalog` + 4 tabelas | ✅ DONE | Sonnet | — |
+| **PR-55b** | Migration `M44RecommendationLadder` — adiciona `exercise` + `aesthetic_procedure`, `evidence_level`, `invasiveness_level`, `clinical_pathway_required`, `disclaimer_template`, `references_jsonb` + extensão de `professional_type` | ✅ DONE (1746000225000+230000) | Sonnet | — |
+| **PR-56** | ~50 recomendações com gatilho `metric × severity` + categoria | ✅ DONE — **427 recomendações + 8.352 triggers** entregues (M44SeedExerciseCatalog + M44SeedFullCatalog100 + M44SeedFullCatalog270). 84 anecdotal com disclaimer; 27 professional_referral com tom informativo não-prescritivo. Curadoria do produto + Opus revisão para os 100 itens canônicos. | Sonnet+humano | — |
+| **PR-56b** | Catálogo `aesthetic_procedure` (nível 4a) — botox masseter, preenchimento labial/malar/mento, fios PDO, rinomodelação. ~10–15 entradas com risk_level + disclaimer estético | ⏳ TODO | Opus | 4h |
+| **PR-57** | `RecommendationEngine` que faz match + ranqueia + persiste — **com regra "menor invasiveness primeiro, max 2 categorias, nunca 4b isolado"** (escada PR-55b) | ⏳ próximo | Sonnet | 1 dia |
+| **PR-58** | `DiagnosticPriorityService` (fórmula I×S×C×A) — usar `risk_level` + `effort_estimate` + `invasiveness_level` na fórmula | ⏳ TODO | Opus | 1 dia |
+| **PR-59** | `GET /v1/analysis/:id/narrative` (top-3 findings + top-5 recs + disclaimer) | ⏳ TODO | Sonnet | 4h |
+| **PR-60** | Python `PdfBuilder` (capa → score → findings → overlays → recs → disclaimer) | ⏳ TODO | Sonnet | 1–2 dias |
+| **PR-61** | Nest endpoint que dispara PDF, salva em MinIO | ⏳ TODO | Sonnet | 4h |
+| **PR-62** | Botão "Baixar relatório completo" no frontend | ⏳ TODO | Sonnet | 4h |
+| **PR-63** | **NOVO** — Asset pipeline para exercícios (Lottie/Rive MVP). Esquema `recommendation_asset` (id, recommendation_id, asset_type='lottie'\|'rive'\|'video'\|'image', storage_url, duration_ms, thumbnail_url, alt_text). DDL + admin CRUD para upload. | ⏳ TODO | Sonnet | 1 dia |
+| **PR-64** | **NOVO** — Player Lottie/Rive no frontend (LottieFiles ou rive-react). Card de exercício com loop visual + cronômetro isométrico + "onde deve sentir queimar" + "erros comuns". | ⏳ TODO | Sonnet | 1–2 dias |
+| **PR-65** | **NOVO** — Modo 3D (Three.js + Ready Player Me + 52 BlendShapes ARKit). Avatar com músculos visíveis (modo "raio-x"). Gating: feature behind flag, custo de bandwidth elevado. | ⏳ futuro (pós-MVP) | Opus | 3–5 dias |
+| **PR-66** | **NOVO** — Modo Espelho com IA (MediaPipe FaceMesh + overlays AR em tempo real). Feedback "relaxe a testa", "segure 5s". | ⏳ futuro (pós-MVP) | Opus | 5–7 dias |
+| **PR-67** | **NOVO** — Módulo de assinatura + tracking longitudinal (rotina diária, before/after semanal/mensal). Tabelas `treatment_routine` + `progress_snapshot`. | ⏳ futuro | Opus | 5–7 dias |
 
-**Total estimado para fechar o produto (depois de PR-22):** ~10 dias de trabalho de IA + ~3 dias de revisão humana de tom.
+**Total estimado para fechar o MVP (depois de PR-22, sem PR-65/66/67):** ~7 dias de trabalho técnico + ~2 dias de revisão de tom.
+
+**Total estimado para o "estado da arte" (com 3D + AR):** +10–15 dias adicionais.
 
 ---
 
@@ -154,6 +163,29 @@ Não é uma fronteira binária — é uma **escada de 5 níveis de invasividade*
 - extreme: aí sim libera professional_referral para bucomaxilo.
 
 Plano detalhado da implementação: [`/home/luizescobal/.claude/plans/fa-a-mais-uma-revis-o-quirky-hopper.md`](../../../.claude/plans/fa-a-mais-uma-revis-o-quirky-hopper.md). Migration aditiva: `1746000230000-M44RecommendationLadder.ts`.
+
+**Estado em 2026-05-09:** catálogo v1.0 ativo com **427 recomendações** distribuídas:
+- 24 photo (nível 0) · 2 presentation_only (0) · 30 posture (1) · 142 lifestyle (1)
+- **160 exercise (2)** · 49 styling (3) · **27 professional_referral (4b)** · 0 aesthetic_procedure (4a — pendente em PR-56b)
+- 350 com evidência (strong/moderate) · 84 anecdotal com disclaimer obrigatório
+
+Todas `professional_referral` carregam disclaimer **informativo não-prescritivo**: "A rotina do app cobre as principais melhorias possíveis sem intervenção clínica. Em casos como o seu, alguns usuários optam por consultar [especialidade]... não é exigência nem condição de melhora."
+
+### 4.4 Como ensinar exercícios ao usuário? (NOVA — surge de [`solucoes-para-rotina-de-exercicios.md`](../../../solucoes-para-rotina-de-exercicios.md))
+
+160 exercícios catalogados são inúteis se o usuário não consegue executar corretamente. Foto + texto não funcionam para músculo facial — usuário comum erra a forma e pode piorar assimetria.
+
+**Caminho recomendado em 3 níveis** (PR-63 → PR-64 → PR-65 → PR-66):
+
+| nível | tecnologia | efeito | esforço |
+|---|---|---|---|
+| **MVP** | Lottie/Rive (animação 2D vetorial) | Setas + áreas vermelhas + visão raio-X esquemática | 1–2 dias por lote de 30 animações |
+| **State of the Art** | Three.js + Ready Player Me + 52 ARKit BlendShapes | Avatar 3D com músculos visíveis; modo "raio-x" mostra masseter/hioide contraindo | 3–5 dias |
+| **Diferencial matador** | MediaPipe FaceMesh AR overlay | Câmera frontal + linhas guia em tempo real + feedback "relaxe a testa, segure 5s" | 5–7 dias |
+
+**Decisão recomendada:** começar MVP (PR-63 + PR-64 com Lottie/Rive) e adiar 3D + AR (PR-65 + PR-66) para pós-validação. Asset pipeline + ilustrador freelance para 30 animações de alta prioridade ≈ R$ 3-6k.
+
+**Schema sugerido:** tabela `recommendation_asset` (recommendation_id, asset_type, storage_url, duration_ms, alt_text, thumbnail_url) — 1:N com `recommendation_catalog`. Admin CRUD em `/admin/recommendations/:id/assets`.
 
 ### 4.3 Banding do PDF — relatório só com score >70 ou todos?
 
