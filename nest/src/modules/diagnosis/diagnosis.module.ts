@@ -9,6 +9,8 @@ import { DiagnosisController } from './diagnosis.controller.js';
 import { DiagnosticTemplatesController } from './diagnostic-templates.controller.js';
 import { TemplateRendererService } from './template-renderer.service.js';
 import { RecommendationEngine } from './recommendation-engine.service.js';
+import { RecommendationCatalogService } from './recommendation-catalog.service.js';
+import { RecommendationCatalogController } from './recommendation-catalog.controller.js';
 import { DiagnosticPriorityService } from './diagnostic-priority.service.js';
 import { NarrativeService } from './narrative.service.js';
 import { NarrativeController } from './narrative.controller.js';
@@ -45,11 +47,12 @@ import { GlobalScoreEntity } from '../analysis/infrastructure/entities/global-sc
       GlobalScoreEntity,
     ]),
   ],
-  controllers: [DiagnosisController, DiagnosticTemplatesController, NarrativeController, PdfController, RunPdfController],
+  controllers: [DiagnosisController, DiagnosticTemplatesController, RecommendationCatalogController, NarrativeController, PdfController, RunPdfController],
   providers: [
     DiagnosisService,
     TemplateRendererService,
     RecommendationEngine,
+    RecommendationCatalogService,
     DiagnosticPriorityService,
     NarrativeService,
     PdfService,
@@ -59,6 +62,7 @@ import { GlobalScoreEntity } from '../analysis/infrastructure/entities/global-sc
     DiagnosisService,
     TemplateRendererService,
     RecommendationEngine,
+    RecommendationCatalogService,
     DiagnosticPriorityService,
     NarrativeService,
     PdfService,

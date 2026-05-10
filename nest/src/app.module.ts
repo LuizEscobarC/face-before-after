@@ -13,6 +13,7 @@ import { DecisionModule } from './modules/decision/decision.module.js';
 import { ExecutionModule } from './modules/execution/execution.module.js';
 import { TrackingModule } from './modules/tracking/tracking.module.js';
 import { IdentityModule } from './modules/identity/identity.module.js';
+import { AdminModule } from './modules/admin/admin.module.js';
 
 @Module({
   imports: [
@@ -30,6 +31,7 @@ import { IdentityModule } from './modules/identity/identity.module.js';
     ExecutionModule,
     TrackingModule,
     IdentityModule,
+    AdminModule,
   ],
 })
 export class AppModule {}

@@ -286,3 +286,91 @@ export type TemplateRenderPreview = {
   regionPt: string;
   severityPt: string;
 };
+
+// ── Recommendation Catalog (Admin CRUD - PR-56) ────────────────────────────────
+
+export type RecommendationCategory = 
+  | 'photo'
+  | 'posture'
+  | 'lifestyle'
+  | 'styling'
+  | 'professional_referral'
+  | 'presentation_only';
+
+export type EffortEstimate = 'minimal' | 'low' | 'medium' | 'high' | 'very_high';
+
+export type ProfessionalType =
+  | 'orthodontist'
+  | 'dermatologist'
+  | 'surgeon'
+  | 'therapist'
+  | 'dentist'
+  | null;
+
+export type RecommendationCatalog = {
+  id: string;
+  version: string;
+  category: RecommendationCategory;
+  displayTextShortPt: string;
+  displayTextLongPt: string;
+  priorityDefault: number;
+  effortEstimate: EffortEstimate;
+  riskLevel: number;
+  requiresProfessional: boolean;
+  professionalType: ProfessionalType;
+  createdAt: string;
+};
+
+export type RecommendationCategory_Option = {
+  category: RecommendationCategory;
+};
+
+export type RecommendationFilter = {
+  category?: RecommendationCategory;
+  version?: string;
+};
+
+// ── Admin CRUDs ────────────────────────────────────────────────────────────────
+
+export type MetricIdeal = {
+  id: string;
+  metricId: string;
+  metricDefinitionVersion: string;
+  idealsVersion: string;
+  idealType: string;
+  idealCentralValue: number | null;
+  greenRangeMin: number | null;
+  greenRangeMax: number | null;
+  yellowRangeMin: number | null;
+  yellowRangeMax: number | null;
+  populationReferenceNote: string | null;
+  createdAt: string;
+};
+
+export type GlobalWeight = {
+  id: string;
+  version: string;
+  region: string;
+  weight: number;
+  createdAt: string;
+};
+
+export type BlacklistTerm = {
+  id: string;
+  version: string;
+  term: string;
+  category: string;
+  notes: string | null;
+};
+
+export type ThresholdConfig = {
+  version: string;
+  minConfidenceToDisplayMetric: number;
+  minConfidenceToShowGlobalScore: number;
+  scoreBandNoNumberMax: number;
+  scoreBandRefineMax: number;
+  scoreBandGoodMax: number;
+  disclaimerTextSnapshot: string;
+  isActive: boolean;
+  createdAt: string;
+};

@@ -5,6 +5,11 @@ import { CompareResultPage } from "./pages/CompareResultPage";
 import { FreeResultPage } from "./pages/FreeResultPage";
 import { PremiumResultPage } from "./pages/PremiumResultPage";
 import { AdminTemplatesPage } from "./pages/AdminTemplatesPage";
+import AdminRecommendationsPage from "./pages/AdminRecommendationsPage";
+import AdminMetricIdealPage from "./pages/AdminMetricIdealPage";
+import AdminGlobalWeightsPage from "./pages/AdminGlobalWeightsPage";
+import AdminBlacklistPage from "./pages/AdminBlacklistPage";
+import AdminThresholdPage from "./pages/AdminThresholdPage";
 
 export default function App() {
   return (
@@ -14,6 +19,11 @@ export default function App() {
       <Route path="/resultado/premium" element={<PremiumResultPage />} />
       <Route path="/resultado/compare" element={<CompareResultPage />} />
       <Route path="/admin/templates" element={<AdminTemplatesPage />} />
+      <Route path="/admin/recommendations" element={<AdminRecommendationsPage />} />
+      <Route path="/admin/metric-ideals" element={<AdminMetricIdealPage />} />
+      <Route path="/admin/global-weights" element={<AdminGlobalWeightsPage />} />
+      <Route path="/admin/blacklist" element={<AdminBlacklistPage />} />
+      <Route path="/admin/threshold" element={<AdminThresholdPage />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

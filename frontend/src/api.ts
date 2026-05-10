@@ -8,6 +8,12 @@ import type {
   NarrativeResponseDto,
   DiagnosticTemplate,
   TemplateMetricOption,
+  RecommendationCatalog,
+  RecommendationCategory_Option,
+  MetricIdeal,
+  GlobalWeight,
+  BlacklistTerm,
+  ThresholdConfig,
 } from "./types";
 
 // Vite dev proxy maps /v1 → orchestrator (see vite.config.ts).
@@ -338,4 +344,199 @@ export async function updateTemplate(
     throw new Error(await readError(res, 'Falha ao atualizar template.'));
   }
   return (await res.json()) as DiagnosticTemplate;
+}
+
+// ---------- Recommendations Catalog (Admin CRUD - PR-56) ----------
+
+export async function fetchRecommendationCategories(): Promise<RecommendationCategory_Option[]> {
+  const res = await fetch(`${BASE}/v1/diagnosis/recommendations/categories`);
+  if (!res.ok) {
+    throw new Error(
+      await readError(res, 'Falha ao carregar categorias de recomendações.')
+    );
+  }
+  return (await res.json()) as RecommendationCategory_Option[];
+}
+
+export async function fetchRecommendations(filter?: {
+  category?: string;
+  version?: string;
+}): Promise<RecommendationCatalog[]> {
+  const params = new URLSearchParams();
+  if (filter?.category) params.append('category', filter.category);
+  if (filter?.version) params.append('version', filter.version);
+
+  const url = `${BASE}/v1/diagnosis/recommendations${
+    params.toString() ? `?${params.toString()}` : ''
+  }`;
+  const res = await fetch(url);
+  if (!res.ok) {
+    throw new Error(
+      await readError(res, 'Falha ao carregar recomendações.')
+    );
+  }
+  return (await res.json()) as RecommendationCatalog[];
+}
+
+export async function fetchRecommendation(id: string): Promise<RecommendationCatalog> {
+  const res = await fetch(`${BASE}/v1/diagnosis/recommendations/${id}`);
+  if (!res.ok) {
+    throw new Error(
+      await readError(res, 'Falha ao carregar recomendação.')
+    );
+  }
+  return (await res.json()) as RecommendationCatalog;
+}
+
+export async function updateRecommendation(
+  id: string,
+  updates: {
+    displayTextShortPt?: string;
+    displayTextLongPt?: string;
+    category?: string;
+    priorityDefault?: number;
+    effortEstimate?: string;
+    riskLevel?: number;
+    requiresProfessional?: boolean;
+    professionalType?: string | null;
+  },
+): Promise<RecommendationCatalog> {
+  const res = await fetch(`${BASE}/v1/diagnosis/recommendations/${id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(updates),
+  });
+  if (!res.ok) {
+    throw new Error(
+      await readError(res, 'Falha ao atualizar recomendação.')
+    );
+  }
+  return (await res.json()) as RecommendationCatalog;
+}
+
+// ---------- Admin: MetricIdeal ------------------------------------------------
+
+export async function fetchMetricLabels(): Promise<{ metricId: string; label: string }[]> {
+  const res = await fetch(`${BASE}/v1/admin/metric-ideals/labels`);
+  if (!res.ok) throw new Error(await readError(res, 'Erro ao carregar labels.'));
+  return res.json();
+}
+
+export async function fetchMetricIdealVersions(): Promise<{ idealsVersion: string }[]> {
+  const res = await fetch(`${BASE}/v1/admin/metric-ideals/versions`);
+  if (!res.ok) throw new Error(await readError(res, 'Erro ao carregar versões.'));
+  return res.json();
+}
+
+export async function fetchMetricIdeals(filter?: { idealsVersion?: string; metricId?: string }): Promise<MetricIdeal[]> {
+  const params = new URLSearchParams();
+  if (filter?.idealsVersion) params.append('idealsVersion', filter.idealsVersion);
+  if (filter?.metricId) params.append('metricId', filter.metricId);
+  const url = `${BASE}/v1/admin/metric-ideals${params.toString() ? `?${params}` : ''}`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(await readError(res, 'Erro ao carregar ideais.'));
+  return res.json();
+}
+
+export async function updateMetricIdeal(id: string, body: Partial<MetricIdeal>): Promise<MetricIdeal> {
+  const res = await fetch(`${BASE}/v1/admin/metric-ideals/${id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) throw new Error(await readError(res, 'Erro ao atualizar ideal.'));
+  return res.json();
+}
+
+// ---------- Admin: GlobalWeights -----------------------------------------------
+
+export async function fetchGlobalWeightVersions(): Promise<{ version: string }[]> {
+  const res = await fetch(`${BASE}/v1/admin/global-weights/versions`);
+  if (!res.ok) throw new Error(await readError(res, 'Erro ao carregar versões.'));
+  return res.json();
+}
+
+export async function fetchGlobalWeights(version?: string): Promise<GlobalWeight[]> {
+  const url = `${BASE}/v1/admin/global-weights${version ? `?version=${version}` : ''}`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(await readError(res, 'Erro ao carregar pesos.'));
+  return res.json();
+}
+
+export async function updateGlobalWeight(id: string, weight: number): Promise<GlobalWeight> {
+  const res = await fetch(`${BASE}/v1/admin/global-weights/${id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ weight }),
+  });
+  if (!res.ok) throw new Error(await readError(res, 'Erro ao atualizar peso.'));
+  return res.json();
+}
+
+// ---------- Admin: TemplateBlacklist ------------------------------------------
+
+export async function fetchBlacklistVersions(): Promise<{ version: string }[]> {
+  const res = await fetch(`${BASE}/v1/admin/blacklist/versions`);
+  if (!res.ok) throw new Error(await readError(res, 'Erro ao carregar versões.'));
+  return res.json();
+}
+
+export async function fetchBlacklistTerms(filter?: { version?: string; category?: string }): Promise<BlacklistTerm[]> {
+  const params = new URLSearchParams();
+  if (filter?.version) params.append('version', filter.version);
+  if (filter?.category) params.append('category', filter.category);
+  const url = `${BASE}/v1/admin/blacklist${params.toString() ? `?${params}` : ''}`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(await readError(res, 'Erro ao carregar termos.'));
+  return res.json();
+}
+
+export async function createBlacklistTerm(body: { version: string; term: string; category: string; notes?: string }): Promise<BlacklistTerm> {
+  const res = await fetch(`${BASE}/v1/admin/blacklist`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) throw new Error(await readError(res, 'Erro ao criar termo.'));
+  return res.json();
+}
+
+export async function updateBlacklistTerm(id: string, body: { notes?: string; category?: string }): Promise<BlacklistTerm> {
+  const res = await fetch(`${BASE}/v1/admin/blacklist/${id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) throw new Error(await readError(res, 'Erro ao atualizar termo.'));
+  return res.json();
+}
+
+export async function deleteBlacklistTerm(id: string): Promise<{ deleted: boolean }> {
+  const res = await fetch(`${BASE}/v1/admin/blacklist/${id}`, { method: 'DELETE' });
+  if (!res.ok) throw new Error(await readError(res, 'Erro ao remover termo.'));
+  return res.json();
+}
+
+// ---------- Admin: ThresholdConfig --------------------------------------------
+
+export async function fetchThresholdConfigs(): Promise<ThresholdConfig[]> {
+  const res = await fetch(`${BASE}/v1/admin/threshold-configs`);
+  if (!res.ok) throw new Error(await readError(res, 'Erro ao carregar configs.'));
+  return res.json();
+}
+
+export async function updateThresholdConfig(version: string, body: Partial<ThresholdConfig>): Promise<ThresholdConfig> {
+  const res = await fetch(`${BASE}/v1/admin/threshold-configs/${version}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) throw new Error(await readError(res, 'Erro ao atualizar config.'));
+  return res.json();
+}
+
+export async function activateThresholdConfig(version: string): Promise<ThresholdConfig> {
+  const res = await fetch(`${BASE}/v1/admin/threshold-configs/${version}/activate`, { method: 'POST' });
+  if (!res.ok) throw new Error(await readError(res, 'Erro ao ativar config.'));
+  return res.json();
 }

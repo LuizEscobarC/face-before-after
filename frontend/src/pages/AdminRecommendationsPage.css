@@ -1,0 +1,376 @@
+/**
+ * AdminRecommendationsPage.css
+ * 
+ * Layout: 350px fixed left panel (filters + list) + flex right panel (editor + preview)
+ * Uses MVP design system colors (CSS variables from relatorio_mvp.html)
+ */
+
+.admin-recommendations-page {
+  display: grid;
+  grid-template-columns: 350px 1fr;
+  gap: 0;
+  height: 100vh;
+  background: var(--bg);
+  color: var(--text);
+}
+
+/* ─────────────────────────────────────────────────────────────────── Left Panel ─ */
+
+.recommendations-left-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  border-right: 1px solid var(--border);
+  overflow: hidden;
+}
+
+.recommendations-filters {
+  padding: 16px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.recommendations-filters label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--muted);
+}
+
+.recommendations-filters select {
+  padding: 8px 12px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  font-size: 13px;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+
+.recommendations-filters select:hover,
+.recommendations-filters select:focus {
+  border-color: var(--accent);
+  outline: none;
+}
+
+.recommendations-list {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding: 8px;
+}
+
+.recommendation-item {
+  padding: 12px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  margin-bottom: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.recommendation-item:hover {
+  background: rgba(99, 102, 241, 0.08);
+  border-color: var(--accent);
+}
+
+.recommendation-item.active {
+  background: rgba(99, 102, 241, 0.15);
+  border-color: var(--accent);
+  box-shadow: 0 0 12px rgba(99, 102, 241, 0.2);
+}
+
+.rec-id {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--accent);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rec-category {
+  font-size: 10px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.rec-preview {
+  font-size: 11px;
+  color: var(--muted);
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.no-recommendations {
+  padding: 20px;
+  text-align: center;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+/* ─────────────────────────────────────────────────────────────────── Right Panel ─ */
+
+.recommendations-right-panel {
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+  overflow: hidden;
+}
+
+.no-selection {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.recommendation-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 20px;
+  overflow-y: auto;
+  height: 100%;
+}
+
+.recommendation-editor h2 {
+  margin: 0;
+  font-size: 20px;
+  color: var(--accent2);
+  word-break: break-word;
+}
+
+.editor-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.editor-section label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.editor-section span {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--muted);
+}
+
+.editor-section textarea {
+  padding: 10px 12px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  font-family: 'Menlo', 'Monaco', monospace;
+  font-size: 13px;
+  resize: vertical;
+  transition: border-color 0.2s;
+}
+
+.editor-section textarea:focus {
+  border-color: var(--accent);
+  outline: none;
+}
+
+/* Row for grouped inputs */
+.editor-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.editor-row label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.editor-row label span {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--muted);
+}
+
+.editor-row input[type="number"],
+.editor-row input[type="text"],
+.editor-row select {
+  padding: 8px 12px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  font-size: 13px;
+  transition: border-color 0.2s;
+}
+
+.editor-row input[type="number"]:focus,
+.editor-row input[type="text"]:focus,
+.editor-row select:focus {
+  border-color: var(--accent);
+  outline: none;
+}
+
+.editor-row input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+  accent-color: var(--accent);
+  margin-top: 2px;
+}
+
+/* Actions */
+.editor-actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.save-btn {
+  padding: 10px 16px;
+  background: var(--accent);
+  border: none;
+  border-radius: 8px;
+  color: white;
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.save-btn:hover:not(:disabled) {
+  background: #5558e3;
+}
+
+.save-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.save-message {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 8px 12px;
+  border-radius: 6px;
+  transition: opacity 0.2s;
+}
+
+.save-message.success {
+  background: rgba(34, 211, 238, 0.15);
+  color: #22d3ee;
+}
+
+.save-message.error {
+  background: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
+}
+
+/* Preview section */
+.preview-section {
+  margin-top: 12px;
+  padding: 16px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.preview-section h3 {
+  margin: 0 0 12px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--accent2);
+}
+
+.preview-box {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.preview-short {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  line-height: 1.5;
+}
+
+.preview-long {
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.6;
+  padding: 10px;
+  background: var(--surface);
+  border-radius: 6px;
+  border: 1px solid var(--border);
+}
+
+.preview-meta {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.preview-meta span {
+  display: block;
+}
+
+/* ────────────────────────────────────────────────────────────────── Responsive ─ */
+
+@media (max-width: 1200px) {
+  .admin-recommendations-page {
+    grid-template-columns: 1fr;
+  }
+
+  .recommendations-left-panel {
+    display: none;
+  }
+
+  .recommendations-right-panel {
+    height: auto;
+  }
+}
+
+@media (max-width: 768px) {
+  .recommendation-editor {
+    padding: 12px;
+    gap: 12px;
+  }
+
+  .editor-row {
+    grid-template-columns: 1fr;
+  }
+
+  .save-message {
+    font-size: 11px;
+  }
+}
