@@ -82,6 +82,7 @@ _DEP_ARCH_R:     tuple[int, ...] = tuple(LM_RIGHT_BROW)
 _DEP_THICK_L:    tuple[int, ...] = tuple(LM_LEFT_BROW)
 _DEP_THICK_R:    tuple[int, ...] = tuple(LM_RIGHT_BROW)
 _DEP_TAIL_L:     tuple[int, ...] = (P_BROW_LEFT_INNER, P_BROW_LEFT_OUTER)
+_DEP_TAIL_R:     tuple[int, ...] = (P_BROW_RIGHT_INNER, P_BROW_RIGHT_OUTER)
 _DEP_INTERBROW:  tuple[int, ...] = (P_BROW_LEFT_INNER, P_BROW_RIGHT_INNER)
 
 
@@ -429,6 +430,37 @@ class BrowTailDropLeftCalculator(MetricCalculator):
             is_low_confidence=cf < LOW_CONF_THRESHOLD,
             direction=_tail_direction(v),
             dependency_landmarks=_DEP_TAIL_L,
+        )
+
+
+@register
+class BrowTailDropRightCalculator(MetricCalculator):
+    """Right brow tail drop: signed vertical offset outer − inner brow, in ICU.
+
+    Mirror of BrowTailDropLeftCalculator — completes the L/R pair (PR-C1, Wave C1).
+    Negative = outer end is above the inner end (elevated / upswept tail — ideal).
+    Positive = outer end droops below the inner corner.
+    Ideal: −0.05 ICU (same as left; Farkas 1994 / Naini 2011).
+    Green ±0.08, yellow ±0.15.
+    """
+
+    metric_id = "brow_tail_drop_r"
+    region    = "brows"
+    family    = "brows"
+    unit      = "ICU"
+
+    def compute(self, lm: NormalizedLandmarks, ctx: QualityContext) -> MetricValue:
+        v  = _tail_drop(lm, P_BROW_RIGHT_OUTER, P_BROW_RIGHT_INNER)
+        cr = _conf_raw(v, _IDEAL_TAIL_DROP, _MAX_DEV_TAIL_DROP)
+        cf = propagate(cr, ctx.quality_score, self.region, ctx.regional_penalties,
+                       ctx.get_yaw(), ctx.get_pitch(), BROW_POSE_PARAMS)
+        return MetricValue(
+            metric_id=self.metric_id, region=self.region, family=self.family,
+            unit=self.unit, value=v, error=0.03,
+            confidence_raw=cr, confidence_final=cf,
+            is_low_confidence=cf < LOW_CONF_THRESHOLD,
+            direction=_tail_direction(v),
+            dependency_landmarks=_DEP_TAIL_R,
         )
 
 

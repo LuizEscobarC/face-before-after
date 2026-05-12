@@ -35,11 +35,13 @@ from app.domain.landmarks_mesh import (
     P_LEFT_EYE_INNER,
     P_LEFT_EYE_OUTER,
     P_LEFT_EYE_TOP,
+    P_LEFT_IRIS_BOT,
     P_LEFT_IRIS_CENTER,
     P_RIGHT_EYE_BOT,
     P_RIGHT_EYE_INNER,
     P_RIGHT_EYE_OUTER,
     P_RIGHT_EYE_TOP,
+    P_RIGHT_IRIS_BOT,
     P_RIGHT_IRIS_CENTER,
 )
 from app.domain.metric_value import MetricValue
@@ -65,17 +67,27 @@ _DEP_IPD: tuple[int, ...] = (P_LEFT_IRIS_CENTER, P_RIGHT_IRIS_CENTER)
 _DEP_ICD: tuple[int, ...] = (P_LEFT_EYE_INNER, P_RIGHT_EYE_INNER)
 _DEP_TILT_L: tuple[int, ...] = (P_LEFT_EYE_INNER, P_LEFT_EYE_OUTER)
 _DEP_TILT_R: tuple[int, ...] = (P_RIGHT_EYE_INNER, P_RIGHT_EYE_OUTER)
+_DEP_SCLERAL_L: tuple[int, ...] = (P_LEFT_IRIS_BOT, P_LEFT_EYE_BOT)
+_DEP_SCLERAL_R: tuple[int, ...] = (P_RIGHT_IRIS_BOT, P_RIGHT_EYE_BOT)
+_DEP_PALPEBRAL: tuple[int, ...] = (
+    P_LEFT_EYE_INNER, P_LEFT_EYE_OUTER,
+    P_RIGHT_EYE_INNER, P_RIGHT_EYE_OUTER,
+)
 
 # Ideal values and confidence saturation references
-_IDEAL_APERTURE = 0.30        # height/width ratio
-_IDEAL_IPD      = 2.0         # intercanthal units
-_IDEAL_ICD      = 1.0         # intercanthal units (always 1.0 by normalisation)
-_IDEAL_TILT     = 0.0         # degrees
+_IDEAL_APERTURE   = 0.30   # height/width ratio
+_IDEAL_IPD        = 2.0    # intercanthal units
+_IDEAL_ICD        = 1.0    # intercanthal units (always 1.0 by normalisation)
+_IDEAL_TILT       = 0.0    # degrees
+_IDEAL_SCLERAL    = 0.0    # ICU — no inferior scleral show is ideal
+_IDEAL_PALPEBRAL  = 2.0    # degrees — slight positive bilateral tilt (Naini 2011)
 
-_MAX_DEV_APERTURE = 0.30      # aperture deviation at which conf_raw → 0
-_MAX_DEV_IPD      = 1.0
-_MAX_DEV_ICD      = 0.20
-_MAX_DEV_TILT     = 20.0      # degrees
+_MAX_DEV_APERTURE   = 0.30   # aperture deviation at which conf_raw → 0
+_MAX_DEV_IPD        = 1.0
+_MAX_DEV_ICD        = 0.20
+_MAX_DEV_TILT       = 20.0   # degrees
+_MAX_DEV_SCLERAL    = 0.05   # [0, 0.05] ICU before conf_raw → 0
+_MAX_DEV_PALPEBRAL  = 8.0    # degrees — [−6, +10] before conf_raw → 0
 
 
 # ---------------------------------------------------------------------------
@@ -137,6 +149,16 @@ def _icd_direction(icd: float) -> str:
     if abs(icd - _IDEAL_ICD) < 0.1:
         return "neutral"
     return "dilated" if icd > _IDEAL_ICD else "compressed"
+
+
+def _scleral_direction(v: float) -> str:
+    return "scleral_show" if v > 0.008 else "neutral"
+
+
+def _palpebral_direction(deg: float) -> str:
+    if 0.5 <= deg <= 5.0:
+        return "neutral"
+    return "positive_tilt" if deg > 5.0 else "negative_tilt"
 
 
 # ---------------------------------------------------------------------------
@@ -308,4 +330,151 @@ class CanthalTiltRightCalculator(MetricCalculator):
             is_low_confidence=cf < LOW_CONF_THRESHOLD,
             direction=_tilt_direction(v),
             dependency_landmarks=_DEP_TILT_R,
+        )
+
+
+@register
+class ScleralShowLowerLeftCalculator(MetricCalculator):
+    """Left inferior scleral show: gap between iris bottom and lower eyelid.
+
+    Inferior scleral show (white below the iris in primary gaze) occurs when
+    the lower eyelid is elevated above the inferior iris margin.
+
+    In normalized ICU coords (y increases downward):
+        iris_bottom_y  = lm.xy(P_LEFT_IRIS_BOT)[1]   (Mesh-478 idx 470)
+        lower_lid_y    = lm.xy(P_LEFT_EYE_BOT)[1]    (Mesh-478 idx 145)
+
+    scleral_show = max(0, iris_bottom_y − lower_lid_y)
+        > 0: lower lid is above the iris bottom → visible white strip
+        = 0: lid covers or meets the iris bottom (normal)
+
+    Ideal: 0.0 ICU. Green [0, 0.015]. Yellow [0, 0.035].
+    Direction: 'scleral_show' / 'neutral'.
+
+    References: Naini (2011) §5; Farkas (1994) eyelid morphology norms.
+    """
+
+    metric_id = "scleral_show_lower_l"
+    region    = "eyes"
+    family    = "eyes"
+    unit      = "intercanthal_units"
+
+    def compute(self, lm: NormalizedLandmarks, ctx: QualityContext) -> MetricValue:
+        iris_bot_y  = float(lm.xy(P_LEFT_IRIS_BOT)[1])
+        lower_lid_y = float(lm.xy(P_LEFT_EYE_BOT)[1])
+        v  = max(0.0, iris_bot_y - lower_lid_y)
+        cr = _conf_raw(v, _IDEAL_SCLERAL, _MAX_DEV_SCLERAL)
+        cf = propagate(cr, ctx.quality_score, self.region, ctx.regional_penalties,
+                       ctx.get_yaw(), ctx.get_pitch(), EYES_POSE_PARAMS)
+        return MetricValue(
+            metric_id=self.metric_id, region=self.region, family=self.family,
+            unit=self.unit, value=v, error=0.005,
+            confidence_raw=cr, confidence_final=cf,
+            is_low_confidence=cf < LOW_CONF_THRESHOLD,
+            direction=_scleral_direction(v),
+            dependency_landmarks=_DEP_SCLERAL_L,
+        )
+
+
+@register
+class ScleralShowLowerRightCalculator(MetricCalculator):
+    """Right inferior scleral show. Mirror of ScleralShowLowerLeftCalculator.
+
+    Uses P_RIGHT_IRIS_BOT (Mesh-478 idx 475) and P_RIGHT_EYE_BOT (idx 374).
+    Ideal: 0.0 ICU. Green [0, 0.015]. Yellow [0, 0.035].
+    """
+
+    metric_id = "scleral_show_lower_r"
+    region    = "eyes"
+    family    = "eyes"
+    unit      = "intercanthal_units"
+
+    def compute(self, lm: NormalizedLandmarks, ctx: QualityContext) -> MetricValue:
+        iris_bot_y  = float(lm.xy(P_RIGHT_IRIS_BOT)[1])
+        lower_lid_y = float(lm.xy(P_RIGHT_EYE_BOT)[1])
+        v  = max(0.0, iris_bot_y - lower_lid_y)
+        cr = _conf_raw(v, _IDEAL_SCLERAL, _MAX_DEV_SCLERAL)
+        cf = propagate(cr, ctx.quality_score, self.region, ctx.regional_penalties,
+                       ctx.get_yaw(), ctx.get_pitch(), EYES_POSE_PARAMS)
+        return MetricValue(
+            metric_id=self.metric_id, region=self.region, family=self.family,
+            unit=self.unit, value=v, error=0.005,
+            confidence_raw=cr, confidence_final=cf,
+            is_low_confidence=cf < LOW_CONF_THRESHOLD,
+            direction=_scleral_direction(v),
+            dependency_landmarks=_DEP_SCLERAL_R,
+        )
+
+
+@register
+class PalpebralFissureInclinationCalculator(MetricCalculator):
+    """Bilateral palpebral fissure inclination: mean canthal tilt (both eyes).
+
+    Distinct from per-eye canthal_tilt_l/r: this metric captures the GLOBAL
+    upslant/downslant characteristic of the face, averaging both eyes to
+    separate the bilateral trend from per-eye asymmetry.
+
+    Formula: (canthal_tilt_l + canthal_tilt_r) / 2.0  [degrees]
+    where each per-eye tilt = atan2(y_medial − y_lateral, |x_outer − x_inner|)
+    and positive = lateral canthus is higher (upward / cat-eye slant).
+
+    Ideal: 2.0° (Naini 2011 §5: 3–5° positive slant associated with femininity
+    and youth; sex-neutral midpoint 2.0° adopted).
+    Green [−1°, 5°]. Yellow [−4°, 8°].
+    Direction: 'positive_tilt' (>5°) / 'negative_tilt' (<0.5°) / 'neutral'.
+
+    References: Naini (2011) §5; Farkas (1994); Powell & Humphreys (1984).
+    """
+
+    metric_id = "palpebral_fissure_inclination"
+    region    = "eyes"
+    family    = "eyes"
+    unit      = "degrees"
+
+    def compute(self, lm: NormalizedLandmarks, ctx: QualityContext) -> MetricValue:
+        tilt_l = _canthal_tilt_deg(lm, medial=P_LEFT_EYE_INNER, lateral=P_LEFT_EYE_OUTER)
+        tilt_r = _canthal_tilt_deg(lm, medial=P_RIGHT_EYE_INNER, lateral=P_RIGHT_EYE_OUTER)
+        v  = (tilt_l + tilt_r) / 2.0
+        cr = _conf_raw(v, _IDEAL_PALPEBRAL, _MAX_DEV_PALPEBRAL)
+        cf = propagate(cr, ctx.quality_score, self.region, ctx.regional_penalties,
+                       ctx.get_yaw(), ctx.get_pitch(), EYES_POSE_PARAMS)
+        return MetricValue(
+            metric_id=self.metric_id, region=self.region, family=self.family,
+            unit=self.unit, value=v, error=0.5,
+            confidence_raw=cr, confidence_final=cf,
+            is_low_confidence=cf < LOW_CONF_THRESHOLD,
+            direction=_palpebral_direction(v),
+            dependency_landmarks=_DEP_PALPEBRAL,
+        )
+
+
+@register
+class SupratarsalFoldVisibilityCalculator(MetricCalculator):
+    """Supratarsal fold (double eyelid) visibility index.
+
+    Requires pixel-level skin-fold detection.  Mesh-478 bone/muscle landmarks
+    do not capture the upper-eyelid crease (a soft-tissue feature), so this
+    calculator returns a zero-confidence stub when only landmark data is
+    available.  Registered so Nest can seed metric_definition and list it in
+    GET /vision/capabilities; the orchestrator SKIPS compute() per DEC-10.
+
+    Future implementation: segmentation model identifying the upper-lid crease
+    will inject pixel data via QualityContext; compute() will then return a
+    score ∈ [0, 1] (0 = no fold visible, 1 = prominent fold).
+    """
+
+    metric_id              = "supratarsal_fold_visibility"
+    region                 = "eyes"
+    family                 = "eyes"
+    unit                   = "index_0_1"
+    requires_pixel_analysis: bool = True  # pipeline SKIPS this (DEC-10)
+
+    def compute(self, lm: NormalizedLandmarks, ctx: QualityContext) -> MetricValue:
+        return MetricValue(
+            metric_id=self.metric_id, region=self.region, family=self.family,
+            unit=self.unit, value=0.0, error=0.0,
+            confidence_raw=0.0, confidence_final=0.0,
+            is_low_confidence=True,
+            direction="not_computed",
+            dependency_landmarks=(),
         )

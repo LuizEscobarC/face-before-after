@@ -1,18 +1,18 @@
-"""Tests for services/metrics/global_shape.py (PR-19).
+"""Tests for services/metrics/global_shape.py (PR-19, updated PR-C1).
 
 Covers all 4 global-shape family metrics:
   - face_height_to_width_ratio  (ratio, scored)
-  - face_shape_classification   (ratio, presentation_only=True, categorical label)
+  - face_shape_classification   (ratio, scored — PR-C1 promotion, categorical label)
   - total_facial_convexity      (index_0_1, scored, uses scipy ConvexHull)
-  - e_line_deviation            (requires_pixel_analysis=True — stub)
+  - e_line_deviation            (intercanthal_units, scored — PR-C1 frontal proxy)
 
 Key invariants:
   - perfect_global_shape_face  → face_height_to_width_ratio = 1.35, shape = 'oval',
                                   convexity = 1.0, conf_raw ≥ 0.97
   - round_face                 → aspect = 0.75, direction 'round_face', shape 'round'
   - temporal_hollow_face       → convexity < 1.0, direction 'temporal_hollow'
-  - face_shape_classification  → presentation_only = True (DEC-6)
-  - e_line_deviation           → value = 0, confidence = 0, requires_pixel_analysis = True
+  - face_shape_classification  → presentation_only = False (PR-C1 promotion)
+  - e_line_deviation           → real value, unit='intercanthal_units' (PR-C1)
   - Pose: GLOBAL_SHAPE_POSE_PARAMS is balanced (yaw_weight = pitch_weight = 0.50,
           soft = 6°, hard = 18°)
   - Registry wiring for all 4 ids
@@ -42,16 +42,19 @@ _ALL_IDS = [
     "total_facial_convexity",
     "e_line_deviation",
 ]
-# IDs that are landmark-based (not pixel-dep stubs)
+# IDs that are landmark-based (all 4 after PR-C1 promotions)
 _LANDMARK_IDS = [
     "face_height_to_width_ratio",
     "face_shape_classification",
     "total_facial_convexity",
+    "e_line_deviation",
 ]
-# IDs that are scored (not presentation_only or stub)
+# IDs that are scored (all 4 after PR-C1 promotions)
 _SCORED_IDS = [
     "face_height_to_width_ratio",
+    "face_shape_classification",
     "total_facial_convexity",
+    "e_line_deviation",
 ]
 
 
@@ -118,19 +121,20 @@ class TestRegistry:
         for mid in _ALL_IDS:
             assert get(mid) is not None
 
-    def test_e_line_has_requires_pixel_analysis(self):
+    def test_e_line_does_not_require_pixel_analysis(self):
+        # PR-C1: e_line_deviation promoted to frontal 2D proxy
         calc = get("e_line_deviation")
-        assert hasattr(calc, "requires_pixel_analysis")
-        assert calc.requires_pixel_analysis is True
+        assert not getattr(calc, "requires_pixel_analysis", False)
 
     def test_landmark_metrics_do_not_require_pixel(self):
         for mid in _LANDMARK_IDS:
             calc = get(mid)
             assert not getattr(calc, "requires_pixel_analysis", False)
 
-    def test_face_shape_classification_is_presentation_only(self):
+    def test_face_shape_classification_not_presentation_only(self):
+        # PR-C1: face_shape_classification promoted to scored metric
         calc = get("face_shape_classification")
-        assert getattr(calc, "presentation_only", False) is True
+        assert not getattr(calc, "presentation_only", False)
 
     def test_scored_metrics_not_presentation_only(self):
         for mid in _SCORED_IDS:
@@ -165,7 +169,7 @@ class TestContract:
     @pytest.mark.parametrize("metric_id", _LANDMARK_IDS)
     def test_dep_landmarks_non_empty(self, metric_id, perfect_nl, default_ctx):
         r = get(metric_id).compute(perfect_nl, default_ctx)
-        assert len(r.dependency_landmarks) >= 4
+        assert len(r.dependency_landmarks) >= 2
 
     def test_face_height_to_width_unit(self, perfect_nl, default_ctx):
         assert get("face_height_to_width_ratio").compute(perfect_nl, default_ctx).unit == "ratio"
@@ -177,11 +181,11 @@ class TestContract:
         assert get("total_facial_convexity").compute(perfect_nl, default_ctx).unit == "index_0_1"
 
     def test_e_line_deviation_unit(self, perfect_nl, default_ctx):
-        assert get("e_line_deviation").compute(perfect_nl, default_ctx).unit == "ratio"
+        assert get("e_line_deviation").compute(perfect_nl, default_ctx).unit == "intercanthal_units"
 
-    def test_face_shape_classification_presentation_only_in_result(self, perfect_nl, default_ctx):
+    def test_face_shape_classification_not_presentation_only_in_result(self, perfect_nl, default_ctx):
         r = get("face_shape_classification").compute(perfect_nl, default_ctx)
-        assert r.presentation_only is True
+        assert r.presentation_only is False
 
     @pytest.mark.parametrize("metric_id", _SCORED_IDS)
     def test_scored_metrics_not_presentation_only_in_result(self, metric_id, perfect_nl, default_ctx):
@@ -282,9 +286,10 @@ class TestFaceShapeClassification:
         r = get("face_shape_classification").compute(perfect_nl, default_ctx)
         assert abs(r.value - 1.35) < 0.02
 
-    def test_presentation_only_in_result(self, perfect_nl, default_ctx):
+    def test_not_presentation_only_in_result(self, perfect_nl, default_ctx):
+        # PR-C1: face_shape_classification promoted to scored metric
         r = get("face_shape_classification").compute(perfect_nl, default_ctx)
-        assert r.presentation_only is True
+        assert r.presentation_only is False
 
     def test_confidence_raw_high_for_ideal(self, perfect_nl, default_ctx):
         r = get("face_shape_classification").compute(perfect_nl, default_ctx)
@@ -364,40 +369,34 @@ class TestTotalFacialConvexity:
 
 
 # ---------------------------------------------------------------------------
-# e_line_deviation (stub — DEC-10)
+# e_line_deviation (PR-C1: frontal 2D proxy, real implementation)
 # ---------------------------------------------------------------------------
 
 class TestELineDeviation:
-    def test_returns_zero_value(self, perfect_nl, default_ctx):
+    def test_value_non_negative(self, perfect_nl, default_ctx):
         r = get("e_line_deviation").compute(perfect_nl, default_ctx)
-        assert r.value == 0.0
+        assert r.value >= 0.0
 
-    def test_returns_zero_confidence(self, perfect_nl, default_ctx):
+    def test_confidence_positive(self, perfect_nl, default_ctx):
         r = get("e_line_deviation").compute(perfect_nl, default_ctx)
-        assert r.confidence_raw == 0.0
-        assert r.confidence_final == 0.0
-
-    def test_is_low_confidence(self, perfect_nl, default_ctx):
-        r = get("e_line_deviation").compute(perfect_nl, default_ctx)
-        assert r.is_low_confidence is True
-
-    def test_direction_indicates_stub(self, perfect_nl, default_ctx):
-        r = get("e_line_deviation").compute(perfect_nl, default_ctx)
-        assert "stub" in r.direction or "depth" in r.direction
+        assert r.confidence_raw >= 0.0
+        assert r.confidence_final >= 0.0
 
     def test_not_presentation_only(self, perfect_nl, default_ctx):
         r = get("e_line_deviation").compute(perfect_nl, default_ctx)
         assert r.presentation_only is False
 
-    def test_requires_pixel_analysis_flag(self):
-        calc = get("e_line_deviation")
-        assert getattr(calc, "requires_pixel_analysis", False) is True
+    def test_direction_is_valid(self, perfect_nl, default_ctx):
+        r = get("e_line_deviation").compute(perfect_nl, default_ctx)
+        assert r.direction in ("neutral", "left_deviation", "right_deviation")
 
-    def test_stub_same_result_regardless_of_input(self, perfect_nl, round_nl, default_ctx):
-        r1 = get("e_line_deviation").compute(perfect_nl, default_ctx)
-        r2 = get("e_line_deviation").compute(round_nl, default_ctx)
-        assert r1.value == r2.value == 0.0
-        assert r1.confidence_final == r2.confidence_final == 0.0
+    def test_unit_is_icu(self, perfect_nl, default_ctx):
+        r = get("e_line_deviation").compute(perfect_nl, default_ctx)
+        assert r.unit == "intercanthal_units"
+
+    def test_dep_landmarks_non_empty(self, perfect_nl, default_ctx):
+        r = get("e_line_deviation").compute(perfect_nl, default_ctx)
+        assert len(r.dependency_landmarks) >= 2
 
 
 # ---------------------------------------------------------------------------

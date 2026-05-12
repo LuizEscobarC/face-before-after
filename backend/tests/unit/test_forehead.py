@@ -1,15 +1,15 @@
-"""Tests for services/metrics/forehead.py (PR-18).
+"""Tests for services/metrics/forehead.py (PR-18, updated PR-C1).
 
 Covers all 4 forehead family metrics:
   - forehead_height_ratio   (ICU, landmark-based)
   - forehead_width_ratio    (ratio, landmark-based)
   - temporal_width_ratio    (ratio, landmark-based)
-  - hairline_curvature_index (requires_pixel_analysis=True — stub only)
+  - hairline_curvature_index (landmark-based proxy, PR-C1 promotion)
 
 Key invariants:
   - perfect_forehead_face → first 3 metrics at ideal, conf_raw ≥ 0.97
   - short_forehead_face   → forehead_height_ratio < green, direction = 'short_forehead'
-  - hairline_curvature_index: value=0, confidence=0, direction='not_computed'
+  - hairline_curvature_index: real value, non-zero confidence, landmark deps
   - Pose: yaw penalises more than pitch for width metrics
           (FOREHEAD_POSE_PARAMS: yaw_weight=0.60, pitch_weight=0.40)
   - Registry wiring for all 4 ids
@@ -38,11 +38,12 @@ _ALL_IDS = [
     "temporal_width_ratio",
     "hairline_curvature_index",
 ]
-# The 3 that are computable from landmarks (excludes pixel-dep stub)
+# All 4 are now computable from landmarks (hairline promoted in PR-C1)
 _LANDMARK_IDS = [
     "forehead_height_ratio",
     "forehead_width_ratio",
     "temporal_width_ratio",
+    "hairline_curvature_index",
 ]
 
 
@@ -99,10 +100,10 @@ class TestRegistry:
         for mid in _ALL_IDS:
             assert get(mid) is not None
 
-    def test_hairline_has_requires_pixel_analysis(self):
+    def test_hairline_does_not_require_pixel_analysis(self):
+        # PR-C1: hairline_curvature_index promoted to landmark-based proxy
         calc = get("hairline_curvature_index")
-        assert hasattr(calc, "requires_pixel_analysis")
-        assert calc.requires_pixel_analysis is True
+        assert not getattr(calc, "requires_pixel_analysis", False)
 
     def test_landmark_metrics_do_not_require_pixel(self):
         for mid in _LANDMARK_IDS:
@@ -373,36 +374,36 @@ class TestTemporalWidthRatio:
 
 
 # ---------------------------------------------------------------------------
-# hairline_curvature_index (pixel-dep stub)
+# hairline_curvature_index (PR-C1: promoted to landmark-based proxy)
 # ---------------------------------------------------------------------------
 
 class TestHairlineCurvatureIndex:
-    def test_stub_value_is_zero(self, perfect_nl, default_ctx):
+    def test_value_in_range(self, perfect_nl, default_ctx):
         r = get("hairline_curvature_index").compute(perfect_nl, default_ctx)
-        assert r.value == 0.0
+        assert 0.0 <= r.value <= 1.0
 
-    def test_stub_confidence_is_zero(self, perfect_nl, default_ctx):
+    def test_confidence_positive(self, perfect_nl, default_ctx):
         r = get("hairline_curvature_index").compute(perfect_nl, default_ctx)
-        assert r.confidence_raw == 0.0
-        assert r.confidence_final == 0.0
+        assert r.confidence_raw > 0.0
+        assert r.confidence_final > 0.0
 
-    def test_stub_is_low_confidence(self, perfect_nl, default_ctx):
+    def test_not_low_confidence_on_perfect(self, perfect_nl, default_ctx):
         r = get("hairline_curvature_index").compute(perfect_nl, default_ctx)
-        assert r.is_low_confidence is True
+        assert r.is_low_confidence is False
 
-    def test_stub_direction_not_computed(self, perfect_nl, default_ctx):
+    def test_direction_is_valid(self, perfect_nl, default_ctx):
         r = get("hairline_curvature_index").compute(perfect_nl, default_ctx)
-        assert r.direction == "not_computed"
+        assert r.direction in ("neutral", "prominent_arch", "flat_arch")
 
-    def test_stub_dep_landmarks_empty(self, perfect_nl, default_ctx):
+    def test_dep_landmarks_non_empty(self, perfect_nl, default_ctx):
         r = get("hairline_curvature_index").compute(perfect_nl, default_ctx)
-        assert len(r.dependency_landmarks) == 0
+        assert len(r.dependency_landmarks) >= 2
 
-    def test_stub_region_forehead(self, perfect_nl, default_ctx):
+    def test_region_forehead(self, perfect_nl, default_ctx):
         r = get("hairline_curvature_index").compute(perfect_nl, default_ctx)
         assert r.region == "forehead"
 
-    def test_stub_family_forehead(self, perfect_nl, default_ctx):
+    def test_family_forehead(self, perfect_nl, default_ctx):
         r = get("hairline_curvature_index").compute(perfect_nl, default_ctx)
         assert r.family == "forehead"
 

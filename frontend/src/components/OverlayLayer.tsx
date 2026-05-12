@@ -95,8 +95,22 @@ const DEFAULT_OVERLAYS = ["axis_vertical", "axis_intercanthal", "outline_face", 
 export interface OverlayLayerProps {
   /** Raw pixel coordinate pairs [x, y] from MediaPipe Mesh-478 (478 entries). */
   landmarks: Array<[number, number]>;
+  /** Rendered (CSS layout) width of the image in px — sets the SVG element size. */
   imageWidth: number;
+  /** Rendered (CSS layout) height of the image in px — sets the SVG element size. */
   imageHeight: number;
+  /**
+   * Natural (intrinsic) image width in px — used as the SVG viewBox width so that
+   * landmark pixel coordinates (which are in natural-image space) map correctly onto
+   * the scaled SVG.  If omitted, falls back to imageWidth (backward-compatible when
+   * imageWidth already equals naturalWidth).
+   */
+  viewBoxWidth?: number;
+  /**
+   * Natural (intrinsic) image height in px — used as the SVG viewBox height.
+   * If omitted, falls back to imageHeight.
+   */
+  viewBoxHeight?: number;
   /** Overlay IDs to render. */
   activeOverlays: string[];
   /** Metric evaluations with improvement_vector_x/y (from Nest M1 pipeline, PR-34). Required for improvement_vectors overlay. */
@@ -146,14 +160,12 @@ export function HeatmapImageLayer({
     <img
       src={url}
       alt={OVERLAY_LABELS[active] ?? "heatmap"}
-      width={imageWidth}
-      height={imageHeight}
       style={{
         position: "absolute",
         top: 0,
         left: 0,
-        width: imageWidth,
-        height: imageHeight,
+        width: "100%",
+        height: "100%",
         pointerEvents: "none",
         // alpha is already baked into the PNG by the renderer (alpha=0.55 default)
       }}
@@ -203,8 +215,10 @@ function _devColor(deviationPct: number): string {
 function FaceExtents({ landmarks }: { landmarks: Array<[number, number]>; w: number; h: number }) {
   const yTop = lm(landmarks, P_FOREHEAD_CROWN)[1];
   const yMenton = lm(landmarks, P_MENTON)[1];
-  const xL = lm(landmarks, P_LEFT_ZYGOMATIC)[0];
-  const xR = lm(landmarks, P_RIGHT_ZYGOMATIC)[0];
+  // MediaPipe "left" = person's left = viewer's right side = higher x. Use min/max so
+  // xL = image-left (lower x) and xR = image-right (higher x) regardless of labeling.
+  const xL = Math.min(lm(landmarks, P_LEFT_ZYGOMATIC)[0], lm(landmarks, P_RIGHT_ZYGOMATIC)[0]);
+  const xR = Math.max(lm(landmarks, P_LEFT_ZYGOMATIC)[0], lm(landmarks, P_RIGHT_ZYGOMATIC)[0]);
   const stroke = "#ffffff";
   return (
     <g>
@@ -225,7 +239,12 @@ function GridThirds({ landmarks, w }: { landmarks: Array<[number, number]>; w: n
   const yBrow = (lm(landmarks, P_BROW_LEFT_INNER)[1] + lm(landmarks, P_BROW_RIGHT_INNER)[1]) / 2;
   const ySub  = lm(landmarks, P_SUBNASALE)[1];
   const yMen  = lm(landmarks, P_MENTON)[1];
-  const xR    = lm(landmarks, P_RIGHT_ZYGOMATIC)[0];
+  // MediaPipe "left" landmarks are on the VIEWER'S right (higher x in image coords).
+  // Use Math.max to get the right-side x for label placement regardless of naming convention.
+  const xR = Math.max(
+    lm(landmarks, P_LEFT_ZYGOMATIC)[0],
+    lm(landmarks, P_RIGHT_ZYGOMATIC)[0],
+  );
 
   const faceH = Math.max(1, yMen - yTop);
   const upperPct  = ((yBrow - yTop) / faceH) * 100;
@@ -262,8 +281,17 @@ function GridThirds({ landmarks, w }: { landmarks: Array<[number, number]>; w: n
 function GridFifths({ landmarks }: { landmarks: Array<[number, number]>; w: number; h: number }) {
   const yTop = lm(landmarks, P_FOREHEAD_CROWN)[1];
   const yMen = lm(landmarks, P_MENTON)[1];
-  const xL   = lm(landmarks, P_LEFT_ZYGOMATIC)[0];
-  const xR   = lm(landmarks, P_RIGHT_ZYGOMATIC)[0];
+  // MediaPipe "left" = person's left = viewer's RIGHT side of image = HIGHER x.
+  // Without min/max, xL > xR → faceW is negative → Math.max(1, negative) = 1 →
+  // all 4 lines cluster at the same x pixel (the right zygomatic).
+  const xL = Math.min(
+    lm(landmarks, P_LEFT_ZYGOMATIC)[0],
+    lm(landmarks, P_RIGHT_ZYGOMATIC)[0],
+  );
+  const xR = Math.max(
+    lm(landmarks, P_LEFT_ZYGOMATIC)[0],
+    lm(landmarks, P_RIGHT_ZYGOMATIC)[0],
+  );
   const faceW = Math.max(1, xR - xL);
   const fifth = faceW / 5;
   const s = OVERLAY_STYLES.grid_fifths;
@@ -372,18 +400,23 @@ function ImprovementVectors({
   return <>{arrows}</>;
 }
 
-export function OverlayLayer({ landmarks, imageWidth, imageHeight, activeOverlays, metricEvaluations }: OverlayLayerProps) {
+export function OverlayLayer({ landmarks, imageWidth, imageHeight, viewBoxWidth, viewBoxHeight, activeOverlays, metricEvaluations }: OverlayLayerProps) {
   if (!landmarks || landmarks.length < 478) return null;
 
   const active = new Set(activeOverlays);
   const w = imageWidth;
   const h = imageHeight;
+  // viewBox uses natural/intrinsic dimensions so landmark coordinates (which are in
+  // natural-image pixel space) map correctly when the SVG element is rendered at a
+  // different (CSS-constrained) size than the original photo.
+  const vbW = viewBoxWidth ?? imageWidth;
+  const vbH = viewBoxHeight ?? imageHeight;
 
   return (
     <svg
       width={w}
       height={h}
-      viewBox={`0 0 ${w} ${h}`}
+      viewBox={`0 0 ${vbW} ${vbH}`}
       style={{
         position: "absolute",
         top: 0,

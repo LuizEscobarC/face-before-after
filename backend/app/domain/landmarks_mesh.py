@@ -69,6 +69,8 @@ P_LEFT_EYE_BOT    = 145   # lower eyelid midpoint, left  (= LM_LEFT_EYE[4])
 P_RIGHT_EYE_BOT   = 374   # lower eyelid midpoint, right (= LM_RIGHT_EYE[4])
 P_LEFT_IRIS_CENTER  = 468  # iris centre, left  (= LM_LEFT_IRIS[0])
 P_RIGHT_IRIS_CENTER = 473  # iris centre, right (= LM_RIGHT_IRIS[0])
+P_LEFT_IRIS_BOT     = 470  # left iris inferior edge  (= LM_LEFT_IRIS[2])
+P_RIGHT_IRIS_BOT    = 475  # right iris inferior edge (= LM_RIGHT_IRIS[2])
 
 
 # ---------------------------------------------------------------------------
@@ -134,6 +136,10 @@ __all__ = [
     "LM_LEFT_EYE", "LM_RIGHT_EYE", "LM_LEFT_BROW", "LM_RIGHT_BROW",
     "LM_NOSE_BRIDGE", "LM_NOSE_TIP", "LM_OUTER_MOUTH", "LM_INNER_MOUTH",
     "LM_JAWLINE", "LM_LEFT_IRIS", "LM_RIGHT_IRIS",
+    "P_LEFT_EYE_TOP", "P_RIGHT_EYE_TOP", "P_LEFT_EYE_BOT", "P_RIGHT_EYE_BOT",
+    "P_LEFT_IRIS_CENTER", "P_RIGHT_IRIS_CENTER",
+    "P_LEFT_IRIS_BOT", "P_RIGHT_IRIS_BOT",
+    "P_FOREHEAD_CROWN",
     "P_NOSE_TIP", "P_MENTON", "P_LEFT_EYE_OUTER", "P_RIGHT_EYE_OUTER",
     "P_LEFT_EYE_INNER", "P_RIGHT_EYE_INNER",
     "P_LEFT_MOUTH", "P_RIGHT_MOUTH", "P_UPPER_LIP", "P_LOWER_LIP",

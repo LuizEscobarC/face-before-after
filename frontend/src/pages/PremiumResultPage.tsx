@@ -257,7 +257,28 @@ export function PremiumResultPage() {
   const [glossary, setGlossary] = useState<Record<string, GlossaryTerm>>({});
   const [view, setView] = useState<ViewMode>("landmarks");
   const [activeOverlays, setActiveOverlays] = useState<string[]>(DEFAULT_OVERLAYS);
-  const [imgDims, setImgDims] = useState<{ w: number; h: number } | null>(null);
+  /**
+   * imgDims tracks BOTH the rendered (CSS-layout) dimensions and the natural
+   * (intrinsic) dimensions of the overlay image.
+   *
+   * - `w / h`       — rendered size from getBoundingClientRect(). Used as the SVG
+   *                   element's explicit pixel size so the overlay fills exactly the
+   *                   same area as the visible <img>.
+   * - `naturalW/H` — intrinsic pixel size. Used as the SVG viewBox so that
+   *                   landmark coordinates (produced in natural-image pixel space by
+   *                   MediaPipe) map correctly when the SVG is shown at a smaller
+   *                   CSS-constrained size than the original photo.
+   *
+   * Without separating these, the SVG was sized to naturalWidth×naturalHeight
+   * (often 1200×900) while the <img> was constrained to ~600px by CSS, causing
+   * the overlay to overflow and landmark positions to appear at the wrong location.
+   */
+  const [imgDims, setImgDims] = useState<{
+    w: number;
+    h: number;
+    naturalW: number;
+    naturalH: number;
+  } | null>(null);
 
   // PR-43 (M3.4) — before/ideal composition state
   const [beforeIdealUrl, setBeforeIdealUrl] = useState<string | null>(null);
@@ -269,6 +290,9 @@ export function PremiumResultPage() {
   // most recent URL. Without this the closure captures the initial null and
   // leaks the final blob URL on navigation away.
   const beforeIdealUrlRef = useRef<string | null>(null);
+  // Ref to the overlay image element — used by ResizeObserver to keep imgDims
+  // in sync when the window is resized (so the SVG always matches the rendered img).
+  const overlayImgRef = useRef<HTMLImageElement>(null);
 
   // PR-62 (M4.5) — PDF download state
   const [pdfLoading, setPdfLoading] = useState(false);
@@ -399,6 +423,26 @@ export function PremiumResultPage() {
       }
     };
   }, []);
+
+  // Keep imgDims in sync with the rendered size of the overlay image so the SVG
+  // stays aligned when the window is resized or the layout shifts.
+  useEffect(() => {
+    const img = overlayImgRef.current;
+    if (!img) return;
+    const observer = new ResizeObserver(() => {
+      const rect = img.getBoundingClientRect();
+      if (rect.width > 0 && rect.height > 0) {
+        setImgDims((prev) => ({
+          w: Math.round(rect.width),
+          h: Math.round(rect.height),
+          naturalW: prev?.naturalW ?? img.naturalWidth,
+          naturalH: prev?.naturalH ?? img.naturalHeight,
+        }));
+      }
+    });
+    observer.observe(img);
+    return () => observer.disconnect();
+  }, [view]); // re-attach when view changes (img mounts/unmounts)
 
   // PR-66 (M3.3) — Heatmap overlay IDs (mirrors HEATMAP_OVERLAY_IDS in OverlayLayer.tsx).
   const HEATMAP_IDS = new Set(["heatmap_asymmetry", "heatmap_ideal_adherence"]);
@@ -667,6 +711,7 @@ export function PremiumResultPage() {
                     ? narrative.findings.map((f) => ({
                         metric_id: f.metric_id,
                         severity_3: f.severity_3,
+                        severity_5: f.severity_5,           // pass all severity levels
                         narrative_text: f.narrative_text,
                         deviation_normalized: f.deviation_normalized,
                       }))
@@ -680,6 +725,7 @@ export function PremiumResultPage() {
                         .map((m) => ({
                           metric_id: m.metric_id,
                           severity_3: m.severity_3 ?? null,
+                          severity_5: m.severity_5 ?? null,  // pass all severity levels
                           narrative_text: `${m.metric_id.replace(/_/g, " ")} — severidade ${m.severity_3?.toLowerCase() ?? "indeterminada"}.`,
                           deviation_normalized: m.deviation_normalized ?? null,
                         }));
@@ -773,13 +819,22 @@ export function PremiumResultPage() {
               {view === "overlays" && originalUrl && result.landmarks && (
                 <div style={{ position: "relative", display: "inline-block" }}>
                   <img
+                    ref={overlayImgRef}
                     src={originalUrl}
                     alt="Rosto com overlays de referência"
                     className="panel-img"
                     style={{ display: "block" }}
                     onLoad={(e) => {
                       const img = e.currentTarget;
-                      setImgDims({ w: img.naturalWidth, h: img.naturalHeight });
+                      // getBoundingClientRect() gives the rendered (CSS-constrained) size.
+                      // naturalWidth/Height gives the intrinsic pixel size for the viewBox.
+                      const rect = img.getBoundingClientRect();
+                      setImgDims({
+                        w: Math.round(rect.width)  || img.naturalWidth,
+                        h: Math.round(rect.height) || img.naturalHeight,
+                        naturalW: img.naturalWidth,
+                        naturalH: img.naturalHeight,
+                      });
                     }}
                   />
                   {/* z=30 heatmap layer (PR-40/PR-66, M3.3) — server-rendered PNG.
@@ -795,6 +850,8 @@ export function PremiumResultPage() {
                     landmarks={result.landmarks}
                     imageWidth={imgDims?.w ?? 640}
                     imageHeight={imgDims?.h ?? 480}
+                    viewBoxWidth={imgDims?.naturalW}
+                    viewBoxHeight={imgDims?.naturalH}
                     activeOverlays={activeOverlays}
                     metricEvaluations={result.metric_evaluations}
                   />

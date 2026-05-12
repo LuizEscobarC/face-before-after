@@ -1,0 +1,7 @@
+         metric_id         | presentation_only | requires_pixel_analysis |   unit    
+---------------------------+-------------------+-------------------------+-----------
+ e_line_deviation          | f                 | t                       | ratio
+ face_shape_classification | t                 | f                       | ratio
+ hairline_curvature_index  | f                 | t                       | index_0_1
+(3 rows)
+

@@ -59,8 +59,10 @@ from app.domain.landmarks_mesh import (
     P_LEFT_GONION,
     P_LEFT_ZYGOMATIC,
     P_MENTON,
+    P_NOSE_TIP,
     P_RIGHT_GONION,
     P_RIGHT_ZYGOMATIC,
+    P_UPPER_LIP_TOP,
 )
 from app.domain.metric_value import MetricValue
 from app.domain.normalized_landmarks import NormalizedLandmarks
@@ -87,15 +89,18 @@ _DEP_CONVEXITY: tuple[int, ...] = (
     P_FOREHEAD_CROWN, P_BROW_LEFT_OUTER, P_LEFT_ZYGOMATIC, P_LEFT_GONION,
     P_MENTON, P_RIGHT_GONION, P_RIGHT_ZYGOMATIC, P_BROW_RIGHT_OUTER,
 )
+_DEP_E_LINE: tuple[int, ...] = (P_NOSE_TIP, P_MENTON, P_UPPER_LIP_TOP)
 
 # ---------------------------------------------------------------------------
 # Ideal central values & saturation thresholds
 # ---------------------------------------------------------------------------
 _IDEAL_ASPECT     = 1.35   # Farkas 1994 / Naini 2011 — oval face archetype
 _IDEAL_CONVEXITY  = 0.98   # near-perfectly convex frontal boundary
+_IDEAL_E_LINE_DEV = 0.0    # upper lip on the nose-chin axis (2D proxy ideal)
 
 _MAX_DEV_ASPECT     = 0.50  # aspect in [0.85, 1.85] before conf_raw → 0
 _MAX_DEV_CONVEXITY  = 0.20  # convexity in [0.78, 1.00] before conf_raw → 0
+_MAX_DEV_E_LINE_DEV = 0.08  # deviation ∈ [0, 0.08] before conf_raw → 0
 
 
 # ---------------------------------------------------------------------------
@@ -153,6 +158,49 @@ def _convexity_direction(v: float) -> str:
     if v >= 0.97:
         return "full_midface"
     return "temporal_hollow"
+
+
+def _e_line_deviation_2d(lm: NormalizedLandmarks) -> tuple[float, str]:
+    """2D proxy for Ricketts E-line deviation (PR-C1, frontal photo).
+
+    In a frontal photograph we cannot measure the true sagittal E-line, so we
+    compute the lateral deviation of the upper-lip vermilion border from the
+    nose-tip → menton vertical axis.
+
+    For a well-aligned face, P_NOSE_TIP, P_UPPER_LIP_TOP, and P_MENTON all
+    lie near the face midline (x ≈ 0). Any lateral offset of the upper lip
+    from the nose-to-chin axis is a clinically relevant asymmetry indicator.
+
+    Formula:
+        axis_x_at_lip_y = tip_x + t · (menton_x − tip_x)
+                where t = (lip_y − tip_y) / (menton_y − tip_y)
+        deviation = |lip_x − axis_x_at_lip_y|
+        direction = 'left_deviation'  if lip_x < axis_x_at_lip_y
+                    'right_deviation' if lip_x > axis_x_at_lip_y
+                    'neutral'         if deviation < 0.015 ICU
+
+    Returns (absolute_deviation, direction_str).
+    """
+    tip_x,  tip_y  = float(lm.xy(P_NOSE_TIP)[0]),      float(lm.xy(P_NOSE_TIP)[1])
+    men_x,  men_y  = float(lm.xy(P_MENTON)[0]),         float(lm.xy(P_MENTON)[1])
+    lip_x,  lip_y  = float(lm.xy(P_UPPER_LIP_TOP)[0]),  float(lm.xy(P_UPPER_LIP_TOP)[1])
+
+    dy_total = men_y - tip_y
+    if abs(dy_total) < 1e-9:
+        return 0.0, "neutral"
+
+    t = (lip_y - tip_y) / dy_total
+    axis_x = tip_x + t * (men_x - tip_x)
+    raw_dev = lip_x - axis_x   # signed; positive = lip is to the right of axis
+
+    abs_dev = abs(raw_dev)
+    if abs_dev < 0.015:
+        direction = "neutral"
+    elif raw_dev < 0:
+        direction = "left_deviation"
+    else:
+        direction = "right_deviation"
+    return abs_dev, direction
 
 
 def _polygon_convexity(lm: NormalizedLandmarks) -> float:
@@ -271,7 +319,6 @@ class FaceShapeClassificationCalculator(MetricCalculator):
     region           = "global"
     family           = "global_shape"
     unit             = "ratio"
-    presentation_only: bool = True  # type: ignore[assignment]  — hard rule DEC-6
 
     def compute(self, lm: NormalizedLandmarks, ctx: QualityContext) -> MetricValue:
         face_height  = _vdist(lm, P_FOREHEAD_CROWN, P_MENTON)
@@ -290,7 +337,6 @@ class FaceShapeClassificationCalculator(MetricCalculator):
             is_low_confidence=cf < LOW_CONF_THRESHOLD,
             direction=shape,
             dependency_landmarks=_DEP_SHAPE,
-            presentation_only=True,
         )
 
 
@@ -337,40 +383,43 @@ class TotalFacialConvexityCalculator(MetricCalculator):
 
 @register
 class ELineDeviationCalculator(MetricCalculator):
-    """Ricketts E-line deviation — requires sagittal depth data (DEC-10 stub).
+    """Ricketts E-line deviation — 2D frontal proxy (PR-C1).
 
-    The Ricketts (1954) esthetic line connects nose tip and chin tip on a
-    lateral profile photograph.  Upper-lip ideal: 4 mm posterior to E-line;
-    lower-lip ideal: 2 mm posterior.  This measurement is fundamentally a
-    sagittal (z-axis) quantity: the extent to which the lips project forward
-    relative to the nose-chin line.
+    The classical Ricketts (1954) esthetic line requires a lateral profile
+    photograph (sagittal plane).  This calculator provides a computable 2D
+    frontal proxy: the lateral deviation of the upper-lip vermilion border
+    (P_UPPER_LIP_TOP) from the nose-tip → menton vertical axis.
 
-    In a frontal 2D photograph, nose tip, upper lip, and menton all lie on
-    (approximately) the same vertical midline — the z-projection is invisible.
-    Accurate calculation requires lateral view images or 3D reconstruction,
-    neither of which is available in the current single-frontal-photo pipeline.
+    For a well-aligned, profile-symmetric face this deviation is near zero.
+    Non-zero values indicate lateral lip asymmetry or chin deviation relative
+    to the nose tip — both clinically relevant in frontal evaluations.
 
-    This calculator is REGISTERED so Nest can persist the metric_definition row
-    and include it in GET /vision/capabilities, but the NestJS orchestrator
-    SKIPS calling compute() per DEC-10 when requires_pixel_analysis=True.
-    Returns a zero-confidence stub to prevent silent downstream errors.
+    Formula (see _e_line_deviation_2d for full derivation):
+        axis_x_at_lip_y = interpolated x of the nose-to-chin line at lip_y
+        value = |lip_x − axis_x_at_lip_y| (always ≥ 0, in ICU)
+
+    Ideal: 0.0 ICU. Green [0, 0.025]. Yellow [0, 0.05].
+    Direction: 'left_deviation' / 'right_deviation' / 'neutral'.
+
+    References: Ricketts (1954); Naini (2011) §7.4; Farkas (1994).
+    Note: true sagittal E-line measurement is deferred to a multi-photo PR.
     """
 
-    metric_id              = "e_line_deviation"
-    region                 = "global"
-    family                 = "global_shape"
-    unit                   = "ratio"
-    requires_pixel_analysis: bool = True  # type: ignore[assignment]  — DEC-10 flag
+    metric_id = "e_line_deviation"
+    region    = "global"
+    family    = "global_shape"
+    unit      = "intercanthal_units"
 
     def compute(self, lm: NormalizedLandmarks, ctx: QualityContext) -> MetricValue:
-        # Stub: returns zero value with zero confidence.  The orchestrator should
-        # never call this in production (gated by requires_pixel_analysis=True).
+        v, direction = _e_line_deviation_2d(lm)
+        cr = _conf_raw(v, _IDEAL_E_LINE_DEV, _MAX_DEV_E_LINE_DEV)
+        cf = propagate(cr, ctx.quality_score, self.region, ctx.regional_penalties,
+                       ctx.get_yaw(), ctx.get_pitch(), GLOBAL_SHAPE_POSE_PARAMS)
         return MetricValue(
             metric_id=self.metric_id, region=self.region, family=self.family,
-            unit=self.unit, value=0.0, error=0.0,
-            confidence_raw=0.0, confidence_final=0.0,
-            is_low_confidence=True,
-            direction="stub_requires_depth_data",
-            dependency_landmarks=(),
-            presentation_only=False,
+            unit=self.unit, value=v, error=0.01,
+            confidence_raw=cr, confidence_final=cf,
+            is_low_confidence=cf < LOW_CONF_THRESHOLD,
+            direction=direction,
+            dependency_landmarks=_DEP_E_LINE,
         )

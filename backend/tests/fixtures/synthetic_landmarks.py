@@ -38,6 +38,7 @@ from app.domain.landmarks_mesh import (
     P_LEFT_EYE_OUTER,
     P_LEFT_EYE_TOP,
     P_LEFT_GONION,
+    P_LEFT_IRIS_BOT,
     P_LEFT_IRIS_CENTER,
     P_LEFT_MOUTH,
     P_LEFT_ZYGOMATIC,
@@ -53,6 +54,7 @@ from app.domain.landmarks_mesh import (
     P_RIGHT_EYE_OUTER,
     P_RIGHT_EYE_TOP,
     P_RIGHT_GONION,
+    P_RIGHT_IRIS_BOT,
     P_RIGHT_IRIS_CENTER,
     P_RIGHT_MOUTH,
     P_RIGHT_CHEEK,
@@ -95,6 +97,9 @@ _R_ZYGOMATIC = (_FACE_CX + _ICD_PX * 2.5, _FACE_CY)   # = (650, 300)
 _EYE_H_HALF  = 15   # half of vertical eye opening (px)
 _L_EYE_CX    = (_LEFT_OUTER[0] + _LEFT_INNER[0]) / 2    # = 300 (left eye centre x)
 _R_EYE_CX    = (_RIGHT_INNER[0] + _RIGHT_OUTER[0]) / 2  # = 500 (right eye centre x)
+# Iris radius ≈ 12 px — iris bottom sits just ABOVE lower lid (no scleral show).
+# P_LEFT_EYE_BOT = 315, iris_bot = 314 → iris_bot < lid = 0 show (clamped to 0)
+_IRIS_R_PX   = 12
 _EYE_APERTURE_PTS: dict[int, tuple[float, float]] = {
     P_LEFT_EYE_TOP:        (_L_EYE_CX, _FACE_CY - _EYE_H_HALF),   # (300, 285)
     P_LEFT_EYE_BOT:        (_L_EYE_CX, _FACE_CY + _EYE_H_HALF),   # (300, 315) overrides LM_LEFT_EYE[4]
@@ -102,6 +107,8 @@ _EYE_APERTURE_PTS: dict[int, tuple[float, float]] = {
     P_RIGHT_EYE_BOT:       (_R_EYE_CX, _FACE_CY + _EYE_H_HALF),   # (500, 315) overrides LM_RIGHT_EYE[4]
     P_LEFT_IRIS_CENTER:    (_L_EYE_CX, _FACE_CY),                   # (300, 300)
     P_RIGHT_IRIS_CENTER:   (_R_EYE_CX, _FACE_CY),                   # (500, 300)
+    P_LEFT_IRIS_BOT:       (_L_EYE_CX, _FACE_CY + _IRIS_R_PX),    # (300, 312) < lid 315 → no show
+    P_RIGHT_IRIS_BOT:      (_R_EYE_CX, _FACE_CY + _IRIS_R_PX),    # (500, 312) < lid 315 → no show
 }
 
 # Midline landmarks (on x = _FACE_CX, so x = 0 after normalization)
@@ -200,6 +207,13 @@ def _canonical_key_points() -> dict[int, tuple[float, float]]:
         # Bizygomatic anchors — face horizontal boundary for fifths calculation
         P_LEFT_ZYGOMATIC:  _L_ZYGOMATIC,
         P_RIGHT_ZYGOMATIC: _R_ZYGOMATIC,
+        # Nose bridge intermediate points — on midline for a straight bridge
+        # LM_NOSE_BRIDGE = [168 (nasion), 6, 197, 195]
+        6:   (_FACE_CX, _FACE_CY - 45),   # upper mid-bridge
+        197: (_FACE_CX, _FACE_CY - 35),   # mid bridge
+        195: (_FACE_CX, _FACE_CY - 20),   # lower mid-bridge
+        # Upper lip vermilion border — on midline (e_line_deviation = 0 for symmetric face)
+        P_UPPER_LIP_TOP: (_FACE_CX, _FACE_CY + 130),
     }
     # Eye and brow outline landmarks (symmetric in the canonical face)
     kp.update(_LEFT_EYE_PTS)

@@ -39,14 +39,18 @@ import { VisionClient } from '../vision/vision.client.js';
 
 interface FindingPayload {
   metric_id: string;
-  severity_3: string | null;
-  narrative_text: string;
-  deviation_normalized: number | null;
+  severity_3?: string | null;   // English 3-level: "mild" | "moderate" | "strong"
+  severity_5?: string | null;   // English 5-level: "minimal" | "mild" | "moderate" | "strong" | "extreme"
+  severity_pt?: string | null;  // PT-BR (already translated, passed through as-is)
+  narrative_text?: string;      // preferred: rendered text from NarrativeService
+  text_medium?: string;         // alternate field name (Python-native, passed through as-is)
+  region_pt?: string;           // PT-BR region label (optional)
+  deviation_normalized?: number | null;
 }
 
 interface RecommendationPayload {
   recommendation_id: string;
-  rank: number;
+  rank?: number;
   category: string;
   display_text_short_pt: string;
   requires_professional: boolean;
@@ -58,6 +62,39 @@ interface RunPdfRequestBody {
   findings?: FindingPayload[];
   recommendations?: RecommendationPayload[];
   disclaimer?: string;
+}
+
+// ── Severity EN → PT-BR ────────────────────────────────────────────────────
+
+const SEVERITY_PT: Record<string, string> = {
+  minimal:  'mínimo',
+  mild:     'leve',
+  moderate: 'moderado',
+  strong:   'considerável',
+  extreme:  'extremo',
+};
+
+// ── metric_id → region label PT-BR (best-effort, falls back to formatted id) ─
+
+function toRegionPt(metricId: string): string {
+  const id = metricId.toLowerCase();
+  if (/asymmetry|midline|global_asym/.test(id))                  return 'Simetria Facial';
+  if (/^brow|interbrow|brow_arch|brow_tail|brow_height/.test(id)) return 'Sobrancelhas';
+  if (/^eye|interpupillary|intercanthal|canthal/.test(id))        return 'Olhos';
+  if (/^nose|nasal|alar|dorsum|nasal_tip/.test(id))               return 'Nariz';
+  if (/^mouth|^lip|upper_lip|lower_lip|vermilion|lip_corner/.test(id)) return 'Boca';
+  if (/^jaw|gonial|mandibular|chin_height/.test(id))              return 'Mandíbula';
+  if (/zygomatic|malar|cheekbone|submalar|midface/.test(id))      return 'Maçãs do Rosto';
+  if (/^forehead|temporal|hairline/.test(id))                     return 'Testa';
+  if (/third_ratio|upper_third|middle_third|lower_third/.test(id)) return 'Terços Faciais';
+  if (/^fifth|intercanthal_to_eye/.test(id))                      return 'Quintos Faciais';
+  if (/^phi|golden/.test(id))                                     return 'Proporção Áurea';
+  if (/^face_|convexity|e_line/.test(id))                         return 'Proporção Global';
+  // fallback: "jaw_width_ratio" → "Jaw Width Ratio"
+  return metricId
+    .split('_')
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(' ');
 }
 
 const DEFAULT_DISCLAIMER =
@@ -81,12 +118,34 @@ export class RunPdfController {
     @Body() body: RunPdfRequestBody,
     @Res({ passthrough: false }) reply: FastifyReply,
   ): Promise<void> {
+    // Transform frontend FindingPayload → Python PdfBuilder FindingData
+    // Fields: narrative_text→text_medium, severity_3(EN)→severity_pt(PT-BR), derive region_pt
+    const mappedFindings = (body.findings ?? []).map((f) => ({
+      metric_id: f.metric_id,
+      region_pt: f.region_pt ?? toRegionPt(f.metric_id),
+      severity_pt:
+        f.severity_pt ??
+        SEVERITY_PT[(f.severity_5 ?? f.severity_3 ?? '').toLowerCase()] ??
+        f.severity_3 ??
+        '—',
+      text_medium: f.text_medium ?? f.narrative_text ?? '—',
+    }));
+
+    // Recommendations already match PdfBuilder.RecommendationData shape
+    const mappedRecommendations = (body.recommendations ?? []).map((r) => ({
+      recommendation_id: r.recommendation_id,
+      display_text_short_pt: r.display_text_short_pt,
+      requires_professional: r.requires_professional,
+      professional_type: r.professional_type ?? null,
+      category: r.category,
+    }));
+
     const pdfPayload = {
       report_id: runId,
       generated_at: new Date().toISOString(),
       global_score: body.global_score ?? null,
-      findings: body.findings ?? [],
-      recommendations: body.recommendations ?? [],
+      findings: mappedFindings,
+      recommendations: mappedRecommendations,
       disclaimer: body.disclaimer ?? DEFAULT_DISCLAIMER,
       rendered_asset_urls: [],
     };

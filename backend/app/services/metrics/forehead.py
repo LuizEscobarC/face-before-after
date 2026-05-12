@@ -75,6 +75,7 @@ _DEP_WIDTH:    tuple[int, ...] = (P_LEFT_EYE_OUTER, P_RIGHT_EYE_OUTER,
                                    P_LEFT_ZYGOMATIC, P_RIGHT_ZYGOMATIC)
 _DEP_TEMPORAL: tuple[int, ...] = (P_BROW_LEFT_OUTER, P_BROW_RIGHT_OUTER,
                                    P_LEFT_ZYGOMATIC, P_RIGHT_ZYGOMATIC)
+_DEP_CURVATURE: tuple[int, ...] = (P_FOREHEAD_CROWN, P_BROW_LEFT_OUTER, P_BROW_RIGHT_OUTER)
 
 # ---------------------------------------------------------------------------
 # Ideal central values & saturation thresholds
@@ -82,10 +83,12 @@ _DEP_TEMPORAL: tuple[int, ...] = (P_BROW_LEFT_OUTER, P_BROW_RIGHT_OUTER,
 _IDEAL_HEIGHT   = 1.90   # ICU — Farkas 1994: trichion→glabella ≈ 60 mm / ICD 32 mm
 _IDEAL_WIDTH    = 0.70   # ratio — Farkas outer-canthal / bizygomatic (90/128)
 _IDEAL_TEMPORAL = 0.75   # ratio — outer brow proxy for temporal crest (96/128)
+_IDEAL_CURVATURE = 0.48  # sagitta/chord — Farkas 1994: moderate forehead arch (proxy)
 
 _MAX_DEV_HEIGHT   = 1.00   # [0.90, 2.90] before conf_raw → 0
 _MAX_DEV_WIDTH    = 0.30   # [0.40, 1.00]
 _MAX_DEV_TEMPORAL = 0.30   # [0.45, 1.05]
+_MAX_DEV_CURVATURE = 0.35  # [0.13, 0.83] before conf_raw → 0
 
 
 # ---------------------------------------------------------------------------
@@ -117,6 +120,42 @@ def _temporal_direction(v: float) -> str:
     if abs(v - _IDEAL_TEMPORAL) < 0.035:
         return "neutral"
     return "wide_temporal" if v > _IDEAL_TEMPORAL else "narrow_temporal"
+
+
+def _curvature_direction(v: float) -> str:
+    if abs(v - _IDEAL_CURVATURE) < 0.08:
+        return "neutral"
+    return "prominent_arch" if v > _IDEAL_CURVATURE else "flat_arch"
+
+
+def _hairline_curvature(lm: NormalizedLandmarks) -> float:
+    """Sagitta-based curvature index of the brow-crown-brow arc.
+
+    Computes the ratio of the arc sagitta (crown height above the outer-brow
+    chord midpoint) to the outer-brow chord length. This is a landmark-based
+    proxy for the overall roundness of the upper forehead boundary.
+
+    In normalized ICU coords (y increases downward, crown has smaller y):
+        chord_midpoint_y = avg(brow_l.y, brow_r.y)
+        sagitta          = chord_midpoint_y − crown.y   (always > 0)
+        chord_length     = |brow_r.x − brow_l.x|
+        curvature_index  = sagitta / chord_length
+
+    High value (> 0.58) → prominent / round hairline arch.
+    Low value  (< 0.38) → flat or pointed forehead top.
+    """
+    crown_x  = float(lm.xy(P_FOREHEAD_CROWN)[0])  # noqa: F841 (kept for symmetry)
+    crown_y  = float(lm.xy(P_FOREHEAD_CROWN)[1])
+    brow_l_x = float(lm.xy(P_BROW_LEFT_OUTER)[0])
+    brow_l_y = float(lm.xy(P_BROW_LEFT_OUTER)[1])
+    brow_r_x = float(lm.xy(P_BROW_RIGHT_OUTER)[0])
+    brow_r_y = float(lm.xy(P_BROW_RIGHT_OUTER)[1])
+    chord_midpoint_y = (brow_l_y + brow_r_y) / 2.0
+    sagitta          = chord_midpoint_y - crown_y   # positive: crown is above chord
+    chord_length     = abs(brow_r_x - brow_l_x)
+    if chord_length < 1e-9:
+        return _IDEAL_CURVATURE  # degenerate
+    return sagitta / chord_length
 
 
 # ---------------------------------------------------------------------------
@@ -245,36 +284,41 @@ class TemporalWidthRatioCalculator(MetricCalculator):
 
 @register
 class HairlineCurvatureIndexCalculator(MetricCalculator):
-    """Curvature index of the frontal hairline contour.
+    """Curvature index of the forehead crown arc (PR-C1 landmark-based proxy).
 
-    Requires pixel-level hair/skin segmentation; cannot be derived from
-    Mesh-478 landmarks alone.  Per DEC-10, the NestJS pipeline SKIPS
-    compute() for this metric when only landmark data is available.
+    Measures the sagitta-to-chord ratio of the arc formed by
+    P_BROW_LEFT_OUTER → P_FOREHEAD_CROWN → P_BROW_RIGHT_OUTER.
 
-    This calculator is registered so that:
-    - Nest lists ``hairline_curvature_index`` in GET /vision/capabilities.
-    - The metric_definition row is seeded via migration (PR-18).
-    - Future pixel-analysis modules can call compute() with augmented ctx.
+    This is a landmark-based proxy for the general roundness of the upper
+    forehead boundary.  It replaces the pixel-level hair/skin segmentation
+    approach (DEC-10 stub) with a computable Mesh-478 measurement.
 
-    When called without pixel data (the normal case), returns a
-    zero-confidence stub with ``direction="not_computed"`` to prevent
-    silent downstream failures.
+    Formula: sagitta / chord_length
+        sagitta      = avg(brow_outer_L.y, brow_outer_R.y) - crown.y
+        chord_length = |brow_outer_R.x - brow_outer_L.x|
+
+    Ideal: 0.48 (moderate arch; Farkas 1994-aligned oval forehead proxy).
+    Green ±0.10 → [0.38, 0.58].  Yellow ±0.20 → [0.28, 0.68].
+    Direction: 'prominent_arch' (> 0.56) / 'flat_arch' (< 0.40) / 'neutral'.
+
+    References: Farkas (1994), Naini (2011) §4.
     """
 
-    metric_id             = "hairline_curvature_index"
-    region                = "forehead"
-    family                = "forehead"
-    unit                  = "index_0_1"
-    requires_pixel_analysis: bool = True  # pipeline SKIPS this (DEC-10)
+    metric_id = "hairline_curvature_index"
+    region    = "forehead"
+    family    = "forehead"
+    unit      = "index_0_1"
 
     def compute(self, lm: NormalizedLandmarks, ctx: QualityContext) -> MetricValue:
-        # Stub: returns zero-confidence sentinel.  The NestJS orchestrator
-        # must NOT call this unless pixel-analysis data is injected.
+        v  = _hairline_curvature(lm)
+        cr = _conf_raw(v, _IDEAL_CURVATURE, _MAX_DEV_CURVATURE)
+        cf = propagate(cr, ctx.quality_score, self.region, ctx.regional_penalties,
+                       ctx.get_yaw(), ctx.get_pitch(), FOREHEAD_POSE_PARAMS)
         return MetricValue(
             metric_id=self.metric_id, region=self.region, family=self.family,
-            unit=self.unit, value=0.0, error=0.0,
-            confidence_raw=0.0, confidence_final=0.0,
-            is_low_confidence=True,
-            direction="not_computed",
-            dependency_landmarks=(),
+            unit=self.unit, value=v, error=0.03,
+            confidence_raw=cr, confidence_final=cf,
+            is_low_confidence=cf < LOW_CONF_THRESHOLD,
+            direction=_curvature_direction(v),
+            dependency_landmarks=_DEP_CURVATURE,
         )
