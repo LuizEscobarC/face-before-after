@@ -6,20 +6,22 @@
 ## Auditorias / changelog técnico
 
 - [CALIBRATION_AUDIT_2026-05-12.md](./CALIBRATION_AUDIT_2026-05-12.md) — bugs de landmark (P_NOSE_RIGHT 45→278, zygomatic, lips), recalibração de ideais v1.1, painel premium (D1-D4: jawline, marquardt, fwhr, gaussianas).
+- [08-svg-overlays.md](./08-svg-overlays.md) — 5 bugs corrigidos nos overlays SVG (coordinate space, Rule of Fifths, midline, jawline), sistema de coordenadas viewBox/CSS, checklist QA visual.
 
 ---
 
 ## Arquivos neste domínio
 
-| Arquivo | Conteúdo |
-|---------|----------|
-| [01-architecture.md](./01-architecture.md) | Stack, fluxo de dados, módulos NestJS, pipeline Python |
-| [02-metrics.md](./02-metrics.md) | Catálogo completo das 93 métricas por região/família |
-| [03-calculations.md](./03-calculations.md) | Fórmulas: ICD, confidence propagation, registry pattern |
-| [04-severity-thresholds.md](./04-severity-thresholds.md) | Ranges green/yellow por métrica + stubs DEC-10 |
-| [05-report-structure.md](./05-report-structure.md) | Schema DB (metric_definition · metric_ideal · region_metric_weight) |
-| [06-visual-status.md](./06-visual-status.md) | Scores compostos: dominância, atratividade, frescor |
-| [07-recommendations.md](./07-recommendations.md) | Catálogo de recomendações e trilha de evolução |
+| Arquivo | Conteúdo | Quando ler |
+|---------|----------|------------|
+| [01-architecture.md](./01-architecture.md) | Stack, fluxo de dados, módulos NestJS, pipeline Python | sempre — base de tudo |
+| [02-metrics.md](./02-metrics.md) | Catálogo completo das 93 métricas por região/família | sessões de métricas, calculadores |
+| [03-calculations.md](./03-calculations.md) | Fórmulas: ICD, confidence propagation, registry pattern | sessões de fórmulas/calibração |
+| [04-severity-thresholds.md](./04-severity-thresholds.md) | Ranges green/yellow por métrica + stubs DEC-10 | sessões de severidade/diagnóstico |
+| [05-report-structure.md](./05-report-structure.md) | Schema DB (metric_definition · metric_ideal · region_metric_weight) | sessões de DB/DDL |
+| [06-visual-status.md](./06-visual-status.md) | Scores compostos: dominância, atratividade, frescor | sessões de visual_status, scoring |
+| [07-recommendations.md](./07-recommendations.md) | Catálogo de recomendações e trilha de evolução | sessões de recomendações/templates |
+| [08-svg-overlays.md](./08-svg-overlays.md) | SVG overlays: bugs corrigidos, coordinate space, componentes, QA | sessões de overlays, OverlayLayer |
 
 ---
 
