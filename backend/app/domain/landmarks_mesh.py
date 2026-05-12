@@ -72,6 +72,24 @@ P_RIGHT_IRIS_CENTER = 473  # iris centre, right (= LM_RIGHT_IRIS[0])
 P_LEFT_IRIS_BOT     = 470  # left iris inferior edge  (= LM_LEFT_IRIS[2])
 P_RIGHT_IRIS_BOT    = 475  # right iris inferior edge (= LM_RIGHT_IRIS[2])
 
+# ---------------------------------------------------------------------------
+# Wave C2/C3 — additional anatomical anchors (Mesh-478)
+# ---------------------------------------------------------------------------
+# Philtrum ridges — vertical crests flanking the philtrum (above upper lip).
+# Used by cupids_bow_definition + philtrum_width_ratio (Wave C2).
+P_PHILTRUM_LEFT  = 37     # upper-lip vermilion border, just left of midline
+P_PHILTRUM_RIGHT = 267    # upper-lip vermilion border, just right of midline
+
+# Masseter prominence proxies — lateral cheek points level with the mandibular
+# angle. Used by masseteric_prominence_proxy (Wave C2).
+P_MASSETER_L = 132        # left cheek lateral, ~masseter origin
+P_MASSETER_R = 361        # right cheek lateral, ~masseter origin
+
+# Tear-trough proxies — infraorbital hollow midpoints below each eye.
+# Used by infraorbital_hollow_index (Wave C3).
+P_TEAR_TROUGH_L = 228     # below left lower lid, on tear-trough line
+P_TEAR_TROUGH_R = 448     # below right lower lid, on tear-trough line
+
 
 # ---------------------------------------------------------------------------
 # Aliases for legacy raw-index access patterns scattered through the codebase.
@@ -152,6 +170,9 @@ __all__ = [
     "P_BROW_LEFT_OUTER", "P_BROW_RIGHT_OUTER",
     "P_JAW_LEFT_2", "P_JAW_LEFT_6", "P_JAW_RIGHT_14", "P_JAW_RIGHT_10",
     "P_BROW_LEFT_MID", "P_BROW_RIGHT_MID",
+    "P_PHILTRUM_LEFT", "P_PHILTRUM_RIGHT",
+    "P_MASSETER_L", "P_MASSETER_R",
+    "P_TEAR_TROUGH_L", "P_TEAR_TROUGH_R",
     "PNP_LANDMARK_INDICES",
     "MIRROR_PAIRS_JAWLINE", "MIRROR_PAIRS_BROWS", "MIRROR_PAIRS_EYES",
 ]

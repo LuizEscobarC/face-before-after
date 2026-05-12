@@ -21,5 +21,7 @@ from app.services.metrics import cheekbones as _cheekbones  # noqa: F401 — tri
 from app.services.metrics import forehead as _forehead          # noqa: F401 — triggers @register
 from app.services.metrics import global_shape as _global_shape  # noqa: F401 — triggers @register
 from app.services.metrics import phi_golden as _phi_golden      # noqa: F401 — triggers @register
+from app.services.metrics import wave_c2 as _wave_c2            # noqa: F401 — triggers @register
+from app.services.metrics import wave_c3 as _wave_c3            # noqa: F401 — triggers @register
 
 __all__ = ["symmetry", "thirds", "fifths", "eyes", "jaw", "nose", "mouth", "brows", "cheekbones", "forehead", "global_shape", "phi_golden"]

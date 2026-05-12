@@ -44,11 +44,15 @@ from app.domain.landmarks_mesh import (
     P_LEFT_ZYGOMATIC,
     P_LOWER_LIP,
     P_LOWER_LIP_BOT,
+    P_MASSETER_L,
+    P_MASSETER_R,
     P_MENTON,
     P_NASION,
     P_NOSE_LEFT,
     P_NOSE_RIGHT,
     P_NOSE_TIP,
+    P_PHILTRUM_LEFT,
+    P_PHILTRUM_RIGHT,
     P_RIGHT_EYE_BOT,
     P_RIGHT_EYE_INNER,
     P_RIGHT_EYE_OUTER,
@@ -60,6 +64,8 @@ from app.domain.landmarks_mesh import (
     P_RIGHT_CHEEK,
     P_RIGHT_ZYGOMATIC,
     P_SUBNASALE,
+    P_TEAR_TROUGH_L,
+    P_TEAR_TROUGH_R,
     P_UPPER_LIP,
     P_UPPER_LIP_TOP,
     TOTAL_LANDMARKS,
@@ -214,6 +220,35 @@ def _canonical_key_points() -> dict[int, tuple[float, float]]:
         195: (_FACE_CX, _FACE_CY - 20),   # lower mid-bridge
         # Upper lip vermilion border — on midline (e_line_deviation = 0 for symmetric face)
         P_UPPER_LIP_TOP: (_FACE_CX, _FACE_CY + 130),
+        # ── Wave C2/C3 anchors ─────────────────────────────────────────────
+        # Alar wings — at y=350, 50 px wide each side of midline (alar width = ICD)
+        P_NOSE_LEFT:  (_FACE_CX - 50, _FACE_CY + 50),   # (350, 350)
+        P_NOSE_RIGHT: (_FACE_CX + 50, _FACE_CY + 50),   # (450, 350)
+        # Lip vermilion edges (midline x):
+        #   P_UPPER_LIP_TOP=82 (cupid's bow trough/upper edge)  → y = 430
+        #   P_UPPER_LIP=13     (labiale superius / lower edge)  → y = 438
+        #   P_LOWER_LIP=14     (labiale inferius / upper edge)  → y = 446
+        #   P_LOWER_LIP_BOT=17 (lower lip lower edge)           → y = 460
+        # Vermilion heights: upper=8 px, lower=14 px → upper:lower ≈ 1:1.75
+        P_UPPER_LIP:     (_FACE_CX, _FACE_CY + 138),
+        P_LOWER_LIP:     (_FACE_CX, _FACE_CY + 146),
+        P_LOWER_LIP_BOT: (_FACE_CX, _FACE_CY + 160),
+        # Philtrum ridges — flank the cupid's bow (y just above upper lip top)
+        # Width = 36 px → ~30% of mouth width (120 px) — Naini ideal
+        P_PHILTRUM_LEFT:  (_FACE_CX - 18, _FACE_CY + 125),  # (382, 425)
+        P_PHILTRUM_RIGHT: (_FACE_CX + 18, _FACE_CY + 125),  # (418, 425)
+        # Masseter prominence anchors — lateral cheek points level with upper jaw
+        # Distance L↔R = 260 px ≈ 0.52 of bizygomatic (500 px)
+        P_MASSETER_L: (_FACE_CX - 130, _FACE_CY + 150),  # (270, 450)
+        P_MASSETER_R: (_FACE_CX + 130, _FACE_CY + 150),  # (530, 450)
+        # Tear-trough anchors — below lower lid, slight infraorbital depression
+        # eye_bot at y=315; tear-trough at y=325 → 10 px below = 0.10 ICU hollow
+        P_TEAR_TROUGH_L: (_L_EYE_CX, _FACE_CY + 25),  # (300, 325)
+        P_TEAR_TROUGH_R: (_R_EYE_CX, _FACE_CY + 25),  # (500, 325)
+        # Cheek anchors (LM_JAWLINE[3]/[13]) — for buccal_fat_index
+        # x = 200 / 600; y = 380 (between zygo y=300 and gonion y=480)
+        P_LEFT_CHEEK:  (200, _FACE_CY + 80),
+        P_RIGHT_CHEEK: (600, _FACE_CY + 80),
     }
     # Eye and brow outline landmarks (symmetric in the canonical face)
     kp.update(_LEFT_EYE_PTS)

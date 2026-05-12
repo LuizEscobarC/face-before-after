@@ -30,8 +30,15 @@ const P_BROW_LEFT_INNER  = 107;
 const P_BROW_RIGHT_INNER = 336;
 const P_SUBNASALE = 2;
 const P_FOREHEAD_CROWN  = 10;  // hairline proxy
-const P_LEFT_ZYGOMATIC  = 338; // LM_JAWLINE[1] — left temple x
-const P_RIGHT_ZYGOMATIC = 379; // LM_JAWLINE[15] — right temple x
+// Widest face landmarks in IMAGE coordinate space (x-axis).
+// MediaPipe numbers landmarks from the PERSON's perspective, so "left" landmarks
+// appear on the image-RIGHT side (higher x). The actual widest points are:
+//   454 = LM_JAWLINE[8]  — person's LEFT cheek = image-RIGHT (higher x)
+//   234 = LM_JAWLINE[28] — person's RIGHT cheek = image-LEFT  (lower  x)
+// (338 and 379 that were here before are both on the PERSON's left side —
+//  same image-right half — so faceW was always near-zero or negative.)
+const P_ZYGO_IMG_RIGHT = 454; // image-right zygomatic arch (person's left cheek)
+const P_ZYGO_IMG_LEFT  = 234; // image-left  zygomatic arch (person's right cheek)
 const LM_JAWLINE  = [10, 338, 297, 332, 284, 251, 389, 356, 454, 323, 361, 288, 397, 365, 379, 378, 400, 377, 152, 148, 176, 149, 150, 136, 172, 58, 132, 93, 234, 127, 162, 21, 54, 103, 67, 109, 10];
 
 // Anchor landmark per metric_id — hardcoded for the 4 calculators that emit improvement_vector (PR-34).
@@ -215,10 +222,9 @@ function _devColor(deviationPct: number): string {
 function FaceExtents({ landmarks }: { landmarks: Array<[number, number]>; w: number; h: number }) {
   const yTop = lm(landmarks, P_FOREHEAD_CROWN)[1];
   const yMenton = lm(landmarks, P_MENTON)[1];
-  // MediaPipe "left" = person's left = viewer's right side = higher x. Use min/max so
-  // xL = image-left (lower x) and xR = image-right (higher x) regardless of labeling.
-  const xL = Math.min(lm(landmarks, P_LEFT_ZYGOMATIC)[0], lm(landmarks, P_RIGHT_ZYGOMATIC)[0]);
-  const xR = Math.max(lm(landmarks, P_LEFT_ZYGOMATIC)[0], lm(landmarks, P_RIGHT_ZYGOMATIC)[0]);
+  // 234 = image-left zygomatic arch (lower x), 454 = image-right (higher x).
+  const xL = lm(landmarks, P_ZYGO_IMG_LEFT)[0];
+  const xR = lm(landmarks, P_ZYGO_IMG_RIGHT)[0];
   const stroke = "#ffffff";
   return (
     <g>
@@ -239,12 +245,8 @@ function GridThirds({ landmarks, w }: { landmarks: Array<[number, number]>; w: n
   const yBrow = (lm(landmarks, P_BROW_LEFT_INNER)[1] + lm(landmarks, P_BROW_RIGHT_INNER)[1]) / 2;
   const ySub  = lm(landmarks, P_SUBNASALE)[1];
   const yMen  = lm(landmarks, P_MENTON)[1];
-  // MediaPipe "left" landmarks are on the VIEWER'S right (higher x in image coords).
-  // Use Math.max to get the right-side x for label placement regardless of naming convention.
-  const xR = Math.max(
-    lm(landmarks, P_LEFT_ZYGOMATIC)[0],
-    lm(landmarks, P_RIGHT_ZYGOMATIC)[0],
-  );
+  // Use the actual widest face landmarks (zygomatic arches) for label placement.
+  const xR = lm(landmarks, P_ZYGO_IMG_RIGHT)[0];
 
   const faceH = Math.max(1, yMen - yTop);
   const upperPct  = ((yBrow - yTop) / faceH) * 100;
@@ -281,17 +283,10 @@ function GridThirds({ landmarks, w }: { landmarks: Array<[number, number]>; w: n
 function GridFifths({ landmarks }: { landmarks: Array<[number, number]>; w: number; h: number }) {
   const yTop = lm(landmarks, P_FOREHEAD_CROWN)[1];
   const yMen = lm(landmarks, P_MENTON)[1];
-  // MediaPipe "left" = person's left = viewer's RIGHT side of image = HIGHER x.
-  // Without min/max, xL > xR → faceW is negative → Math.max(1, negative) = 1 →
-  // all 4 lines cluster at the same x pixel (the right zygomatic).
-  const xL = Math.min(
-    lm(landmarks, P_LEFT_ZYGOMATIC)[0],
-    lm(landmarks, P_RIGHT_ZYGOMATIC)[0],
-  );
-  const xR = Math.max(
-    lm(landmarks, P_LEFT_ZYGOMATIC)[0],
-    lm(landmarks, P_RIGHT_ZYGOMATIC)[0],
-  );
+  // 234 = image-left zygomatic arch (lower x), 454 = image-right (higher x).
+  // These are the true widest face points for the rule-of-fifths horizontal span.
+  const xL = lm(landmarks, P_ZYGO_IMG_LEFT)[0];
+  const xR = lm(landmarks, P_ZYGO_IMG_RIGHT)[0];
   const faceW = Math.max(1, xR - xL);
   const fifth = faceW / 5;
   const s = OVERLAY_STYLES.grid_fifths;
