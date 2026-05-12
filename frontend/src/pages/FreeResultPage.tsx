@@ -86,6 +86,9 @@ export function FreeResultPage() {
             <ScoreArc score={result.score} />
             <div className="tier-badge">🏆 {result.tier}</div>
             <div className="tier-desc">{result.tier_description}</div>
+            <div style={{ marginTop: 10, fontSize: 12, color: "rgba(255,255,255,0.45)", maxWidth: 280, margin: "10px auto 0" }}>
+              Proximidade às proporções ideais medida em métricas faciais (0–100)
+            </div>
             {result.auto_crop?.applied && (
               <div style={{ marginTop: 10 }}>
                 <span className="badge-pill">✂️ Enquadramento 3x4 automático aplicado</span>
@@ -164,6 +167,40 @@ export function FreeResultPage() {
                   <div className="action-time">⏱ Resultado: {result.top_leverage.time_to_result}</div>
                 )}
               </div>
+            </div>
+          </section>
+        )}
+
+        {/* Percepção Visual — preview */}
+        {result.visual_status && (
+          <section className="section">
+            <h2 className="section-title">📈 Percepção Visual</h2>
+            <p className="section-sub">
+              Como sua face é percebida socialmente — independente das proporções geométricas. Escala 0–10.
+            </p>
+            <div style={{ display: "grid", gap: 10, marginBottom: 12 }}>
+              {[
+                { label: "Dominância", value: result.visual_status.dominance_score ?? 0, desc: "Força e autoridade percebidas — fWHR, mandíbula, proporção zigomática" },
+                { label: "Atratividade", value: result.visual_status.attractiveness_score ?? 0, desc: "Harmonia e juventude — ângulo do olhar, simetria, equilíbrio dos terços" },
+                { label: "Vitalidade", value: result.visual_status.freshness_score ?? 0, desc: "Saúde e energia — uniformidade de pele, olheiras, abertura ocular" },
+              ].map(({ label, value, desc }) => (
+                <div key={label}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+                    <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text)" }}>{label}</span>
+                    <span style={{ fontSize: 13, fontWeight: 700, color: "var(--accent2)" }}>{value.toFixed(1)}<span style={{ fontSize: 10, color: "var(--muted)" }}>/10</span></span>
+                  </div>
+                  <div style={{ height: 6, background: "rgba(255,255,255,0.07)", borderRadius: 4, overflow: "hidden" }}>
+                    <div style={{ height: "100%", width: `${value * 10}%`, background: "linear-gradient(90deg, #6366f1, #22d3ee)", borderRadius: 4 }} />
+                  </div>
+                  <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 3 }}>{desc}</div>
+                </div>
+              ))}
+            </div>
+            {result.visual_status.narrative && (
+              <p style={{ fontSize: 13, color: "var(--muted)", fontStyle: "italic", marginTop: 8 }}>{result.visual_status.narrative}</p>
+            )}
+            <div style={{ padding: "8px 10px", background: "rgba(99,102,241,0.07)", border: "1px solid rgba(99,102,241,0.15)", borderRadius: 8, fontSize: 11, color: "var(--muted)", marginTop: 10 }}>
+              ℹ️ A Pontuação Geral (0–100) mede proporções geométricas. A Percepção Visual (0–10) mede impressão social — são escalas diferentes e complementares.
             </div>
           </section>
         )}

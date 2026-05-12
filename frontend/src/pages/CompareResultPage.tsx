@@ -100,6 +100,9 @@ export function CompareResultPage() {
               </span>
             )}
           </div>
+          <div style={{ marginTop: 14, fontSize: 12, color: "rgba(255,255,255,0.4)", textAlign: "center", maxWidth: 360, margin: "14px auto 0" }}>
+            Pontuação 0–100: proximidade às proporções ideais medida em 88 métricas faciais
+          </div>
         </div>
       </div>
 
@@ -173,6 +176,56 @@ export function CompareResultPage() {
                 </tbody>
               </table>
             </div>
+          </section>
+        )}
+
+        {/* Percepção Visual comparativa */}
+        {(state?.resBefore?.visual_status || state?.resAfter?.visual_status) && (
+          <section className="section">
+            <h2 className="section-title">📈 Percepção Visual — Comparação</h2>
+            <p className="section-sub">
+              Impressão social antes e depois — independente das proporções geométricas. Escala 0–10.
+            </p>
+            <div style={{ padding: "8px 10px", background: "rgba(99,102,241,0.07)", border: "1px solid rgba(99,102,241,0.15)", borderRadius: 8, fontSize: 11, color: "var(--muted)", marginBottom: 14 }}>
+              ℹ️ A Pontuação Geral (0–100) mede proporções geométricas. A Percepção Visual (0–10) mede impressão social com base em pesquisa científica. São escalas complementares.
+            </div>
+            {[
+              { label: "Dominância", key: "dominance_score" as const, desc: "Força e autoridade percebidas" },
+              { label: "Atratividade", key: "attractiveness_score" as const, desc: "Harmonia e juventude percebidas" },
+              { label: "Vitalidade", key: "freshness_score" as const, desc: "Saúde e energia percebidas" },
+            ].map(({ label, key, desc }) => {
+              const before = state?.resBefore?.visual_status?.[key];
+              const after = state?.resAfter?.visual_status?.[key];
+              if (before == null && after == null) return null;
+              const delta = before != null && after != null ? after - before : null;
+              return (
+                <div key={key} style={{ marginBottom: 14 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 4 }}>
+                    <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text)" }}>{label}</span>
+                    <span style={{ fontSize: 12, color: "var(--muted)" }}>{desc}</span>
+                  </div>
+                  <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: 11, color: "var(--muted)", marginBottom: 3 }}>Antes: <strong style={{ color: "var(--text)" }}>{before?.toFixed(1) ?? "—"}</strong></div>
+                      <div style={{ height: 6, background: "rgba(255,255,255,0.07)", borderRadius: 4, overflow: "hidden" }}>
+                        <div style={{ height: "100%", width: `${(before ?? 0) * 10}%`, background: "rgba(99,102,241,0.6)", borderRadius: 4 }} />
+                      </div>
+                    </div>
+                    {delta != null && (
+                      <div style={{ fontSize: 13, fontWeight: 700, color: delta >= 0 ? "#22d3ee" : "#f87171", minWidth: 40, textAlign: "center" }}>
+                        {delta >= 0 ? "+" : ""}{delta.toFixed(1)}
+                      </div>
+                    )}
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: 11, color: "var(--muted)", marginBottom: 3 }}>Depois: <strong style={{ color: "var(--text)" }}>{after?.toFixed(1) ?? "—"}</strong></div>
+                      <div style={{ height: 6, background: "rgba(255,255,255,0.07)", borderRadius: 4, overflow: "hidden" }}>
+                        <div style={{ height: "100%", width: `${(after ?? 0) * 10}%`, background: "linear-gradient(90deg, #6366f1, #22d3ee)", borderRadius: 4 }} />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
           </section>
         )}
 

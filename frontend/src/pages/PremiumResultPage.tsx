@@ -733,6 +733,9 @@ export function PremiumResultPage() {
             <div className="sidebar-score-num">{result.score}</div>
             <div className="sidebar-score-label">pontuação geral</div>
             <div className="sidebar-tier">🏆 {result.tier}</div>
+            <div style={{ marginTop: 8, fontSize: 11, color: "var(--muted)", lineHeight: 1.5, textAlign: "center" }}>
+              Proximidade às proporções ideais medida em 88 métricas faciais (0–100)
+            </div>
             {result.auto_crop?.applied && (
               <div style={{ marginTop: 8, fontSize: 11, color: "var(--muted)" }}>
                 ✂️ Enquadramento auto aplicado
@@ -1082,10 +1085,32 @@ export function PremiumResultPage() {
           {result.visual_status && (
             <section className="section">
               <h2 className="section-title">📈 Percepção Visual</h2>
-              <p className="section-sub">Métricas de impacto percebido (escala 0–10).</p>
-              <BarRow label="Dominância" value={result.visual_status.dominance_score} />
-              <BarRow label="Atratividade" value={result.visual_status.attractiveness_score} />
-              <BarRow label="Vitalidade" value={result.visual_status.freshness_score} />
+              <p className="section-sub">
+                Como sua face é percebida socialmente — independente das proporções geométricas. Escala 0–10.
+              </p>
+              <div style={{ display: "grid", gap: 14, marginBottom: 16 }}>
+                <div>
+                  <BarRow label="Dominância" value={result.visual_status.dominance_score} />
+                  <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 3, paddingLeft: 2 }}>
+                    Percepção de força e autoridade — baseada em fWHR, largura mandibular e proporção zigomática
+                  </div>
+                </div>
+                <div>
+                  <BarRow label="Atratividade" value={result.visual_status.attractiveness_score} />
+                  <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 3, paddingLeft: 2 }}>
+                    Percepção de harmonia e juventude — baseada em ângulo do olhar, simetria e equilíbrio dos terços
+                  </div>
+                </div>
+                <div>
+                  <BarRow label="Vitalidade" value={result.visual_status.freshness_score} />
+                  <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 3, paddingLeft: 2 }}>
+                    Percepção de saúde e energia — baseada em uniformidade de pele, olheiras e abertura ocular
+                  </div>
+                </div>
+              </div>
+              <div style={{ padding: "10px 12px", background: "rgba(99,102,241,0.07)", border: "1px solid rgba(99,102,241,0.15)", borderRadius: 10, fontSize: 11, color: "var(--muted)", marginBottom: 12 }}>
+                ℹ️ <strong style={{ color: "var(--text)" }}>Como ler:</strong> a Pontuação Geral (0–100) mede desvio geométrico de 88 métricas. A Percepção Visual (0–10) mede impressão social com base em pesquisa científica. Os dois sistemas são complementares — um rosto pode ter proporções ideais e percepção média, ou vice-versa.
+              </div>
               {result.visual_status.narrative && (
                 <p className="narrative">{result.visual_status.narrative}</p>
               )}
