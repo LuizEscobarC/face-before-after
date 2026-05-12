@@ -1,6 +1,6 @@
 # 09 — BiSeNet Hairline Integration
 
-> Implementado: **2026-05-12**
+> Implementado: **2026-05-12** · Refinado: **2026-05-12** (threshold 0.8→0.5, scan direction, canonical storage, overlay annotations JSON)
 > Objetivo: substituir `lm[10]` (P_FOREHEAD_CROWN) como proxy de hairline pelo trichion virtual derivado do modelo BiSeNet face-parsing (ONNX, hair class=17, CelebAMask-HQ).
 
 ---

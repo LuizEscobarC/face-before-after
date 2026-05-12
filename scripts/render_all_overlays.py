@@ -49,6 +49,8 @@ from typing import Any
 import requests
 from PIL import Image, ImageDraw, ImageFont
 
+import _overlay_render as ovl  # PIL port of OverlayLayer.tsx (sibling module).
+
 # ---------------------------------------------------------------------------
 # Constants — kept in sync with frontend/src/components/OverlayLayer.tsx
 # Any drift here means the agent is reviewing a different overlay than the
@@ -92,15 +94,16 @@ OVERLAY_LABELS = {
     "ideal_proportions": "Proporções ideais",
 }
 
-SERVER_LINE_OVERLAYS = [
+SERVER_HEATMAP_OVERLAYS = ["heatmap_asymmetry", "heatmap_ideal_adherence"]
+LINE_OVERLAYS = [
     "axis_vertical",
     "axis_intercanthal",
     "grid_thirds",
     "grid_fifths",
     "outline_face",
+    "face_extents",
+    "improvement_vectors",
 ]
-SERVER_HEATMAP_OVERLAYS = ["heatmap_asymmetry", "heatmap_ideal_adherence"]
-CLIENTSIDE_OVERLAYS = ["face_extents", "improvement_vectors"]
 
 
 # ---------------------------------------------------------------------------
@@ -187,8 +190,10 @@ def call_compose(
 
 
 # ---------------------------------------------------------------------------
-# Client-side overlay renderers (only for IDs not yet in /vision/render)
-# Constants must mirror frontend/src/components/OverlayLayer.tsx.
+# Client-side overlay renderers
+#   Lines/face_extents/improvement_vectors are rendered by ``_overlay_render``
+#   (PIL port of OverlayLayer.tsx). Heatmaps still come from /vision/render
+#   because they require scipy interpolation + density gating.
 # ---------------------------------------------------------------------------
 
 def _font(size: int = 14) -> ImageFont.FreeTypeFont | ImageFont.ImageFont:
@@ -200,72 +205,40 @@ def _font(size: int = 14) -> ImageFont.FreeTypeFont | ImageFont.ImageFont:
     return ImageFont.load_default()
 
 
-def render_face_extents(image_bytes: bytes, lm: list[list[float]],
-                        trichion_source: str | None) -> bytes:
-    """Bounding box anchored at lm[10]/lm[152]/lm[234]/lm[454]."""
-    img = Image.open(io.BytesIO(image_bytes)).convert("RGBA")
-    draw = ImageDraw.Draw(img, "RGBA")
-    x_l = float(lm[P_ZYGO_IMG_LEFT][0])
-    x_r = float(lm[P_ZYGO_IMG_RIGHT][0])
-    y_top = float(lm[P_FOREHEAD_CROWN][1])
-    y_men = float(lm[P_MENTON][1])
-    draw.rectangle([(x_l, y_top), (x_r, y_men)], outline=FACE_EXTENTS_STROKE, width=2)
-    label_top = "Trichion (BiSeNet)" if trichion_source == "bisenet" else "Trichion (mesh)"
-    font = _font(14)
-    draw.text((x_l + 4, max(0, y_top - 18)), label_top, fill=FACE_EXTENTS_STROKE, font=font)
-    draw.text((x_l + 4, y_men + 4), "Menton", fill=FACE_EXTENTS_STROKE, font=font)
-    out = io.BytesIO()
-    img.convert("RGB").save(out, format="PNG")
-    return out.getvalue()
+def render_line_overlay(
+    image_bytes: bytes,
+    overlay_id: str,
+    lm: list[list[float]],
+    metric_evals: list[dict],
+    trichion_source: str | None,
+) -> tuple[bytes, dict[str, Any]]:
+    """Dispatch to the correct PIL renderer for a single line overlay.
 
-
-def render_improvement_vectors(image_bytes: bytes, lm: list[list[float]],
-                               metric_evals: list[dict]) -> bytes:
-    """Arrows from anchor landmark in direction of (improvement_vector_x, _y).
-
-    Vector units are intercanthal-units (ICU). Scale to pixels using
-    ICD = ||lm[133] - lm[362]||. Color by `severity5` (defaults `moderate`).
+    Returns ``(png_bytes, info)``. ``info`` carries diagnostic metadata
+    (e.g. arrow count for improvement_vectors).
     """
-    img = Image.open(io.BytesIO(image_bytes)).convert("RGBA")
-    draw = ImageDraw.Draw(img, "RGBA")
-    icd = math.hypot(
-        lm[P_LEFT_EYE_INNER][0] - lm[P_RIGHT_EYE_INNER][0],
-        lm[P_LEFT_EYE_INNER][1] - lm[P_RIGHT_EYE_INNER][1],
-    )
-    if icd <= 0:
-        return image_bytes
-    drawn = 0
-    for m in metric_evals:
-        anchor = m.get("anchor_landmark_index")
-        if anchor is None:
-            deps = m.get("dependency_landmarks") or []
-            anchor = deps[0] if deps else None
-        if anchor is None or anchor < 0 or anchor >= len(lm):
-            continue
-        vx = m.get("improvement_vector_x")
-        vy = m.get("improvement_vector_y")
-        if (vx is None or vx == 0) and (vy is None or vy == 0):
-            continue
-        sev = (m.get("severity5") or "moderate").lower()
-        color = SEVERITY_ARROW_COLORS.get(sev, SEVERITY_ARROW_COLORS["moderate"])
-        x0 = float(lm[anchor][0]); y0 = float(lm[anchor][1])
-        # ICU scaling clipped at 1.0 ICU so a runaway vector doesn't fly off-canvas.
-        dx = max(-1.0, min(1.0, float(vx or 0.0))) * icd
-        dy = max(-1.0, min(1.0, float(vy or 0.0))) * icd
-        x1 = x0 + dx; y1 = y0 + dy
-        draw.line([(x0, y0), (x1, y1)], fill=color, width=2)
-        # arrowhead
-        ang = math.atan2(dy, dx)
-        head = max(6.0, icd * 0.06)
-        for sign in (+1, -1):
-            ax = x1 - head * math.cos(ang - sign * 0.4)
-            ay = y1 - head * math.sin(ang - sign * 0.4)
-            draw.line([(x1, y1), (ax, ay)], fill=color, width=2)
-        drawn += 1
-    print(f"  (improvement_vectors: drew {drawn} arrows)")
-    out = io.BytesIO()
-    img.convert("RGB").save(out, format="PNG")
-    return out.getvalue()
+    base = Image.open(io.BytesIO(image_bytes))
+    info: dict[str, Any] = {}
+    if overlay_id == "axis_vertical":
+        out = ovl.draw_axis_vertical(base, lm)
+    elif overlay_id == "axis_intercanthal":
+        out = ovl.draw_axis_intercanthal(base, lm)
+    elif overlay_id == "grid_thirds":
+        out = ovl.draw_grid_thirds(base, lm, metric_evals)
+    elif overlay_id == "grid_fifths":
+        out = ovl.draw_grid_fifths(base, lm)
+    elif overlay_id == "outline_face":
+        out = ovl.draw_outline_face(base, lm, metric_evals)
+    elif overlay_id == "face_extents":
+        out = ovl.draw_face_extents(base, lm, trichion_source, metric_evals)
+    elif overlay_id == "improvement_vectors":
+        out, drawn = ovl.draw_improvement_vectors(base, lm, metric_evals)
+        info["arrows_drawn"] = drawn
+    else:
+        raise ValueError(f"Unknown line overlay id: {overlay_id}")
+    buf = io.BytesIO()
+    out.convert("RGB").save(buf, format="PNG")
+    return buf.getvalue(), info
 
 
 # ---------------------------------------------------------------------------
@@ -536,10 +509,10 @@ def main(argv: list[str] | None = None) -> int:
     out_dir: Path = args.out or Path("review") / stem
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    print(f"[1/6] Probing API at {args.api} ...")
+    print(f"[1/5] Probing API at {args.api} ...")
     probe_api(args.api)
 
-    print(f"[2/6] Running full pipeline on {image_path.name} ...")
+    print(f"[2/5] Running full pipeline on {image_path.name} ...")
     pipe = call_full_pipeline(args.api, image_path)
     report = pipe.get("result") or {}
     report.setdefault("run_id", pipe.get("run_id"))
@@ -558,24 +531,47 @@ def main(argv: list[str] | None = None) -> int:
     image_bytes = image_path.read_bytes()
     image_name = image_path.name
 
-    # The /vision/render endpoint draws onto the ORIGINAL upload, not the
-    # cropped/aligned canvas the pipeline used internally. Landmarks coming
-    # back from the pipeline are in the same coordinate space as the upload,
-    # so this matches frontend behavior (which also uses the upload image).
+    # Landmarks returned by the pipeline are in the CANONICAL frame
+    # (cropped + rotation-corrected). The PIL renders must use the same
+    # frame so landmark coordinates fall on the right pixels.
+    # The /vision/render server endpoint handles this internally; only the
+    # client-side PIL renders need this adjustment.
+    crop_info = report.get("auto_crop") or {}
+    rotation_deg = float(report.get("rotation_correction_degrees") or 0.0)
+    if crop_info.get("applied") or abs(rotation_deg) > 0.1:
+        canonical_img = Image.open(io.BytesIO(image_bytes))
+        if abs(rotation_deg) > 0.1:
+            canonical_img = canonical_img.rotate(-rotation_deg, expand=True, resample=Image.BICUBIC)
+        bbox = crop_info.get("crop_bbox")
+        if bbox and len(bbox) == 4:
+            canonical_img = canonical_img.crop(tuple(bbox))
+        buf = io.BytesIO()
+        canonical_img.save(buf, format="JPEG", quality=95)
+        pil_image_bytes = buf.getvalue()
+    else:
+        pil_image_bytes = image_bytes
+
     artifacts: list[tuple[str, str | None]] = []
 
-    print("[3/6] Server-rendered line overlays ...")
-    for oid in SERVER_LINE_OVERLAYS:
-        png = call_render(args.api, image_bytes, image_name, landmarks, oid)
-        out_name = f"{stem}_{oid}.png"
-        if png:
-            (out_dir / out_name).write_bytes(png)
-            print(f"      ✓ {out_name}")
-            artifacts.append((oid, out_name))
-        else:
+    print("[3/5] PIL-rendered line overlays (mirrors OverlayLayer.tsx) ...")
+    for oid in LINE_OVERLAYS:
+        try:
+            png, info = render_line_overlay(
+                pil_image_bytes, oid, landmarks, metric_evals, trichion_source,
+            )
+        except Exception as exc:
+            print(f"      ! {oid}: {exc}", file=sys.stderr)
             artifacts.append((oid, None))
+            continue
+        out_name = f"{stem}_{oid}.png"
+        (out_dir / out_name).write_bytes(png)
+        suffix = ""
+        if "arrows_drawn" in info:
+            suffix = f" (arrows={info['arrows_drawn']})"
+        print(f"      ✓ {out_name}{suffix}")
+        artifacts.append((oid, out_name))
 
-    print("[4/6] Server-rendered heatmaps ...")
+    print("[4/5] Server-rendered heatmaps + composer + panels ...")
     region_adherence = build_region_adherence(report)
     for oid in SERVER_HEATMAP_OVERLAYS:
         ra = region_adherence if oid == "heatmap_ideal_adherence" else None
@@ -592,17 +588,6 @@ def main(argv: list[str] | None = None) -> int:
             artifacts.append((oid, out_name))
         else:
             artifacts.append((oid, None))
-
-    print("[5/6] Client-side overlays + composer + panels ...")
-    fe_png = render_face_extents(image_bytes, landmarks, trichion_source)
-    (out_dir / f"{stem}_face_extents.png").write_bytes(fe_png)
-    print(f"      ✓ {stem}_face_extents.png (clientside)")
-    artifacts.append(("face_extents", f"{stem}_face_extents.png"))
-
-    iv_png = render_improvement_vectors(image_bytes, landmarks, metric_evals)
-    (out_dir / f"{stem}_improvement_vectors.png").write_bytes(iv_png)
-    print(f"      ✓ {stem}_improvement_vectors.png (clientside)")
-    artifacts.append(("improvement_vectors", f"{stem}_improvement_vectors.png"))
 
     offsets = build_compose_offsets(metric_evals)
     cmp_png = call_compose(args.api, image_bytes, image_name, landmarks, offsets)
@@ -626,7 +611,7 @@ def main(argv: list[str] | None = None) -> int:
     print(f"      ✓ {ip_name}")
     artifacts.append(("ideal_proportions", ip_name))
 
-    print("[6/6] Building contact sheet ...")
+    print("[5/5] Building contact sheet ...")
     index = build_index_html(out_dir, stem, report, artifacts)
     print(f"      ✓ {index}")
     print()

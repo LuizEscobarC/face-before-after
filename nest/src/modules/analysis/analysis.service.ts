@@ -11,6 +11,7 @@ export interface AnalysisResultDto {
   run_id: string;
   output_dir: string;
   photo_url?: string;
+  canonical_url?: string;
   result: Record<string, unknown>;
   quality?: PhotoQualityDecisionDto;
 }
@@ -81,6 +82,7 @@ export class AnalysisService {
       run_id: pipelineResponse.run_id,
       output_dir: pipelineResponse.output_dir,
       photo_url: pipelineResponse.photo_url,
+      canonical_url: pipelineResponse.canonical_url ?? pipelineResponse.photo_url,
       result: pipelineResponse.result,
       quality: qualityDecision,
     };

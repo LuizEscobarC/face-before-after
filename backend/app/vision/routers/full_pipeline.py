@@ -67,20 +67,29 @@ async def _execute(image_bytes: bytes, filename: str, mode: str, storage: MinIOS
         logger.exception("Pipeline error for run_id=%s", run_id)
         raise HTTPException(status_code=500, detail=f"Internal error: {exc}") from exc
 
-    photo_url: str | None = None
-    if storage:
+    # The canonical (cropped + aligned) image is the single source of truth for
+    # every downstream renderer and metric.  We upload IT to MinIO (not the raw
+    # user upload).  The raw upload stays local in out_dir for debug only.
+    canonical_url: str | None = None
+    canonical_path = (result or {}).get("canonical_image_path") if isinstance(result, dict) else None
+    if storage and canonical_path:
         try:
-            minio_path = f"uploads/{run_id}/{safe_name}"
-            storage.upload_file(image_bytes, minio_path)
-            photo_url = f"minio://{minio_path}"
+            with open(canonical_path, "rb") as _cf:
+                canonical_bytes = _cf.read()
+            minio_canonical_path = f"runs/{run_id}/canonical.jpg"
+            storage.upload_file(canonical_bytes, minio_canonical_path)
+            canonical_url = f"minio://{minio_canonical_path}"
         except Exception:
-            logger.warning("MinIO upload failed for run_id=%s", run_id)
+            logger.warning("MinIO canonical upload failed for run_id=%s", run_id)
 
     if isinstance(result, dict):
         result = sanitize_numpy(result)
         result["run_id"] = run_id
         result["output_dir"] = str(out_dir)
-        result["photo_url"] = photo_url
+        result["canonical_url"] = canonical_url
+        # Backwards compatibility: keep photo_url populated with the canonical URL
+        # so older clients that still read photo_url get the right image.
+        result["photo_url"] = canonical_url
 
     # Save fingerprint sidecar for consistency score in compare runs.
     try:
@@ -112,7 +121,7 @@ async def _execute(image_bytes: bytes, filename: str, mode: str, storage: MinIOS
     return FullPipelineResponse(
         run_id=run_id,
         output_dir=str(out_dir),
-        photo_url=photo_url,
+        photo_url=canonical_url,
         result=result if isinstance(result, dict) else {"value": result},
     )
 

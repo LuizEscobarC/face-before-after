@@ -19,6 +19,7 @@ from __future__ import annotations
 import logging
 import threading
 import time
+import os
 from pathlib import Path
 
 import cv2
@@ -29,7 +30,41 @@ logger = logging.getLogger(__name__)
 # --------------------------------------------------------------------------- #
 # Constants
 # --------------------------------------------------------------------------- #
-_MODEL_PATH = Path(__file__).resolve().parents[5] / "backend" / "models" / "bisenet_face_parsing.onnx"
+
+
+def _resolve_model_path() -> Path:
+    """Locate the BiSeNet ONNX model.
+
+    Resolution order:
+      1. ``BISENET_ONNX_PATH`` env var (absolute path).
+      2. ``/app/backend/models/bisenet_face_parsing.onnx`` (Docker layout).
+      3. ``<repo_root>/backend/models/bisenet_face_parsing.onnx`` (host dev).
+
+    Returns the first existing path; if none exist, returns option 2 so the
+    later ``Path.exists()`` check raises a meaningful FileNotFoundError.
+    """
+    env = os.environ.get("BISENET_ONNX_PATH")
+    if env:
+        return Path(env)
+
+    docker_path = Path("/app/backend/models/bisenet_face_parsing.onnx")
+    if docker_path.exists():
+        return docker_path
+
+    # Walk up from this file looking for backend/models/bisenet_face_parsing.onnx.
+    here = Path(__file__).resolve()
+    for parent in here.parents:
+        candidate = parent / "backend" / "models" / "bisenet_face_parsing.onnx"
+        if candidate.exists():
+            return candidate
+        candidate2 = parent / "models" / "bisenet_face_parsing.onnx"
+        if candidate2.exists():
+            return candidate2
+
+    return docker_path
+
+
+_MODEL_PATH = _resolve_model_path()
 _INPUT_SIZE  = 512          # BiSeNet canonical input (square)
 _HAIR_CLASS  = 17           # CelebAMask-HQ label for "hair"
 _FACE_CLASSES = {1}         # "skin" — extend as needed

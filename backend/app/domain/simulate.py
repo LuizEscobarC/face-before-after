@@ -228,6 +228,7 @@ def symmetrize(
 def annotate_ideal_proportions(
     image: np.ndarray,
     landmarks: Landmarks,
+    trichion_y_override: int | None = None,
 ) -> np.ndarray:
     """Retorna imagem com guias de proporções ideais sobrepostas.
 
@@ -250,7 +251,7 @@ def annotate_ideal_proportions(
     #    - y_menton : base do queixo
     #    - x_temple_l/r : têmporas (zigomáticos)
     # ------------------------------------------------------------------
-    y_top = int(lm[P_FOREHEAD_CROWN][1])
+    y_top = int(trichion_y_override) if trichion_y_override is not None else int(lm[P_FOREHEAD_CROWN][1])
     y_brow = int((lm[P_BROW_LEFT_INNER][1] + lm[P_BROW_RIGHT_INNER][1]) / 2)
     y_sub = int(lm[P_SUBNASALE][1])
     y_menton = int(lm[P_MENTON][1])
@@ -263,8 +264,7 @@ def annotate_ideal_proportions(
     # Linhas sólidas nas extremidades horizontais (têmporas)
     cv2.line(img, (x_temple_l, y_top), (x_temple_l, y_menton), _WHITE, 2, cv2.LINE_AA)
     cv2.line(img, (x_temple_r, y_top), (x_temple_r, y_menton), _WHITE, 2, cv2.LINE_AA)
-    _label(img, "Hairline", (x_temple_l + 4, y_top - 4), color=_WHITE)
-    _label(img, "Menton", (x_temple_l + 4, y_menton + 16), color=_WHITE)
+    # Labels (Hairline / Menton) renderizados pela React sidebar — sem burned-in text.
 
     # ------------------------------------------------------------------
     # 2. Terços horizontais reais (hairline → sobrancelhas → subnasale → menton)
@@ -285,29 +285,10 @@ def annotate_ideal_proportions(
     for y_line in (y_t1_ideal, y_t2_ideal):
         _draw_dashed_line(img, (0, y_line), (w, y_line), _GREEN, thickness=1)
 
-    # Labels com porcentagens dentro de cada terço
-    label_x = max(4, x_temple_r + 6)
-    if label_x + 160 > w:
-        label_x = max(4, x_temple_l - 165)
-    _label(
-        img,
-        f"T1 {upper_pct:.0f}% (33%)",
-        (label_x, y_top + (y_brow - y_top) // 2),
-        color=_deviation_color(upper_pct - 33.0),
-    )
-    _label(
-        img,
-        f"T2 {middle_pct:.0f}% (33%)",
-        (label_x, y_brow + (y_sub - y_brow) // 2),
-        color=_deviation_color(middle_pct - 33.0),
-    )
-    _label(
-        img,
-        f"T3 {lower_pct:.0f}% (33%)",
-        (label_x, y_sub + (y_menton - y_sub) // 2),
-        color=_deviation_color(lower_pct - 33.0),
-    )
-    _label(img, "Terços ideais", (5, y_t1_ideal - 5), color=_GREEN)
+    # T1/T2/T3 percentages, deviations and "Terços ideais" caption are now
+    # rendered by the React sidebar (overlay_annotations.grid_thirds) — no
+    # burned-in text here.
+    _ = (upper_pct, middle_pct, lower_pct)  # keep computation for parity / future use
 
     # ------------------------------------------------------------------
     # 3. Quintos verticais (têmpora L → têmpora R, divididos em 5)
@@ -318,7 +299,7 @@ def annotate_ideal_proportions(
     for i in range(1, 5):
         x_line = x_temple_l + i * fifth
         _draw_dashed_line(img, (x_line, y_top), (x_line, y_menton), _GREEN, thickness=1)
-    _label(img, "Quintos ideais (cada = 20%)", (x_temple_l + 2, y_top - 12), color=_GREEN)
+    # "Quintos ideais" caption moved to React sidebar.
 
     # ------------------------------------------------------------------
     # 4. Ângulo cantal ideal (+5°) vs real
@@ -348,12 +329,8 @@ def annotate_ideal_proportions(
         ideal_y = med[1] - int(eye_w * np.sin(np.radians(5.0)))
         cv2.line(img, med, (ideal_x, ideal_y), _GREEN, 1, cv2.LINE_AA)
 
-        _label(
-            img,
-            f"{label_prefix} {angle_real:+.1f}° (ideal +5°)",
-            (med[0], med[1] - 10),
-            color=color,
-        )
+        # Cantal angle textual label moved to React sidebar.
+        _ = (label_prefix, angle_real)
 
     # ------------------------------------------------------------------
     # 5. Largura do nariz vs ideal (70% da boca)
@@ -377,12 +354,8 @@ def annotate_ideal_proportions(
     y_alar = y_sub + 10
     cv2.line(img, (x_alar_l, y_alar), (x_alar_r, y_alar), alar_color, 2)
     cv2.line(img, (ideal_alar_l, y_alar + 8), (ideal_alar_r, y_alar + 8), _GREEN, 1)
-    _label(
-        img,
-        f"Nariz {real_pct:.0f}% boca (ideal 70%)",
-        (ideal_alar_l, y_alar + 22),
-        color=alar_color,
-    )
+    # "Nariz X% boca (ideal 70%)" label moved to React sidebar.
+    _ = (real_pct, alar_color)
 
     return img
 
@@ -395,6 +368,7 @@ def annotate_ideal_proportions(
 def simulate(
     frame: "CanonicalFrame",
     output_dir: str,
+    trichion_y_override: int | None = None,
 ) -> Dict[str, str]:
     """Gera 3 imagens de simulação a partir do frame canônico.
 
@@ -425,7 +399,7 @@ def simulate(
     img_sym = symmetrize(img, landmarks)
 
     # Camada B
-    img_prop = annotate_ideal_proportions(img, landmarks)
+    img_prop = annotate_ideal_proportions(img, landmarks, trichion_y_override=trichion_y_override)
 
     # Grid de comparação (1×3)
     h, w = img.shape[:2]

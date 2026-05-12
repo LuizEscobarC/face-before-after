@@ -30,7 +30,7 @@ from app.services.metrics.base import QualityContext
 #   app.services.landmarks.fusion_layer.TRICHION_CONFIDENCE_THRESHOLD
 # DO NOT change this value independently.
 # ---------------------------------------------------------------------------
-TRICHION_CONFIDENCE_THRESHOLD: float = 0.8
+TRICHION_CONFIDENCE_THRESHOLD: float = 0.5
 
 
 def effective_trichion_y(lm: NormalizedLandmarks, ctx: QualityContext) -> float:

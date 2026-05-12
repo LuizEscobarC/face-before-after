@@ -189,7 +189,10 @@ export class RenderOverlayRequestDto {
 export class FullPipelineResponseDto {
   @ApiProperty() run_id!: string;
   @ApiProperty() output_dir!: string;
+  /** Legacy alias — same URL as canonical_url for backwards compatibility. */
   @ApiPropertyOptional() photo_url?: string;
+  /** Canonical (cropped + Frankfort-aligned) image URL — single source of truth. */
+  @ApiPropertyOptional() canonical_url?: string;
   @ApiProperty() result!: Record<string, unknown>;
 }
 

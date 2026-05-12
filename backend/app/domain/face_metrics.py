@@ -536,9 +536,17 @@ def head_pose(image_bgr: np.ndarray, lm: np.ndarray) -> Dict[str, Any]:
     frontal = (abs(yaw_d) <= 7.0) and (abs(pitch_d) <= 7.0)
     warning = None
     if not frontal:
+        # Actionable UX copy: tell the user EXACTLY what to do for the next
+        # capture and why, so confidence-floor warnings translate into a
+        # concrete behaviour change, not just a vague "métricas enviesadas".
+        worst_axis = "pitch (queixo inclinado)" if abs(pitch_d) > abs(yaw_d) else "yaw (rosto girado)"
         warning = (
-            f"Pose facial fora do limite frontal (|yaw|={abs(yaw_d):.1f}°, "
-            f"|pitch|={abs(pitch_d):.1f}°). Métricas podem estar enviesadas."
+            f"Foto fora do alinhamento frontal — eixo dominante: {worst_axis} "
+            f"(|yaw|={abs(yaw_d):.1f}°, |pitch|={abs(pitch_d):.1f}°). "
+            "Para uma nova foto: olhe direto para a câmera com o queixo paralelo "
+            "ao chão. Métricas verticais (terços faciais) exigem |pitch| < 12° "
+            "e laterais (quintos) exigem |yaw| < 12°; acima disso a confiança é "
+            "reduzida proporcionalmente."
         )
 
     return {

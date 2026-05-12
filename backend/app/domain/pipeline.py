@@ -1097,6 +1097,13 @@ def run(image_path: str, output_dir: str, mode: str = "premium") -> dict:
         crop_metadata=auto_crop_data,
     )
 
+    # Persist the canonical (cropped + aligned) image — single source of truth
+    # for every downstream renderer.  Lives next to the report files inside
+    # output_dir; the API router uploads it to MinIO.
+    _canonical_basename = os.path.splitext(os.path.basename(resolved_image_path))[0]
+    _canonical_path = os.path.join(output_dir, f"{_canonical_basename}_canonical.jpg")
+    cv2.imwrite(_canonical_path, canonical.image)
+
     analyzer.compute_midline(canonical.landmarks)
     asymmetry_measurements = analyzer.measure_asymmetry(canonical.landmarks)
     annotated_img = analyzer.draw_annotations(canonical.image.copy(), canonical.landmarks)
@@ -1206,6 +1213,20 @@ def run(image_path: str, output_dir: str, mode: str = "premium") -> dict:
 
     # 3c. Simulação antes/depois sobre o frame canônico (mesma imagem que
     # alimentou todas as outras análises — sem desencontro de coordenadas).
+    # Pre-compute BiSeNet hairline fusion here so simulation overlays (e.g.
+    # ideal_proportions) can use the anatomical trichion instead of lm[10].
+    _fused = None
+    _trichion_y_px_for_sim: int | None = None
+    try:
+        _fused = _fuse_landmarks(canonical.image, canonical.landmarks)
+        if _fused is not None and _fused.trichion_source == "bisenet":
+            vl = _fused.virtual_landmarks or {}
+            t = vl.get("trichion")
+            if t is not None and len(t) >= 2:
+                _trichion_y_px_for_sim = int(round(float(t[1])))
+    except Exception:  # pylint: disable=broad-except
+        _fused = None
+
     simulation_outputs = None
     simulation_error = None
     if analysis_mode == "premium":
@@ -1213,6 +1234,7 @@ def run(image_path: str, output_dir: str, mode: str = "premium") -> dict:
             simulation_outputs = simulate_before_after(
                 frame=canonical,
                 output_dir=output_dir,
+                trichion_y_override=_trichion_y_px_for_sim,
             )
         except Exception as exc:  # pylint: disable=broad-except
             simulation_error = str(exc)
@@ -1242,9 +1264,10 @@ def run(image_path: str, output_dir: str, mode: str = "premium") -> dict:
             image_size=(_w, _h),
         )
 
-        # BiSeNet fusion: derive trichion virtual landmark from hair-mask segmentation.
-        # Falls back silently to lm[10] mesh trichion on any error.
-        _fused = _fuse_landmarks(canonical.image, canonical.landmarks)
+        # BiSeNet fusion already ran above (so simulation could use it).  Reuse
+        # the cached result; only recompute if for some reason it failed.
+        if _fused is None:
+            _fused = _fuse_landmarks(canonical.image, canonical.landmarks)
         _vl_ctx = {
             "trichion_y_icu":      _fused.trichion_y_icu,
             "trichion_confidence": _fused.trichion_confidence,
@@ -1266,8 +1289,12 @@ def run(image_path: str, output_dir: str, mode: str = "premium") -> dict:
             _d["improvement_vector_x"] = float(_iv[0]) if _iv is not None else None
             _d["improvement_vector_y"] = float(_iv[1]) if _iv is not None else None
             _metric_evaluations_v2.append(_d)
-    except Exception:  # pylint: disable=broad-except
-        pass
+    except Exception as _v2_exc:  # pylint: disable=broad-except
+        import logging as _logging, traceback as _tb
+        _logging.getLogger(__name__).error(
+            "v2 metric evaluation block failed: %s\n%s",
+            _v2_exc, _tb.format_exc(),
+        )
 
     # 4. Gerar relatório texto
     report_txt = build_shareable_report(
@@ -1352,7 +1379,48 @@ def run(image_path: str, output_dir: str, mode: str = "premium") -> dict:
         'virtual_landmarks': _fused.virtual_landmarks if _fused is not None else {},
         'trichion_source': _fused.trichion_source if _fused is not None else "mesh",
         'trichion_confidence': _fused.trichion_confidence if _fused is not None else 0.0,
+        'canonical_image_path': _canonical_path,
     }
+
+    # Sidebar annotations — textual labels that USED to be burned into the PNGs.
+    # React renders them next to the image (clearer typography, no PNG re-encoding).
+    try:
+        from app.services.overlays.annotations import (
+            build_grid_thirds_annotations,
+            build_grid_fifths_annotations,
+            build_face_extents_annotations,
+        )
+        _lm_xy = [[float(canonical.landmarks[i, 0]), float(canonical.landmarks[i, 1])]
+                  for i in range(len(canonical.landmarks))]
+        result['overlay_annotations'] = {
+            'grid_thirds':  build_grid_thirds_annotations(_lm_xy, _metric_evaluations_v2),
+            'grid_fifths':  build_grid_fifths_annotations(_lm_xy),
+            'face_extents': build_face_extents_annotations(
+                _lm_xy,
+                trichion_source=result['trichion_source'],
+                metric_evals=_metric_evaluations_v2,
+            ),
+            'ideal_proportions': [
+                {
+                    'metric_id': m.get('metric_id'),
+                    'value': m.get('value'),
+                    'severity_5': m.get('severity_5'),
+                    'direction': m.get('direction'),
+                }
+                for m in _metric_evaluations_v2
+                if m.get('metric_id') in {
+                    'upper_third_ratio', 'middle_third_ratio', 'lower_third_ratio',
+                    'facial_index', 'face_height_ratio', 'face_width_ratio',
+                    'phi_ratio', 'forehead_height_ratio', 'chin_projection_ratio',
+                }
+            ],
+        }
+    except Exception as _ann_exc:  # pylint: disable=broad-except
+        import logging as _logging
+        _logging.getLogger(__name__).warning(
+            "overlay_annotations build failed: %s", _ann_exc
+        )
+        result['overlay_annotations'] = {}
 
     # 6. Salvar outputs
     base = os.path.splitext(os.path.basename(image_path))[0]

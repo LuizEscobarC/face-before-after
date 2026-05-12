@@ -51,14 +51,17 @@ RUN mkdir -p /app/backend/models && \
     curl -fsSL https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task \
         -o /app/backend/models/face_landmarker.task
 
-# Download BiSeNet face-parsing ONNX model (~6MB, CelebAMask-HQ 19 classes, hair=17).
-# URL: yakhyo/face-parsing v0.0.1 release.
-# FALLBACK: If this URL returns 404, replace it with your mirror URL.
-# Without this model the pipeline silently falls back to lm[10] mesh trichion (see fusion_layer.py).
+# Download BiSeNet face-parsing ONNX model (~51MB, CelebAMask-HQ 19 classes, hair=17).
+# URL: yakhyo/face-parsing v0.0.1 release. Asset name is `resnet18.onnx`
+# (NOT `bisenet_resnet18.onnx` — that name 404s).
+# Pinned SHA-256 for supply-chain integrity.
+# Without this model the pipeline silently falls back to lm[10] mesh trichion
+# (see fusion_layer.py).
 RUN curl -fsSL \
-    "https://github.com/yakhyo/face-parsing/releases/download/v0.0.1/bisenet_resnet18.onnx" \
+    "https://github.com/yakhyo/face-parsing/releases/download/v0.0.1/resnet18.onnx" \
     -o /app/backend/models/bisenet_face_parsing.onnx \
-    || echo "WARNING: BiSeNet ONNX download failed — fallback mesh trichion will be used at runtime"
+    && echo "0d9bd318e46987c3bdbfacae9e2c0f461cae1c6ac6ea6d43bbe541a91727e33f  /app/backend/models/bisenet_face_parsing.onnx" | sha256sum -c - \
+    || echo "WARNING: BiSeNet ONNX download/verify failed — fallback mesh trichion will be used at runtime"
 
 # Copy application code from backend/ package
 COPY backend/ ./

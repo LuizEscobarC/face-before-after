@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { evaluateFromLandmarks, fetchFindings, fetchGlossary, fetchNarrative, fetchReportRecommendations, type NarrativeFinding, type NarrativeRecommendation } from "../api";
 import { MetricExplainer } from "../components/MetricExplainer";
 import { DEFAULT_OVERLAYS, HeatmapImageLayer, OverlayLayer, OverlayToggleBar } from "../components/OverlayLayer";
+import { OverlaySidebar } from "../components/OverlaySidebar";
 import type { AnalysisResult, GlossaryTerm, MetricEvaluationResult, NarrativeResponseDto, PremiumMetricCategory } from "../types";
 
 type LocationState = { result?: AnalysisResult };
@@ -584,8 +585,10 @@ export function PremiumResultPage() {
     );
   }
 
+  // Canonical (cropped + aligned) image — single source of truth for overlays.
+  const canonicalUrl = result.run_id ? `/v1/vision/results/${result.run_id}/canonical` : null;
   const annotatedUrl = result.run_id ? `/v1/vision/results/${result.run_id}/annotated` : null;
-  const originalUrl = result.run_id ? `/v1/vision/results/${result.run_id}/original` : null;
+  const originalUrl  = canonicalUrl;  // alias kept for compatibility w/ rest of page
   const simBase = result.run_id ? `/v1/vision/results/${result.run_id}/simulation` : null;
   const hasSimulation = !!(simBase && result.simulation_paths && !result.simulation_error);
   const hasIdeal = hasSimulation && !!result.simulation_paths?.ideal_proportions;
@@ -870,7 +873,15 @@ export function PremiumResultPage() {
               )}
 
               {view === "ideal" && simBase && (
-                <img src={`${simBase}/ideal_proportions`} alt="Proporções ideais" className="panel-img" />
+                <div style={{ display: "flex", gap: 16, alignItems: "flex-start", flexWrap: "wrap" }}>
+                  <img src={`${simBase}/ideal_proportions`} alt="Proporções ideais" className="panel-img" style={{ flex: "1 1 480px", minWidth: 0 }} />
+                  {result.overlay_annotations && (
+                    <div style={{ flex: "0 0 280px", display: "flex", flexDirection: "column", gap: 12 }}>
+                      <OverlaySidebar variant="ideal_proportions" data={result.overlay_annotations} />
+                      <OverlaySidebar variant="grid_thirds" data={result.overlay_annotations} />
+                    </div>
+                  )}
+                </div>
               )}
 
               {view === "compare" && simBase && (
@@ -881,7 +892,8 @@ export function PremiumResultPage() {
               )}
 
               {view === "overlays" && originalUrl && result.landmarks && (
-                <div style={{ position: "relative", display: "inline-block" }}>
+                <div style={{ display: "flex", gap: 16, alignItems: "flex-start", flexWrap: "wrap" }}>
+                <div style={{ position: "relative", display: "inline-block", flex: "1 1 480px", minWidth: 0 }}>
                   <img
                     ref={overlayImgRef}
                     src={originalUrl}
@@ -919,6 +931,17 @@ export function PremiumResultPage() {
                     activeOverlays={activeOverlays}
                     metricEvaluations={result.metric_evaluations}
                   />
+                </div>
+                {result.overlay_annotations && (
+                  <div style={{ flex: "0 0 280px", display: "flex", flexDirection: "column", gap: 12 }}>
+                    {activeOverlays.includes("grid_thirds") &&
+                      <OverlaySidebar variant="grid_thirds" data={result.overlay_annotations} />}
+                    {activeOverlays.includes("grid_fifths") &&
+                      <OverlaySidebar variant="grid_fifths" data={result.overlay_annotations} />}
+                    {activeOverlays.includes("face_extents") &&
+                      <OverlaySidebar variant="face_extents" data={result.overlay_annotations} />}
+                  </div>
+                )}
                 </div>
               )}
 

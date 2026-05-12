@@ -45,7 +45,7 @@ logger = logging.getLogger(__name__)
 # --------------------------------------------------------------------------- #
 # Threshold
 # --------------------------------------------------------------------------- #
-TRICHION_CONFIDENCE_THRESHOLD: float = 0.8
+TRICHION_CONFIDENCE_THRESHOLD: float = 0.5
 
 
 # --------------------------------------------------------------------------- #
@@ -143,8 +143,9 @@ def _compute_confidence(
         mean_d = float(np.mean(diffs))
         std_d  = float(np.std(diffs))
         cov    = std_d / max(mean_d, 1.0)
-        # Normalise CoV: CoV ≤ 0.5 → perfect, CoV ≥ 3.0 → worst
-        regularity = float(np.clip(1.0 - (cov - 0.5) / 2.5, 0.0, 1.0))
+        # CoV ≤ 1.0 → perfect (natural hairline waviness + BiSeNet pixel noise);
+        # CoV ≥ 4.0 → worst (chaotic edge, e.g. wild hair on textured background).
+        regularity = float(np.clip(1.0 - (cov - 1.0) / 3.0, 0.0, 1.0))
 
     # --- distance penalty: trichion vs lm[10] --------------------------------
     trichion_px = virtual.get("trichion", [0.0, 0.0])
@@ -187,7 +188,11 @@ def fuse(
     try:
         result = _run_bisenet_fusion(image_bgr, mp_landmarks_px)
         return result
-    except (RuntimeError, ImportError, ValueError, OSError) as exc:
+    except Exception as exc:  # pylint: disable=broad-except
+        # Fusion must NEVER raise — pipeline relies on this returning a usable
+        # FusedLandmarks even when BiSeNet is missing/misconfigured. Catches
+        # IndexError (path resolution), RuntimeError (ORT), ImportError,
+        # ValueError (mask), OSError (disk), and unforeseen failures.
         logger.warning(
             "BiSeNet fusion failed (%s: %s) — falling back to mesh trichion lm[10]",
             type(exc).__name__, exc,

@@ -190,6 +190,30 @@ function lm(landmarks: Array<[number, number]>, idx: number): [number, number] {
   return landmarks[idx] ?? [0, 0];
 }
 
+/**
+ * Derive the effective hairline Y (pixel space) from ``upper_third_ratio``.
+ *
+ * When BiSeNet fires the metric encodes the true anatomical hairline; when
+ * mesh fallback is used the result reduces to lm[P_FOREHEAD_CROWN][1] = lm[10].y.
+ * Visual line positions are always **consistent with the displayed % labels**.
+ *
+ * Formula: upper_third_ratio = (y_brow - y_t) / (y_menton - y_t)
+ *       ⟹ y_t = (u * y_menton - y_brow) / (u - 1)
+ */
+function deriveTrichionYPx(
+  landmarks: Array<[number, number]>,
+  metricEvaluations?: MetricEvaluationResult[],
+): number {
+  const mUpper = (metricEvaluations ?? []).find(m => m.metric_id === "upper_third_ratio");
+  const u = mUpper?.value;
+  if (typeof u === "number" && u > 0.05 && u < 0.95) {
+    const yBrow = (lm(landmarks, P_BROW_LEFT_INNER)[1] + lm(landmarks, P_BROW_RIGHT_INNER)[1]) / 2;
+    const yMen  = lm(landmarks, P_MENTON)[1];
+    return (u * yMen - yBrow) / (u - 1);
+  }
+  return lm(landmarks, P_FOREHEAD_CROWN)[1];
+}
+
 function AxisVertical({ landmarks, vbH }: { landmarks: Array<[number, number]>; vbW: number; vbH: number }) {
   // Midline passes through the midpoint between the two inner canthi.
   // For a more anatomically correct midline, average with nose tip x as well.
@@ -217,25 +241,17 @@ function AxisIntercanthal({ landmarks, vbW }: { landmarks: Array<[number, number
   );
 }
 
-// Maps severity_5 (backend SeverityClassifier) to a color — aligns with
-// SEVERITY_ARROW_COLORS and replaces the old hardcoded deviation% thresholds.
-function _severityColor(severity5: string | null | undefined): string {
-  switch (severity5) {
-    case "ideal":    return "#22c55e";
-    case "mild":     return "#22c55e";
-    case "moderate": return "#eab308";
-    case "strong":   return "#f97316";
-    case "extreme":  return "#ef4444";
-    default:         return "#94a3b8"; // unknown / null
-  }
-}
-
 /**
  * FaceExtents — desenha linhas sólidas brancas nas extremidades da face
  * (hairline, queixo, têmpora L, têmpora R) com labels.
  */
-function FaceExtents({ landmarks, trichion_source = "mesh" }: { landmarks: Array<[number, number]>; trichion_source?: "bisenet" | "mesh" }) {
-  const yTop = lm(landmarks, P_FOREHEAD_CROWN)[1];
+function FaceExtents({ landmarks, trichion_source: _trichion_source = "mesh", metricEvaluations }: {
+  landmarks: Array<[number, number]>;
+  trichion_source?: "bisenet" | "mesh";
+  metricEvaluations?: MetricEvaluationResult[];
+}) {
+  // Use derived hairline so the box top matches the ideal-thirds anchor.
+  const yTop = deriveTrichionYPx(landmarks, metricEvaluations);
   const yMenton = lm(landmarks, P_MENTON)[1];
   // 234 = image-left zygomatic arch (lower x), 454 = image-right (higher x).
   const xL = lm(landmarks, P_ZYGO_IMG_LEFT)[0];
@@ -247,10 +263,7 @@ function FaceExtents({ landmarks, trichion_source = "mesh" }: { landmarks: Array
       <line x1={xL} y1={yMenton} x2={xR} y2={yMenton} stroke={stroke} strokeWidth={1.5} />
       <line x1={xL} y1={yTop}    x2={xL} y2={yMenton} stroke={stroke} strokeWidth={1.5} />
       <line x1={xR} y1={yTop}    x2={xR} y2={yMenton} stroke={stroke} strokeWidth={1.5} />
-      <text x={xL + 4} y={yTop - 4} fill={stroke} fontSize={11} fontWeight={600}
-        style={{ paintOrder: "stroke", stroke: "#000", strokeWidth: 2 }}>{trichion_source === "bisenet" ? "Trichion (BiSeNet)" : "Trichion (mesh)"}</text>
-      <text x={xL + 4} y={yMenton + 14} fill={stroke} fontSize={11} fontWeight={600}
-        style={{ paintOrder: "stroke", stroke: "#000", strokeWidth: 2 }}>Menton</text>
+      {/* Trichion / Menton labels moved to OverlaySidebar — keep image geometric. */}
     </g>
   );
 }
@@ -265,78 +278,26 @@ function GridThirds({
   vbH: number;
   metricEvaluations?: MetricEvaluationResult[];
 }) {
-  const yTop  = lm(landmarks, P_FOREHEAD_CROWN)[1];
+  // Derive trichion from metric so visual dividers match displayed percentages.
+  const yTop  = deriveTrichionYPx(landmarks, metricEvaluations);
   const yBrow = (lm(landmarks, P_BROW_LEFT_INNER)[1] + lm(landmarks, P_BROW_RIGHT_INNER)[1]) / 2;
   const ySub  = lm(landmarks, P_SUBNASALE)[1];
   const yMen  = lm(landmarks, P_MENTON)[1];
-  const xL = lm(landmarks, P_ZYGO_IMG_LEFT)[0];
-  const xR = lm(landmarks, P_ZYGO_IMG_RIGHT)[0];
-
-  const metricsMap = new Map(
-    (metricEvaluations ?? []).map((m) => [m.metric_id, m])
-  );
-  const mUpper  = metricsMap.get("upper_third_ratio");
-  const mMiddle = metricsMap.get("middle_third_ratio");
-  const mLower  = metricsMap.get("lower_third_ratio");
 
   const faceH = Math.max(1, yMen - yTop);
-  const upperPct  = mUpper?.value  != null ? (mUpper.value as number)  * 100 : ((yBrow - yTop) / faceH) * 100;
-  const middlePct = mMiddle?.value != null ? (mMiddle.value as number) * 100 : ((ySub  - yBrow) / faceH) * 100;
-  const lowerPct  = mLower?.value  != null ? (mLower.value as number)  * 100 : ((yMen  - ySub) / faceH) * 100;
-
-  const upperColor  = _severityColor(mUpper?.severity_5);
-  const middleColor = _severityColor(mMiddle?.severity_5);
-  const lowerColor  = _severityColor(mLower?.severity_5);
-
-  // Ideal dividers: where brow and subnasale WOULD be if face were perfectly divided.
-  // These are reference lines — not landmark positions.
   const yT1 = yTop + faceH / 3;
   const yT2 = yTop + (2 * faceH) / 3;
-
   const s = OVERLAY_STYLES.grid_thirds;
-  // Lateral labels anchored to the RIGHT zygomatic edge + small margin.
-  // xR is typically close to the viewBox right edge (~94% of vbW), so we place
-  // text anchored to the right margin of the viewBox instead to avoid clipping.
-  const labelX = vbW - 4;
-  const inlineLabelX = xL + 4;
-
-  const thirds = [
-    { yA: yTop,  yB: yBrow, pct: upperPct,  label: "T1", color: upperColor },
-    { yA: yBrow, yB: ySub,  pct: middlePct, label: "T2", color: middleColor },
-    { yA: ySub,  yB: yMen,  pct: lowerPct,  label: "T3", color: lowerColor },
-  ];
 
   return (
     <g>
-      {/* Ideal equal-thirds dividers (dashed purple) — reference, not landmarks */}
+      {/* Ideal equal-thirds dividers (dashed purple) — reference geometry only. */}
       <line x1={0} y1={yT1} x2={vbW} y2={yT1} stroke={s.stroke} strokeWidth={s.strokeWidth} strokeDasharray={s.strokeDasharray} />
       <line x1={0} y1={yT2} x2={vbW} y2={yT2} stroke={s.stroke} strokeWidth={s.strokeWidth} strokeDasharray={s.strokeDasharray} />
-      <text x={inlineLabelX} y={yT1 - 3} fill={s.stroke} fontSize={10}
-        style={{ paintOrder: "stroke", stroke: "#000", strokeWidth: 2 }}>ideal 1/3</text>
-      <text x={inlineLabelX} y={yT2 - 3} fill={s.stroke} fontSize={10}
-        style={{ paintOrder: "stroke", stroke: "#000", strokeWidth: 2 }}>ideal 2/3</text>
 
-      {/* Actual landmark lines (solid orange) — brow and subnasale */}
+      {/* Actual landmark lines (solid orange) — brow and subnasale. */}
       <line x1={0} y1={yBrow} x2={vbW} y2={yBrow} stroke="#f97316" strokeWidth={1.5} opacity={0.9} />
-      <text x={inlineLabelX} y={yBrow - 3} fill="#f97316" fontSize={10}
-        style={{ paintOrder: "stroke", stroke: "#000", strokeWidth: 2 }}>Sobrancelha</text>
-      <line x1={0} y1={ySub} x2={vbW} y2={ySub} stroke="#f97316" strokeWidth={1.5} opacity={0.9} />
-      <text x={inlineLabelX} y={ySub - 3} fill="#f97316" fontSize={10}
-        style={{ paintOrder: "stroke", stroke: "#000", strokeWidth: 2 }}>Subnasale</text>
-
-      {/* Lateral labels right-aligned to vbW — avoids clipping when xR ≈ vbW */}
-      {thirds.map(({ yA, yB, pct, label, color }) => {
-        const dev = pct - 33.3;
-        const devStr = dev >= 0 ? `+${dev.toFixed(0)}` : `${dev.toFixed(0)}`;
-        return (
-          <text key={label} x={labelX} y={(yA + yB) / 2 + 4}
-            fill={color} fontSize={11} fontWeight={700}
-            textAnchor="end"
-            style={{ paintOrder: "stroke", stroke: "#000", strokeWidth: 2 }}>
-            {label} {pct.toFixed(0)}% ({devStr}%)
-          </text>
-        );
-      })}
+      <line x1={0} y1={ySub}  x2={vbW} y2={ySub}  stroke="#f97316" strokeWidth={1.5} opacity={0.9} />
     </g>
   );
 }
@@ -362,10 +323,6 @@ function GridFifths({ landmarks }: { landmarks: Array<[number, number]> }) {
   const ideals = [1, 2, 3, 4].map((i) => xFaceL + i * fifth);
   // Actual landmark x positions aligned to each ideal divider
   const actuals = [xEyeOL, xEyeIL, xEyeIR, xEyeOR];
-  const names   = ["OExt.E", "OInt.E", "OInt.D", "OExt.D"];
-
-  // Y position for deviation labels — just above menton so they don't overlap with brow labels
-  const yLabel = yMen - 10;
 
   return (
     <g>
@@ -380,31 +337,35 @@ function GridFifths({ landmarks }: { landmarks: Array<[number, number]> }) {
           stroke={s.stroke} strokeWidth={s.strokeWidth} strokeDasharray={s.strokeDasharray} />
       ))}
 
-      {/* Actual eye-corner positions (solid orange) + deviation label */}
-      {actuals.map((x, i) => {
-        const dev = Math.round(x - ideals[i]);
-        const devStr = dev === 0 ? "±0" : dev > 0 ? `+${dev}` : `${dev}`;
-        return (
-          <g key={`actual-${i}`}>
-            <line x1={x} y1={yTop} x2={x} y2={yMen} stroke="#f97316" strokeWidth={1.5} opacity={0.9} />
-            <text x={x + 2} y={yLabel} fill="#f97316" fontSize={9} fontWeight={600}
-              style={{ paintOrder: "stroke", stroke: "#000", strokeWidth: 2 }}>
-              {names[i]} {devStr}px
-            </text>
-          </g>
-        );
-      })}
-
-      <text x={xFaceL + 2} y={yTop - 4} fill={s.stroke} fontSize={10} fontWeight={600}
-        style={{ paintOrder: "stroke", stroke: "#000", strokeWidth: 2 }}>
-        Quintos — tracejado: ideal · laranja: real (desvio em px)
-      </text>
+      {/* Actual eye-corner positions (solid orange) — labels moved to sidebar. */}
+      {actuals.map((x, i) => (
+        <line key={`actual-${i}`}
+          x1={x} y1={yTop} x2={x} y2={yMen}
+          stroke="#f97316" strokeWidth={1.5} opacity={0.9} />
+      ))}
     </g>
   );
 }
 
-function OutlineFace({ landmarks }: { landmarks: Array<[number, number]> }) {
-  const pts = LM_JAWLINE.map((i) => lm(landmarks, i).join(",")).join(" ");
+// Forehead-ridge indices that live inside LM_JAWLINE.  All must be flattened
+// to trichionY so the contour does not form an isolated horn at the crown
+// while the temples stay low (see scripts/_overlay_render.py LM_FOREHEAD_RIDGE).
+const LM_FOREHEAD_RIDGE = new Set<number>([
+  109, 67, 103, 54, 21, 162,
+  10,
+  338, 297, 332, 284, 251,
+]);
+
+function OutlineFace({ landmarks, metricEvaluations }: {
+  landmarks: Array<[number, number]>;
+  metricEvaluations?: MetricEvaluationResult[];
+}) {
+  const trichionY = deriveTrichionYPx(landmarks, metricEvaluations);
+  // Flatten all forehead-ridge points to trichion so the top is a smooth band.
+  const pts = LM_JAWLINE.map((i) => {
+    const [x, y] = lm(landmarks, i);
+    return `${x},${LM_FOREHEAD_RIDGE.has(i) ? trichionY : y}`;
+  }).join(" ");
   const s = OVERLAY_STYLES.outline_face;
   return (
     <polygon
@@ -523,8 +484,8 @@ export function OverlayLayer({ landmarks, imageWidth, imageHeight, viewBoxWidth,
       {active.has("grid_thirds")       && <GridThirds       landmarks={landmarks} vbW={vbW} vbH={vbH} metricEvaluations={metricEvaluations} />}
       {active.has("grid_fifths")       && <GridFifths       landmarks={landmarks} />}
       {/* z=20: contour */}
-      {active.has("outline_face")      && <OutlineFace      landmarks={landmarks} />}
-      {active.has("face_extents")      && <FaceExtents      landmarks={landmarks} trichion_source={trichion_source} />}
+      {active.has("outline_face")      && <OutlineFace      landmarks={landmarks} metricEvaluations={metricEvaluations} />}
+      {active.has("face_extents")      && <FaceExtents      landmarks={landmarks} trichion_source={trichion_source} metricEvaluations={metricEvaluations} />}
       {/* z=40: improvement vectors (rendered last = topmost) */}
       {active.has("improvement_vectors") && metricEvaluations && metricEvaluations.length > 0 && (
         <ImprovementVectors landmarks={landmarks} metricEvaluations={metricEvaluations} />

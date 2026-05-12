@@ -48,6 +48,24 @@ def get_original_image(run_id: str) -> FileResponse:
     return FileResponse(matches[0], media_type="image/jpeg")
 
 
+@router.get("/results/{run_id}/canonical")
+def get_canonical_image(run_id: str) -> FileResponse:
+    """Canonical (cropped + Frankfort-aligned) image — single source of truth
+    for all overlays.  Same as ``/original`` but with an explicit name that
+    matches the canonical_url emitted in the pipeline result.
+    """
+    run_dir = _resolve_run_dir(run_id)
+    matches = (
+        list(run_dir.glob("*_canonical.jpg"))
+        or list(run_dir.glob("*_canonical.png"))
+        or list(run_dir.glob("*_mvp_annotated.jpg"))
+        or list(run_dir.glob("*_annotated.jpg"))
+    )
+    if not matches:
+        raise SimulationNotFoundError("canonical")
+    return FileResponse(matches[0], media_type="image/jpeg")
+
+
 @router.get("/results/{run_id}/annotated")
 def get_annotated_image(run_id: str) -> FileResponse:
     run_dir = _resolve_run_dir(run_id)

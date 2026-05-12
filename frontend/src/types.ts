@@ -184,6 +184,34 @@ export type AnalysisResult = {
   landmarks?: Array<[number, number]>;
   /** Metric evaluations from POST /v1/analysis/evaluate (M1 pipeline, PR-34 M3.2). */
   metric_evaluations?: MetricEvaluationResult[];
+  /** Canonical (cropped + Frankfort-aligned) image URL — base of every overlay.
+   * Always prefer this over photo_url; the latter is a legacy alias. */
+  canonical_url?: string;
+  /** Textual annotations rendered next to overlays (formerly burned into PNGs). */
+  overlay_annotations?: {
+    grid_thirds?: {
+      ideal_pct: number;
+      rows: Array<{ id: string; label: string; pct: number;
+                    deviation_pct: number; severity_5: string | null }>;
+      legend?: Record<string, string>;
+    };
+    grid_fifths?: {
+      rows: Array<{ id: string; deviation_px: number }>;
+      legend?: Record<string, string>;
+    };
+    face_extents?: {
+      trichion_source: "bisenet" | "mesh";
+      trichion_label: string;
+      menton_label: string;
+      face_height_px: number;
+      face_width_px: number;
+      legend?: string;
+    };
+    ideal_proportions?: Array<{
+      metric_id?: string; value?: number | null;
+      severity_5?: string | null; direction?: string | null;
+    }>;
+  };
   score: number;
   tier: string;
   tier_description: string;

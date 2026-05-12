@@ -93,13 +93,25 @@ def extract_hairline_points(
     band_width = x1 - x0
 
     # --------------------------------------------------------------------------
-    # 2. Per-column: find topmost hair pixel
+    # 2. Per-column: find HAIRLINE (bottom edge of topmost hair region)
+    #    Scan UP from eye level; the first hair pixel encountered is the
+    #    hairline. This avoids picking the top of spiky hair / hair buns,
+    #    which are above the actual anatomical hairline.
     # --------------------------------------------------------------------------
+    y_eye_top = float(min(
+        face_landmarks_px[P_LEFT_EYE_INNER, 1],
+        face_landmarks_px[P_RIGHT_EYE_INNER, 1],
+    ))
+    y_scan_start = int(round(y_eye_top))  # scan upward from here
+    y_scan_start = max(0, min(H - 1, y_scan_start))
+
     col_y: list[float | None] = []
     for x in range(x0, x1 + 1):
-        col = hair_mask[:, x]
+        col = hair_mask[:y_scan_start + 1, x]
+        # Hairline = LARGEST y (lowest position) where hair is detected
+        # in the region above the eyes. This is the bottom edge of hair.
         ys = np.where(col)[0]
-        col_y.append(float(ys[0]) if len(ys) > 0 else None)
+        col_y.append(float(ys[-1]) if len(ys) > 0 else None)
 
     valid_mask  = np.array([v is not None for v in col_y])
     valid_count = int(valid_mask.sum())
