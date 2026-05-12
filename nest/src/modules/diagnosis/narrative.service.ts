@@ -227,7 +227,11 @@ export class NarrativeService {
     //     final priority + is_displayed_to_user flags.
     if (matches.length > 0) {
       try {
-        matches = await this.priorityService.prioritize(reportId, generatedAt);
+        matches = await this.priorityService.prioritize(
+          reportId,
+          generatedAt,
+          report.qualityScore ?? 1.0,
+        );
       } catch (err) {
         this.logger.error(`DiagnosticPriorityService failed for report=${reportId}`, err);
         // Non-fatal: keep RecommendationEngine baseline ranking
