@@ -483,15 +483,18 @@ export class NarrativeService {
   }
 
   /**
-   * Formats deviation_normalized as a percentage string, clamping absurd
-   * values caused by upstream normalization bugs (e.g. pipeline returning
-   * raw pixel ratios > 1000).
+   * Formats deviation_normalized as a tolerance-multiplier string.
+   *
+   * deviation_normalized = (measured − ideal) / green_half_width, so
+   * |1.0| = sits exactly on the green-band boundary, |2.0| = twice the
+   * green tolerance away, etc. We render it as a signed multiplier with
+   * one decimal place (e.g. "+1.2×tol"), clamping absurd outliers to ±9.9.
    */
   private _formatDeviationPct(deviationNormalized: number | null): string {
     if (deviationNormalized == null || !isFinite(deviationNormalized)) return '—';
-    const pct = Math.round(deviationNormalized * 100);
-    if (Math.abs(pct) >= 999) return pct > 0 ? '>999' : '<-999';
-    return String(pct);
+    const clamped = Math.max(-9.9, Math.min(9.9, deviationNormalized));
+    const sign = clamped >= 0 ? '+' : '';
+    return `${sign}${clamped.toFixed(1)}`;
   }
 
   private async _buildFallbackFinding(
@@ -503,8 +506,8 @@ export class NarrativeService {
     const metricLabel = await this.getMetricLabel(metricId);
     const severityLabel = this._severityPtBr(severity3);
     const directionStr = directionPt ? ` — ${directionPt}` : '';
-    const deviationPct = this._formatDeviationPct(deviationNormalized);
-    const deviationStr = deviationPct !== '—' ? ` (desvio de ${deviationPct}%)` : '';
+    const deviationFmt = this._formatDeviationPct(deviationNormalized);
+    const deviationStr = deviationFmt !== '—' ? ` (desvio ${deviationFmt}× a tolerância)` : '';
     return `${metricLabel}${deviationStr} — severidade ${severityLabel}${directionStr}.`;
   }
 

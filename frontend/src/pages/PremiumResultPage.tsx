@@ -162,12 +162,14 @@ function FindingsSection({ narrative, findings, glossary, loading }: { narrative
   const items: { metric_id: string; severity_3: string | null; narrative_text: string; deviation_normalized: number | null }[] =
     findings && findings.length > 0 ? findings : (narrative?.findings ?? []);
   const titleFor = (metricId: string) => glossary[metricId]?.termo ?? metricLabel(metricId);
-  // Clamp deviation_normalized to avoid showing absurd values like 3368% (upstream pipeline bug).
+  // deviation_normalized = (measured − ideal) / green_half_width.
+  // |1.0| = exactly on the green-band edge, |2.0| = twice the tolerance, etc.
+  // Render as a signed multiplier of the green tolerance, clamped to ±9.9.
   const fmtDeviation = (d: number) => {
-    const pct = d * 100;
-    if (!isFinite(pct)) return null;
-    if (Math.abs(pct) >= 999) return `${pct > 0 ? '>' : '<'}999%`;
-    return `${pct.toFixed(1)}%`;
+    if (!isFinite(d)) return null;
+    const clamped = Math.max(-9.9, Math.min(9.9, d));
+    const sign = clamped >= 0 ? '+' : '';
+    return `${sign}${clamped.toFixed(1)}× tol.`;
   };
   return (
     <section className="section">
