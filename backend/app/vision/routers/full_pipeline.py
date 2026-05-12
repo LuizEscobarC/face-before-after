@@ -78,9 +78,10 @@ async def _execute(image_bytes: bytes, filename: str, mode: str, storage: MinIOS
                 canonical_bytes = _cf.read()
             minio_canonical_path = f"runs/{run_id}/canonical.jpg"
             storage.upload_file(canonical_bytes, minio_canonical_path)
-            canonical_url = f"minio://{minio_canonical_path}"
         except Exception:
             logger.warning("MinIO canonical upload failed for run_id=%s", run_id)
+    # Always set canonical_url to the HTTP endpoint — works whether MinIO succeeded or not
+    canonical_url = f"/v1/vision/results/{run_id}/canonical"
 
     if isinstance(result, dict):
         result = sanitize_numpy(result)

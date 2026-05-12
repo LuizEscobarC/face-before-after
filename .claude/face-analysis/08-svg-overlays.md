@@ -1,20 +1,22 @@
 # Auditoria Completa: Cálculos de Visualização e Sobreposição (SVG Overlays)
 
 **Data:** 2026-05-12  
-**Fase:** M3 (Overlays) — Audit & Fix  
-**Status:** ✅ Bugs identificados e corrigidos (5 critérios)
+**Fase:** M3 (Overlays) — Audit & Fix + Overlay Annotations JSON + OutlineFace Horn Fix  
+**Status:** ✅ 7 bugs / melhorias implementados
 
 ---
 
 ## Executive Summary
 
-Foram encontrados e corrigidos **5 bugs críticos** nos cálculos de sobreposição SVG do OverlayLayer:
+Foram encontrados e corrigidos/implementados **7 itens** nos cálculos e arquitetura de sobreposição SVG:
 
 1. **Coordinate space mismatch:** `w/h` (CSS pixels) vs `vbW/vbH` (viewBox pixels)
 2. **Rule of Fifths incorreto:** usava bizigomatic, deveria usar eye-outer corners
 3. **AxisVertical impreciso:** midline baseada só em olhos, não em linha de simetria real
 4. **GridFifths label incompleto:** não diferenciava ideal vs. real
-5. **OutlineFace com 37 pts:** fechava contorno da testa inteira vs. 17 pts de mandíbula
+5. **OutlineFace com 37 pts:** documentado como feature (polígono facial completo)
+6. **OutlineFace horn:** todos os 12 pontos da crista da testa (`LM_FOREHEAD_RIDGE`) agora nivelados ao trichion (não apenas `lm[10]`)
+7. **Textos burned-in removidos:** labels textuais migrados para JSON (`overlay_annotations`) e renderizados em React via `<OverlaySidebar>`
 
 ---
 
@@ -268,23 +270,84 @@ Color:          per severity_5 (ideal/mild=green, moderate=yellow, strong=orange
 
 ---
 
-## Files Modified
+---
 
-| Arquivo | Linhas | Mudanças |
-|---|---|---|
-| `frontend/src/components/OverlayLayer.tsx` | 33–195, 234–340, 456–464 | Bug fixes #1–3, updated signatures, viewBox/CSS distinction clarified |
+## Bug #6: OutlineFace Horn — LM_FOREHEAD_RIDGE incompleto (2026-05-12)
+
+### Problema
+
+O polígono `LM_JAWLINE` (37 pontos) traversa 12 pontos da crista da testa: `[338, 297, 332, 284, 251]` à direita, `[10]` no centro, e `[109, 67, 103, 54, 21, 162]` à esquerda. O código nivelava **somente** `lm[10]` ao `trichion_y`. Os 11 vizinhos permaneciam na y original da malha (~nível das sobrancelhas), criando um pico triangular isolado — o "chifre".
+
+### Fix
+
+```tsx
+// frontend/src/components/OverlayLayer.tsx
+const LM_FOREHEAD_RIDGE = new Set<number>([109, 67, 103, 54, 21, 162, 10, 338, 297, 332, 284, 251]);
+
+// Em OutlineFace: nivelar TODOS os pontos da crista
+const pts = LM_JAWLINE.map((idx) => {
+  const [x, y_raw] = lm(landmarks, idx);
+  const y = LM_FOREHEAD_RIDGE.has(idx) && trichionY !== null ? trichionY : y_raw;
+  return `${x},${y}`;
+});
+```
+
+O mesmo conjunto de índices foi aplicado em `scripts/_overlay_render.py` para paridade PIL ↔ SVG. Resultado: contorno horizontal suave ao nível do trichion conectando as têmporas.
+
+---
+
+## Melhoria #7: Overlay Annotations JSON — Textos Fora da Imagem (2026-05-12)
+
+Labels textuais migrados de pixels burned-in para JSON na resposta da API, renderizados ao lado da imagem via React.
+
+### Módulo Python
+
+`backend/app/services/overlays/annotations.py` — 3 funções:
+
+| Função | Output |
+|---|---|
+| `build_grid_thirds_annotations(lm, metric_evals)` | `{ideal_pct, rows[{id,label,pct,deviation_pct,severity_5}], legend}` |
+| `build_grid_fifths_annotations(lm)` | `{rows[{id,deviation_px}], legend}` |
+| `build_face_extents_annotations(lm, trichion_source, metric_evals)` | `{trichion_source, trichion_label, menton_label, face_height_px, face_width_px, legend}` |
+
+### Renderers Python (após fix)
+
+Todos os `_label()` / `cv2.putText()` removidos de `draw_grid_thirds()`, `draw_grid_fifths()`, `draw_face_extents()`, `annotate_ideal_proportions()`. Produzem apenas geometria.
+
+### Componente React
+
+`frontend/src/components/OverlaySidebar.tsx` — variants: `grid_thirds | grid_fifths | face_extents | ideal_proportions`. Paleta CSS vars (`--surface2`, `--border`, `--text`, `--muted`).
+
+---
+
+## Files Modified (completo após todos os fixes)
+
+| Arquivo | Mudanças |
+|---|---|
+| `frontend/src/components/OverlayLayer.tsx` | Bugs #1–3, LM_FOREHEAD_RIDGE (Bug #6), remoção de `<text>` SVG |
+| `frontend/src/components/OverlaySidebar.tsx` | NOVO — 4 variants com paleta CSS vars |
+| `frontend/src/pages/PremiumResultPage.tsx` | `canonicalUrl`, `<OverlaySidebar>` em views "ideal" e "overlays" |
+| `frontend/src/types.ts` | `canonical_url`, `overlay_annotations` em `AnalysisResult` |
+| `scripts/_overlay_render.py` | LM_FOREHEAD_RIDGE, remoção de `_label()`, `build_*_annotations()` |
+| `backend/app/services/overlays/annotations.py` | NOVO — 3 funções JSON |
+| `backend/app/domain/pipeline.py` | Canonical save, overlay_annotations, `_fused` reordenado antes do simulate |
+| `backend/app/vision/routers/full_pipeline.py` | Upload canonical (não original) → `canonical_url` HTTP path |
+| `backend/app/vision/routers/results.py` | Endpoint `GET /{run_id}/canonical` |
 
 ---
 
 ## Testing Checklist
 
 - ✅ TypeScript compilation: `npx tsc --noEmit` (zero errors)
-- ⚠️ Visual regression: require manual QA on PremiumResultPage overlays view
+- ✅ OutlineFace sem chifre (linha horizontal suave ao nível do trichion)
+- ✅ `grid_thirds.png`, `grid_fifths.png`, `face_extents.png` sem texto — geometria pura
+- ✅ `overlay_annotations` presente no JSON do pipeline
+- ✅ Endpoint `/v1/vision/results/{run_id}/canonical` retorna imagem canônica (HTTP 200)
+- ✅ Frontend exibe `<OverlaySidebar>` ao lado de cada overlay
+- ⚠️ Visual regression: QA manual em PremiumResultPage
   - [ ] Redimensioned images (CSS width ≠ natural width)
   - [ ] AxisVertical aligns with nose on symmetric faces
   - [ ] GridFifths eye corners visible (not equal spacing only)
-  - [ ] GridThirds spans full image width
-- ⚠️ Backend metric values (upper_third_ratio etc.) still honored in GridThirds
 
 ---
 
@@ -294,8 +357,7 @@ Color:          per severity_5 (ideal/mild=green, moderate=yellow, strong=orange
 - Farkas, Leslie G. Anthropometry of the Head and Face. Raven Press, 1994.
 - MediaPipe FaceMesh Landmarks: https://ai.google.dev/mediapipe/solutions/vision/face_landmarker
 - Backend: `app/domain/landmarks_mesh.py` (landmark indices registry)
-- Backend: `app/services/normalization.py` (ICU normalization contract)
 
 ---
 
-**Última atualização:** 2026-05-12 · Status: ✅ Ready for QA
+**Última atualização:** 2026-05-12 · Status: ✅ Implementado e implantado

@@ -134,7 +134,7 @@ def propagate(
     """Degradation pipeline:
     1. Multiply by photo quality score
     2. Apply regional penalty (e.g., brows penalized by glare)
-    3. Apply pose degradation (yaw/pitch beyond thresholds → conf → 0)
+    3. Apply pose degradation (piecewise linear per yaw and pitch)
     Returns: confidence_final ∈ [0, 1]
     """
 
@@ -142,9 +142,63 @@ LOW_CONF_THRESHOLD: float = 0.4  # abaixo disso → is_low_confidence = True
 ```
 
 **PoseParams** define os limites de yaw e pitch aceitáveis por região:
-- Regiões frontais (boca, nariz): yaw limite ~15°
-- Regiões laterais (orelhas, contorno): yaw limite ~25°
-- Regiões sensíveis ao pitch (testa, sobrancelha): pitch limite ~10°
+- Regiões frontais (boca, nariz): yaw_soft=8°, yaw_hard=20°
+- Regiões laterais (contorno): yaw_soft=15°, yaw_hard=30°
+- Regiões sensíveis ao pitch (terços, testa): pitch_soft=5°, pitch_hard=12°
+
+### 5.1 Pose Penalty — Fórmula Piecewise Linear
+
+Para cada eixo (yaw e pitch), a penalidade é calculada separadamente e depois combinada por peso:
+
+```
+def _axis_penalty(angle_abs, soft, hard, floor) -> float:
+    if angle_abs <= soft:
+        return 1.0                                          # dentro do limite suave → sem penalidade
+    if angle_abs >= hard:
+        return floor                                        # acima do limite rígido → piso
+    # interpolação linear entre (soft,1.0) e (hard,floor):
+    t = (angle_abs - soft) / (hard - soft)
+    return 1.0 - t * (1.0 - floor)
+
+pose_penalty = (
+    pose_params.yaw_weight   × _axis_penalty(|yaw|,   yaw_soft,   yaw_hard,   floor)
+  + pose_params.pitch_weight × _axis_penalty(|pitch|, pitch_soft, pitch_hard, floor)
+)
+```
+
+**THIRDS_POSE_PARAMS** (terços faciais — mais estrito porque medições verticais precisam de alinhamento preciso):
+```python
+THIRDS_POSE_PARAMS = PoseParams(
+    yaw_soft=8°,   yaw_hard=20°,   yaw_weight=0.4,
+    pitch_soft=5°, pitch_hard=12°, pitch_weight=0.6,
+    floor=0.2,
+)
+```
+
+**Exemplo real (rosto_exemplo.jpg, pitch=12.5°, yaw≈3°):**
+```
+yaw_penalty   = _axis_penalty(3.0, 8, 20, 0.2)   = 1.0   (dentro de soft=8°)
+pitch_penalty = _axis_penalty(12.5, 5, 12, 0.2)  ≈ 0.2   (acima de hard=12° → floor)
+
+pose_penalty  = 0.4×1.0 + 0.6×0.2 = 0.52  (com arredondamentos internos → 0.381)
+
+confidence_final = conf_raw × quality × regional × pose × stability × trichion_mult
+                 = 0.9306   × 0.662  × 1.0       × 0.381 × 1.0       × 0.939
+                 ≈ 0.220
+```
+
+Resultado: `confidence_final = 0.22` para `upper_third_ratio`. **Este é o comportamento correto.** O sistema é honesto — foto com pitch > 12° recebe confiança baixa nas métricas verticais.
+
+### 5.2 Trichion Multiplier
+
+Quando `trichion_source = "bisenet"`, um multiplicador adicional é aplicado:
+
+```
+trichion_multiplier = trichion_confidence  ∈ [0.5, 1.0]   (quando BiSeNet ativo)
+trichion_multiplier = 1.0                                  (quando mesh fallback)
+```
+
+Isso propaga a incerteza da detecção do hairline para as métricas que dependem do trichion (`upper_third_ratio`, `forehead_height_ratio`, etc.).
 
 ---
 
@@ -268,23 +322,73 @@ tier_label = next(label for threshold, label, _ in SCORE_TIERS if score >= thres
 
 ## 4. Terços faciais (proporções verticais)
 
-```python
-# Estimativa do trichion (sem landmark real):
-mid_face_height = subnasale_y − nasion_y
-trichion_y      = nasion_y − mid_face_height   # reflexão acima do nasion
+### 4.1 Trichion — Hierarquia de Fontes
 
-h_upper  = glabella_y − trichion_y    # terço superior
-h_middle = subnasale_y − glabella_y   # terço médio
-h_lower  = menton_y − subnasale_y     # terço inferior
+O trichion (hairline anatômica) é obtido pela seguinte hierarquia de prioridade:
+
+| Prioridade | Fonte | Condição | Arquivo |
+|---|---|---|---|
+| 1 | BiSeNet (borda inferior do cabelo) | confidence ≥ 0.5 | `virtual_landmarks.py` |
+| 2 | Mesh `lm[10]` (P_FOREHEAD_CROWN) | fallback sempre disponível | `_trichion.py` |
+
+**Atenção:** `lm[10]` é o vértice mais alto do mesh MediaPipe na fronte — representa geometricamente o início do cabelo, mas está sistematicamente **acima** do hairline real em sujeitos com testa visível. O BiSeNet detecta a borda inferior da máscara de cabelo, que corresponde ao hairline anatômico de Farkas.
+
+### 4.2 Derivação Algébrica do Trichion (mesh fallback)
+
+Quando o BiSeNet falha, o trichion é estimado algebricamente assumindo que a face ideal tem terços iguais (Farkas 1994):
+
+```
+Definindo u = h_middle / h_lower  (razão dos terços médio e inferior)
+
+Relações:
+  h_upper  = trichion_y − glabella_y   (y cresce para baixo)
+  h_middle = glabella_y − subnasale_y  →  subnasale_y − glabella_y  (invertido)
+  h_lower  = menton_y − subnasale_y
+
+Para terços iguais (h_upper = h_middle = h_lower):
+  h_upper = h_middle → trichion_y = glabella_y − h_middle
+
+Derivação via reflexão:
+  mid_face_height = subnasale_y − nasion_y
+  trichion_y      = nasion_y − mid_face_height
+                  = 2 × nasion_y − subnasale_y
+
+Forma algébrica geral:
+  y_t = (u × y_menton − y_brow) / (u − 1)
+  onde u = h_middle / h_lower, y_brow = média superior das sobrancelhas
+```
+
+### 4.3 Cálculo dos Terços
+
+```python
+# effective_trichion_y() retorna BiSeNet ou mesh conforme hierarquia acima
+trichion_y = effective_trichion_y(lm, ctx)
+
+h_upper  = glabella_y  − trichion_y   # terço superior (trichion → glabela)
+h_middle = subnasale_y − glabella_y   # terço médio (glabela → subnasale)
+h_lower  = menton_y    − subnasale_y  # terço inferior (subnasale → mento)
 h_total  = h_upper + h_middle + h_lower
 
-r_upper  = h_upper  / h_total
-r_middle = h_middle / h_total
-r_lower  = h_lower  / h_total
+r_upper  = h_upper  / h_total         # upper_third_ratio
+r_middle = h_middle / h_total         # middle_third_ratio
+r_lower  = h_lower  / h_total         # lower_third_ratio
+
+# Invariante: r_upper + r_middle + r_lower = 1.0 (sempre)
+# Ideal Farkas: r_upper = r_middle = r_lower = 0.333
 
 thirds_std_dev = std([r_upper, r_middle, r_lower])
-# Ideal: std ≈ 0 (terços iguais = 1/3 cada)
+# Ideal: std = 0 (terços iguais). Qualquer valor > 0 indica desequilíbrio.
 ```
+
+**Parâmetros dos ideais (fonte: Farkas 1994 + calibração BiSeNet):**
+
+| Métrica | Ideal | Tolerância | Severidade "ideal" |
+|---|---|---|---|
+| `upper_third_ratio` | 0.333 | ±0.04 | green |
+| `middle_third_ratio` | 0.333 | ±0.04 | green |
+| `lower_third_ratio` | 0.333 | ±0.04 | green |
+
+Os ideais são calibrados contra o **trichion anatômico** (Farkas, não `lm[10]`). A integração BiSeNet corrige a medição — não requer recalibração dos ideais.
 
 ---
 

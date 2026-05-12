@@ -1,13 +1,13 @@
 # Face Analysis Domain — Índice de Contexto
 
 > Documentação da arquitetura atual (MediaPipe-478 + NestJS + PostgreSQL + Python).
-> Última atualização: **2026-05-12** — auditoria do painel premium (fixes: fwhr canônico, jawline normalizado, marquardt com pose-gate, gaussianas em visual_status); + half-width sided + saturação dn=5 no `IdealComparator`/`RegionalScorer`; + integração BiSeNet hairline (virtual trichion, trichion_source, QualityContext.virtual_landmarks).
+> Última atualização: **2026-05-12** — auditoria do painel premium; integração BiSeNet hairline; OutlineFace horn fix (LM_FOREHEAD_RIDGE); overlay annotations JSON; imagem canônica como fonte única; threshold trichion 0.8→0.5; pose warning acionável.
 
 ## Auditorias / changelog técnico
 
 - [CALIBRATION_AUDIT_2026-05-12.md](./CALIBRATION_AUDIT_2026-05-12.md) — bugs de landmark (P_NOSE_RIGHT 45→278, zygomatic, lips), recalibração de ideais v1.1, painel premium (D1-D4: jawline, marquardt, fwhr, gaussianas).
-- [08-svg-overlays.md](./08-svg-overlays.md) — 5 bugs corrigidos nos overlays SVG (coordinate space, Rule of Fifths, midline, jawline), sistema de coordenadas viewBox/CSS, checklist QA visual.
-- [09-bisenet-hairline.md](./09-bisenet-hairline.md) — integração BiSeNet: virtual trichion, FusedLandmarks, QualityContext.virtual_landmarks, thirds.py BiSeNet-aware, OverlayLayer trichion_source.
+- [08-svg-overlays.md](./08-svg-overlays.md) — 7 bugs/melhorias: coordinate space, Rule of Fifths, midline, OutlineFace horn (LM_FOREHEAD_RIDGE), overlay annotations JSON + `<OverlaySidebar>`.
+- [09-bisenet-hairline.md](./09-bisenet-hairline.md) — integração BiSeNet: virtual trichion, FusedLandmarks, trichion threshold 0.5, scan direction fix, confidence decomposição completa, canonical image storage, overlay annotations, OutlineFace horn fix, pose warning copy.
 
 ---
 
@@ -35,13 +35,17 @@ O sistema analisa uma foto facial frontal usando **MediaPipe Mesh-478** e retorn
 - **93 calculadores** registrados via `@register` em `app.services.metrics`
 - Input: `(478, 3)` landmarks MediaPipe, origem = midpoint intercantal, escala = ICD
 - Output: lista de `MetricValue` (value, confidence_raw, confidence_final, direction)
-- Confidence propagada por `confidence_propagation.propagate()` (yaw/pitch + qualidade + penalidades regionais)
+- Confidence propagada por `confidence_propagation.propagate()` — pipeline: `conf_raw × quality × regional_penalty × pose_penalty × trichion_multiplier`
 - **4 stubs DEC-10** com `requires_pixel_analysis=True` → `direction="not_computed"`, confidence=0
+- **Imagem canônica** (crop + Frankfort-alignment) é **a única fonte de verdade** para métricas, overlays e storage. A foto original nunca vai para MinIO.
+- **BiSeNet hairline** detecta trichion anatômico (threshold confidence ≥ 0.5); fallback automático para `lm[10]`.
+- **`result["overlay_annotations"]`** contém labels textuais JSON dos overlays (terços, quintos, extensão facial) — sem texto burned-in nos PNGs.
 
 ### Backend NestJS (`nest/`)
 - PostgreSQL `localhost:9019 / face_analysis`
 - Tabelas: `metric_definition` (93 rows v1.0) · `metric_ideal` (88 rows v1.0) · `region_metric_weight` (88 rows v1.5)
 - API REST principal: `POST /v1/vision/metrics`, `POST /v1/vision/full-pipeline`, `POST /v1/analysis`
+- Endpoint canônica: `GET /v1/vision/results/{run_id}/canonical` → imagem canônica JPEG
 
 ### Waves de implementação
 
