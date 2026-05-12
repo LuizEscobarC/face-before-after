@@ -1,0 +1,101 @@
+# Plano: Refatoração de overlays + canonical-image storage + UX dos textos
+
+## Contexto
+
+O usuário levantou 8 pontos numa única conversa, que se agrupam em três frentes:
+
+1. **Pose-penalty / confidence_final = 0.22** (item #1): diagnóstico já completo — `pitch=12.5°` ultrapassa `pitch_hard=12°` em `THIRDS_POSE_PARAMS`, drop matemático correto. Decisão tomada: **manter o cálculo + melhorar a mensagem de UX** que já existe (`photo_warnings`) para ser mais clara e acionável.
+2. **Bug visual no contorno** (item #2): o `OutlineFace` desenha um "chifre" subindo do nada até o trichion. Causa-raiz identificada: `LM_JAWLINE` contém **vários pontos da testa** (109/67/103/54/21/162 do lado esquerdo, 338/297/332/284/251 do lado direito, e `10` no centro). O código só sobrescreve `lm[10]` com o trichion BiSeNet; os vizinhos continuam na altura original da malha (linha das sobrancelhas), gerando um pico isolado.
+3. **Foto canônica = fonte única + textos informativos viram JSON** (itens #3–#8): hoje a foto original é salva em MinIO e a canônica fica só em memória; e há textos burned-in nos PNGs de overlay (`grid_thirds`, `face_extents`, `ideal_proportions`) que precisam virar JSON na resposta da API e ser renderizados ao lado da imagem em React.
+
+Resultado esperado: contorno do rosto correto sem chifre; toda métrica e overlay deriva da imagem canônica armazenada; nenhum texto queimado em PNG — apenas geometria limpa nas imagens, e textos legíveis ao lado em React com UX/UI bem clara.
+
+---
+
+## Decisões de design
+
+- **Não relaxar** `THIRDS_POSE_PARAMS`. Sistema é honesto. Só melhorar mensagem.
+- **OutlineFace fix**: aplanar todos os pontos da testa do `LM_JAWLINE` para `trichionY` quando trichion BiSeNet estiver disponível. Lista alvo: índices que aparecem no topo do polygon (em ambos os lados do `10`): `109, 67, 103, 54, 21, 162` (esquerda) e `338, 297, 332, 284, 251` (direita). Isso transforma o segmento "testa" numa **linha horizontal suave ao nível do trichion**, conectando as têmporas (`162`/`127` e `251`/`356`) sem pico. Implementar tanto em `OverlayLayer.tsx` quanto em `_overlay_render.py` para manter paridade PIL ↔ SVG.
+- **Canonical image storage**:
+  - Salvar `canonical.image` em `out_dir/{run_id}_canonical.jpg` (logo após linha 1098 de `pipeline.py`).
+  - Subir para MinIO em `runs/{run_id}/canonical.jpg`.
+  - Original deixa de ir para MinIO — fica só transitória em `out_dir` (já cumpre o papel de "upload temporário"). Manter `input_path` local apenas como log/debug; remover o upload da original.
+  - Adicionar endpoint `GET /v1/vision/results/{run_id}/canonical` (em `backend/app/vision/routers/results.py`).
+  - Frontend: trocar `annotatedUrl` por `canonicalUrl` como base de todos os overlays. Componentes SVG continuam empilhados em cima.
+- **Textos → JSON sidebar**:
+  - Estender o report JSON com uma seção nova: `result.overlay_annotations: { face_extents: {...}, grid_thirds: {...}, grid_fifths: {...}, ideal_proportions: [...] }` contendo todos os labels textuais hoje queimados nos PNGs.
+  - Remover as chamadas `draw.text(...)` / `_label(...)` dos renderers Python para esses 4 overlays. PIL passa a desenhar **só geometria** (linhas, polígonos, dashes).
+  - Criar componente React `<OverlaySidebar variant="..." data={...} />` ao lado de cada imagem; visual segue paleta `--surface2 / --border / --text / --muted / --accent` do `CLAUDE.md`.
+  - `ideal_proportions` panel (PNG) deixa de ser gerado como imagem — vira um array JSON renderizado em React (tabela limpa de proporções).
+- **Photo warnings**: melhorar copy do warning em `face_metrics.py` (`head_pose`) — adicionar instrução acionável: "Tire a próxima foto com o rosto frontal, sem inclinar o queixo. As medidas de proporção vertical (terços) requerem alinhamento < 12° de pitch.".
+
+---
+
+## Arquivos a modificar
+
+### Backend (Python)
+
+| Arquivo | Mudança |
+|---|---|
+| `backend/app/domain/face_metrics.py` (linhas 530–550) | Reescrever mensagem do warning de pose com instrução acionável |
+| `backend/app/domain/pipeline.py` (após linha 1098) | Persistir `canonical.image` como `{run_id}_canonical.jpg` |
+| `backend/app/domain/pipeline.py` (próximo a 1352) | Adicionar `result["overlay_annotations"]` com labels JSON |
+| `backend/app/vision/routers/full_pipeline.py` (linhas 70–77) | Subir canônica para MinIO em vez da original |
+| `backend/app/vision/routers/results.py` | Novo endpoint `GET /{run_id}/canonical` |
+| `backend/app/domain/simulate.py` (`annotate_ideal_proportions`, 228–307) | Tirar texto burned-in; manter só linhas geométricas |
+| `scripts/_overlay_render.py` (`draw_outline_face`, 371–392) | Sobrescrever todos os pontos da testa em `LM_JAWLINE` com `trichion_y`, não só `P_FOREHEAD_CROWN` |
+| `scripts/_overlay_render.py` (`draw_grid_thirds`, 248–321) | Remover todas as chamadas `_label(...)` — manter só linhas |
+| `scripts/_overlay_render.py` (`draw_grid_fifths`, `draw_face_extents`) | Idem — sem texto |
+| `scripts/render_all_overlays.py` (`render_ideal_proportions`, 314–353) | Remover — gerar dado JSON em vez de PNG |
+
+### Frontend (React/TS)
+
+| Arquivo | Mudança |
+|---|---|
+| `frontend/src/components/OverlayLayer.tsx` (`OutlineFace`, 436–454) | Igual ao fix Python: aplanar topo do `LM_JAWLINE` com `trichionY` |
+| `frontend/src/components/OverlayLayer.tsx` (`GridThirds`, `GridFifths`, `FaceExtents`) | Remover `<text>` SVG burned-in |
+| `frontend/src/components/OverlaySidebar.tsx` (novo) | Painel lateral com textos por variant (thirds / fifths / extents / ideal_proportions / warnings) |
+| `frontend/src/pages/PremiumResultPage.tsx` / `FreeResultPage.tsx` | Usar `canonicalUrl` como base; renderizar `<OverlaySidebar>` ao lado de cada overlay; melhorar bloco de `photo_warnings` |
+| `frontend/src/types.ts` | Tipar `OverlayAnnotations` e estender `VisionResult` |
+
+### NestJS (orquestrador)
+
+| Arquivo | Mudança |
+|---|---|
+| `nest/src/modules/diagnosis/diagnosis.service.ts` (linhas 70–82) | Encaminhar `overlay_annotations` e `canonical_url` do report Python para o frontend |
+
+---
+
+## Reuso de utilitários existentes
+
+- `derive_trichion_y_px` (Python: `scripts/_overlay_render.py:188`) e `deriveTrichionYPx` (TS: `OverlayLayer.tsx`) **já estão corretos** — só usar como está no fix do contorno.
+- `effective_trichion_y` / `trichion_confidence_multiplier` em `backend/app/services/metrics/_trichion.py` — não tocar.
+- `MinIOStorage` / `storage.upload_file` (`backend/app/vision/routers/full_pipeline.py`) — reusar para subir canônica.
+- CSS variables (`--surface2`, `--border`, `--accent`, etc.) do `CLAUDE.md` — base do `<OverlaySidebar>`.
+
+---
+
+## Verificação end-to-end
+
+1. **Backend isolado**: rodar `.venv/bin/python scripts/render_all_overlays.py rosto_exemplo.jpg bradpitt-reference.jpg`. Conferir:
+   - `outline_face.png` sem chifre (curva suave do queixo até trichion via têmporas).
+   - `grid_thirds.png`, `grid_fifths.png`, `face_extents.png` sem texto, apenas geometria.
+   - `report.json` contém `overlay_annotations` com os textos.
+2. **API**: `curl POST /v1/vision/full-pipeline/upload` com `rosto_exemplo.jpg`. Verificar:
+   - `result.run_id`, `result.canonical_url`, `result.overlay_annotations`.
+   - `GET /v1/vision/results/{run_id}/canonical` retorna a imagem cortada/alinhada (não a original).
+   - MinIO bucket contém `runs/{run_id}/canonical.jpg` (não `uploads/...`).
+3. **Frontend**: abrir `PremiumResultPage` no dev server. Conferir:
+   - Cada overlay tem painel de texto ao lado, paleta dark, sem nada queimado na foto.
+   - Warning de pose mostra a copy nova e acionável quando pitch > 12°.
+   - Foto exibida é a canônica (cortada 3×4 + alinhada).
+4. **Frontend build**: `just frontend-deploy` para confirmar build + restart.
+
+---
+
+## Não-objetivos
+
+- Não criar UI nova além do `<OverlaySidebar>`. Não redesenhar a página inteira.
+- Não migrar para um sistema de imagens server-side renderizadas (manter SVG/PIL atuais; apenas tirar texto e ajustar geometria do contorno).
+- Não mexer em `trichion_confidence_multiplier` ou em qualquer `POSE_PARAMS` (decisão #1).
+- Não apagar a foto original do `out_dir` local — só não subir para MinIO. Original continua no disco do container para debug.

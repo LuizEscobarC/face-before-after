@@ -225,6 +225,18 @@ review-loop foto:
     @echo ""
     @echo "→ review/$(basename {{foto}} | sed 's/\.[^.]*$//')/$(basename {{foto}} | sed 's/\.[^.]*$//')_index.html"
 
+# Roda todos os smoke-tests de overlay (node .mjs) contra a API em localhost:9015.
+# Uso: just overlay-tests
+# Override da imagem: OVERLAY_TEST_IMAGE=bradpitt-reference.jpg just overlay-tests
+overlay-tests:
+    node scripts/test-all-overlays.mjs
+
+# Roda o smoke-test de um overlay específico.
+# Uso: just overlay-test axis_vertical
+# ou:  just overlay-test grid_thirds
+overlay-test id:
+    node scripts/test-overlay-{{id}}.mjs
+
 ##############################
 # DOCKER
 #############################

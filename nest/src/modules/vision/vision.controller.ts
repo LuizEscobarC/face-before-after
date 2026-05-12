@@ -79,6 +79,16 @@ export class VisionController {
     void reply.header('Content-Type', file.contentType).send(file.data);
   }
 
+  @Get('results/:runId/canonical')
+  @ApiOperation({ summary: 'Imagem canônica (crop + Frankfort-aligned) — fonte única para todos os overlays' })
+  async canonical(
+    @Param('runId') runId: string,
+    @Res({ passthrough: false }) reply: FastifyReply,
+  ): Promise<void> {
+    const file = await this.client.fetchCanonical(runId);
+    void reply.header('Content-Type', file.contentType).send(file.data);
+  }
+
   @Get('results/:runId/annotated')
   @ApiOperation({ summary: 'Imagem anotada com landmarks' })
   async annotated(

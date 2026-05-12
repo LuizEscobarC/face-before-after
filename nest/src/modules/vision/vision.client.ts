@@ -103,6 +103,10 @@ export class VisionClient {
     return this.fetchBinary(`/vision/results/${runId}/original`);
   }
 
+  async fetchCanonical(runId: string): Promise<{ data: Buffer; contentType: string }> {
+    return this.fetchBinary(`/vision/results/${runId}/canonical`);
+  }
+
   async fetchAnnotated(runId: string): Promise<{
     data: Buffer;
     contentType: string;
