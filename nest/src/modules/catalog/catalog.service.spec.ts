@@ -156,8 +156,8 @@ function buildService(repoOverrides: {
     find: vi.fn().mockResolvedValue([makeGlobalWeightVersion()]),
   });
 
-  // @ts-expect-error – injecting partial mocks
-  return new CatalogService(
+  // @ts-ignore – injecting partial mocks
+  return new (CatalogService as any)(
     metricDefs,
     metricIdeals,
     metricRegistryVersions,
@@ -166,7 +166,7 @@ function buildService(repoOverrides: {
     severityPolicies,
     regionWeightVersions,
     globalWeightVersions,
-  );
+  ) as CatalogService;
 }
 
 // ---------------------------------------------------------------------------

@@ -132,6 +132,7 @@ describe('ReportReaderService', () => {
   let regionalRepo: ReturnType<typeof makeRepo>;
   let globalRepo: ReturnType<typeof makeRepo>;
   let definitionRepo: ReturnType<typeof makeRepo>;
+  let landmarkRepo: ReturnType<typeof makeRepo>;
 
   beforeEach(() => {
     reportRepo = makeRepo();
@@ -140,6 +141,8 @@ describe('ReportReaderService', () => {
     regionalRepo = makeRepo();
     globalRepo = makeRepo();
     definitionRepo = makeRepo();
+    landmarkRepo = makeRepo();
+    landmarkRepo.findOne = vi.fn().mockResolvedValue(null);
 
     service = new ReportReaderService(
       reportRepo as never,
@@ -148,6 +151,7 @@ describe('ReportReaderService', () => {
       regionalRepo as never,
       globalRepo as never,
       definitionRepo as never,
+      landmarkRepo as never,
     );
   });
 
