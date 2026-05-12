@@ -91,6 +91,31 @@ export type HeatRegionConfig = {
   pulse: boolean;
 };
 
+/**
+ * Action overlay shown over the face (hands pressing, force arrows).
+ * Optional passthrough field — backend treats `animation_config` as JSONB
+ * and only validates `schema_version` + `primitives`, so unknown keys are
+ * preserved on round-trip without DB migration.
+ */
+export type ActionVector =
+  | {
+      type: 'hand';
+      x: number;
+      y: number;
+      angle?: number;
+      scale?: number;
+      flip?: boolean;
+      spread?: number;
+      action?: 'press' | 'pull' | 'massage';
+    }
+  | {
+      type: 'arrow' | 'arrow_muscle';
+      x1: number;
+      y1: number;
+      x2: number;
+      y2: number;
+    };
+
 export type AnimationConfig = {
   schema_version: 1;
   primitives: AnimationPrimitive[];
@@ -100,6 +125,8 @@ export type AnimationConfig = {
   heat_regions?: HeatRegionConfig[];
   caption_pt?: string;
   show_xray?: boolean;
+  /** Optional anatomical hands & force arrows overlay. Passthrough JSON. */
+  action_vectors?: ActionVector[];
 };
 
 /** Full enumerated list of valid primitive ids — used by registry + admin gallery. */

@@ -30,7 +30,9 @@ import {
 
 function validateAnimationConfig(c: AnimationConfig): string | null {
   if (c.schema_version !== 1) return 'schema_version deve ser 1.';
-  if (!Array.isArray(c.primitives) || c.primitives.length === 0) return 'primitives[] não pode estar vazio.';
+  const hasRecordedFrames = Array.isArray(c.recorded_timeline?.frames) && c.recorded_timeline!.frames.length > 0;
+  if (!Array.isArray(c.primitives) || (c.primitives.length === 0 && !hasRecordedFrames))
+    return 'primitives[] não pode estar vazio (ou forneça recorded_timeline com frames).';
   for (const p of c.primitives) {
     if (!(FACIAL_PRIMITIVE_IDS as readonly string[]).includes(p.id)) return `primitive.id inválido: "${p.id}".`;
     if (p.intensity !== undefined && (p.intensity < 0 || p.intensity > 1))

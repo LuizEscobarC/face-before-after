@@ -1,7 +1,7 @@
 # Próximos passos — onde estamos e o que falta
 
 > Documento humano. Leia em voz de café, não de tabela de PR.
-> Última atualização: 2026-05-09 (revisão pós-PR-55/56).
+> Última atualização: 2026-05-11 (revisão pós-PR-64 — Landmark-Driven Face Rig).
 > Para a tabela técnica completa, ver [`PLAN_METRICS.md`](./PLAN_METRICS.md). Para detalhes por marco, ver [`marcos/`](./marcos/).
 
 ---
@@ -22,6 +22,7 @@ Em uma frase: **o motor que mede um rosto, calcula confiança, pontua e desenha 
   - Composição lado-a-lado *before* (foto original) × *ideal* (com wireframe alvo em ciano).
   - Cascata de supressão por confiança em 3 níveis (não desenhar pior do que não desenhar).
 - **Infra de texto diagnóstico (M4.1 ✅):** tabelas `diagnostic_template`, renderer com 4 gates de allowlist, lint script de blacklist (sem palavras tipo "diagnóstico", "patologia", "garantimos"). Mas só **5 templates exemplares** existem — falta escrever o catálogo.
+- **Admin UX / Live Preview (M5 ✅ até PR-64):** `SvgAnatomicalHand` parametrizável + 10 presets (PR-60), bridge MediaPipe→FaceState `landmarkToFaceState` + hook `useLiveFaceState` (PR-61), `SvgFaceInstructor liveState` + 3 seções de preview no admin + hand pairings nos cards de exercício (PR-62), MediaPipe WASM 100% offline (PR-63), e — **entregue 2026-05-11** — `LandmarkRig` que renderiza o SVG facial **direto dos 478 landmarks MediaPipe** com normalização por 4 âncoras + One-Euro filter, substituindo o `FaceRig` hardcoded; modo scripted continua funcional via `applyFaceStateDeformation` sobre `canonical_face_model.obj` oficial; pseudo-3D matrix preservada (PR-64).
 
 ### Tamanho do que existe hoje
 
@@ -61,10 +62,10 @@ Há **dois bloqueios reais** e o restante é trabalho mecânico.
 ## 3. O que falta tecnicamente (em ordem de dependência)
 
 ```
-                  PR-22 fotos reais  ──┐
+                  PR-22 fotos reais  ──┐ FEITO
                   (humano, ~1 dia)     │
                                        ▼
-                  PR-21 v2.0 promoção  ──┐
+                  PR-21 v2.0 promoção  ──┐ FEITO
                   (Opus, ~1 dia)         │
                                          ▼
 M2 ✅ ────────────────────────────────────┐
@@ -95,7 +96,9 @@ M2 ✅ ────────────────────────�
                                        🎉 produto completo
 ```
 
-### Detalhamento dos próximos PRs (revisado 2026-05-09 pós-PR-55/56)
+### Detalhamento dos próximos PRs (revisado 2026-05-11 pós-PR-64)
+
+**Conflito de numeração resolvido:** o PROXIMOS_PASSOS antigo previa PR-63..67 para asset pipeline / 3D / AR / assinatura, mas a numeração canônica do `PLAN_METRICS.md` chegou a **PR-64** consumindo a faixa para o eixo M5 (Admin UX). Os PRs futuros foram **shiftados para PR-70+** para evitar colisão.
 
 | PR | O que entrega | Status | Modelo | Esforço |
 |----|---------------|--------|--------|---------|
@@ -105,23 +108,27 @@ M2 ✅ ────────────────────────�
 | **PR-54** | Revisão humana dos templates antes de virar v1.0 | ⏳ depende de PR-53 fechar | humano + Opus | 1 dia |
 | **PR-55** | DDL `recommendation_catalog` + 4 tabelas | ✅ DONE | Sonnet | — |
 | **PR-55b** | Migration `M44RecommendationLadder` — adiciona `exercise` + `aesthetic_procedure`, `evidence_level`, `invasiveness_level`, `clinical_pathway_required`, `disclaimer_template`, `references_jsonb` + extensão de `professional_type` | ✅ DONE (1746000225000+230000) | Sonnet | — |
-| **PR-56** | ~50 recomendações com gatilho `metric × severity` + categoria | ✅ DONE — **427 recomendações + 8.352 triggers** entregues (M44SeedExerciseCatalog + M44SeedFullCatalog100 + M44SeedFullCatalog270). 84 anecdotal com disclaimer; 27 professional_referral com tom informativo não-prescritivo. Curadoria do produto + Opus revisão para os 100 itens canônicos. | Sonnet+humano | — |
+| **PR-56** | ~50 recomendações com gatilho `metric × severity` + categoria | ✅ DONE — **427 recomendações + 8.352 triggers** entregues | Sonnet+humano | — |
 | **PR-56b** | Catálogo `aesthetic_procedure` (nível 4a) — botox masseter, preenchimento labial/malar/mento, fios PDO, rinomodelação. ~10–15 entradas com risk_level + disclaimer estético | ⏳ TODO | Opus | 4h |
 | **PR-57** | `RecommendationEngine` que faz match + ranqueia + persiste — **com regra "menor invasiveness primeiro, max 2 categorias, nunca 4b isolado"** (escada PR-55b) | ⏳ próximo | Sonnet | 1 dia |
 | **PR-58** | `DiagnosticPriorityService` (fórmula I×S×C×A) — usar `risk_level` + `effort_estimate` + `invasiveness_level` na fórmula | ⏳ TODO | Opus | 1 dia |
 | **PR-59** | `GET /v1/analysis/:id/narrative` (top-3 findings + top-5 recs + disclaimer) | ⏳ TODO | Sonnet | 4h |
-| **PR-60** | Python `PdfBuilder` (capa → score → findings → overlays → recs → disclaimer) | ⏳ TODO | Sonnet | 1–2 dias |
-| **PR-61** | Nest endpoint que dispara PDF, salva em MinIO | ⏳ TODO | Sonnet | 4h |
-| **PR-62** | Botão "Baixar relatório completo" no frontend | ⏳ TODO | Sonnet | 4h |
-| **PR-63** | **NOVO** — Asset pipeline para exercícios (Lottie/Rive MVP). Esquema `recommendation_asset` (id, recommendation_id, asset_type='lottie'\|'rive'\|'video'\|'image', storage_url, duration_ms, thumbnail_url, alt_text). DDL + admin CRUD para upload. | ⏳ TODO | Sonnet | 1 dia |
-| **PR-64** | **NOVO** — Player Lottie/Rive no frontend (LottieFiles ou rive-react). Card de exercício com loop visual + cronômetro isométrico + "onde deve sentir queimar" + "erros comuns". | ⏳ TODO | Sonnet | 1–2 dias |
-| **PR-65** | **NOVO** — Modo 3D (Three.js + Ready Player Me + 52 BlendShapes ARKit). Avatar com músculos visíveis (modo "raio-x"). Gating: feature behind flag, custo de bandwidth elevado. | ⏳ futuro (pós-MVP) | Opus | 3–5 dias |
-| **PR-66** | **NOVO** — Modo Espelho com IA (MediaPipe FaceMesh + overlays AR em tempo real). Feedback "relaxe a testa", "segure 5s". | ⏳ futuro (pós-MVP) | Opus | 5–7 dias |
-| **PR-67** | **NOVO** — Módulo de assinatura + tracking longitudinal (rotina diária, before/after semanal/mensal). Tabelas `treatment_routine` + `progress_snapshot`. | ⏳ futuro | Opus | 5–7 dias |
+| **PR-60..63** | M5 Admin UX (SvgAnatomicalHand + liveState + WASM offline) | ✅ DONE | Sonnet | — |
+| **PR-64** | **Landmark-Driven Face Rig** — SVG renderizado direto dos 478 landmarks + canonical mesh oficial + One-Euro filter | ✅ DONE [2026-05-11] | Sonnet | — |
+| **PR-65** | **Validação visual do PR-64** — abrir `/admin/animations/preview` (seção "Live Face") + RecordExerciseModal e validar pixel-perfect entre rig SVG e mesh overlay; testar mandíbula lateral, abrir/fechar olho, sorrir, yaw 30° | ⏳ próximo (humano) | humano | 30 min |
+| **PR-66** | **Mapping completo `FaceState → regiões da malha`** no scripted mode. Hoje cobrimos só jaw/lips/eye-openness/brow-lift+rotate/lip-corner — campos de `FaceState` como `cheekScale`/`noseDx`/`forehead*`/`facePinch` ainda degradam para neutro. Adicionar deformações regionais correspondentes em `applyFaceStateDeformation` | ⏳ TODO | Sonnet | 4h |
+| **PR-67** | Python `PdfBuilder` (capa → score → findings → overlays → recs → disclaimer) | ⏳ TODO | Sonnet | 1–2 dias |
+| **PR-68** | Nest endpoint que dispara PDF, salva em MinIO | ⏳ TODO | Sonnet | 4h |
+| **PR-69** | Botão "Baixar relatório completo" no frontend | ⏳ TODO | Sonnet | 4h |
+| **PR-70** | Asset pipeline para exercícios (Lottie/Rive MVP). Esquema `recommendation_asset` + admin CRUD para upload | ⏳ TODO (era PR-63 na versão antiga) | Sonnet | 1 dia |
+| **PR-71** | Player Lottie/Rive no frontend. Card de exercício com loop visual + cronômetro isométrico + "onde deve sentir queimar" | ⏳ TODO (era PR-64) | Sonnet | 1–2 dias |
+| **PR-72** | Modo 3D (Three.js + Ready Player Me + 52 BlendShapes ARKit). Avatar com músculos visíveis. Feature flag, custo de bandwidth elevado | ⏳ futuro (era PR-65) | Opus | 3–5 dias |
+| **PR-73** | Modo Espelho com IA — agora **viável imediato** porque PR-64 já entregou MediaPipe live + landmark normalization. Reaproveitar `useLiveFaceState` + `LandmarkRig.showMesh` + adicionar overlay AR sobre vídeo (em vez de canvas SVG isolado) | ⏳ destrambou pós-PR-64 (era PR-66) | Opus | 3–5 dias (÷2 vs original — infra pronta) |
+| **PR-74** | Módulo de assinatura + tracking longitudinal (rotina diária, before/after semanal/mensal). Tabelas `treatment_routine` + `progress_snapshot` | ⏳ futuro (era PR-67) | Opus | 5–7 dias |
 
-**Total estimado para fechar o MVP (depois de PR-22, sem PR-65/66/67):** ~7 dias de trabalho técnico + ~2 dias de revisão de tom.
+**Total estimado para fechar o MVP (depois de PR-22, sem PR-72/73/74):** ~7 dias de trabalho técnico + ~2 dias de revisão de tom.
 
-**Total estimado para o "estado da arte" (com 3D + AR):** +10–15 dias adicionais.
+**Total estimado para o "estado da arte" (com 3D + AR):** +8–12 dias adicionais (reduzido vs estimativa anterior porque PR-64 destravou parte da infra do AR).
 
 ---
 
@@ -235,8 +242,8 @@ Recomendação: PDF sempre tem **conteúdo positivo** (overlays, recomendações
 
 ## 7. TL;DR — se você só vai ler 5 linhas
 
-1. **M2 e M3 estão prontos** — motor de análise + overlays funcionam.
+1. **M2, M3 e M5 (Admin UX) estão prontos** — motor de análise + overlays + admin live preview com SVG renderizado direto dos 478 landmarks (PR-64, 2026-05-11).
 2. **Falta calibrar com 50 fotos reais (PR-22)** — sem isso o produto está "academicamente correto" mas empiricamente cego.
 3. **Depois disso, M4 inteiro** (~10 dias de trabalho técnico + ~3 dias de revisão de tom): texto diagnóstico, recomendações, priorização, PDF.
-4. **Decida agora** quem revisa o tom dos templates e onde fica a fronteira lifestyle/clínico.
-5. **Próxima ação concreta:** baixar 50 fotos e rodar a planilha de override.
+4. **Decida agora** quem revisa o tom dos templates (4.1) e como ensinar exercícios (4.4 — Lottie/Rive MVP recomendado, 3D/AR pós-validação).
+5. **Próxima ação concreta:** **PR-65** (validação visual do LandmarkRig — 30 min, abre `/admin/animations/preview` e confirma pixel-perfect) **OU** baixar 50 fotos para PR-22 — escolha sua aposta de impacto.

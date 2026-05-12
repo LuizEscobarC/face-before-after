@@ -17,6 +17,8 @@ export type FaceState = {
   faceRotate: number;
   /** Roll (Z-axis tilt in degrees), used by neck_lateral_flex. */
   faceTilt: number;
+  /** Pitch (X-axis nod in degrees, + = looking down, - = up). */
+  facePitch: number;
   /** Translate Y of the whole face group, used by neck_chin_tuck (negative = retract). */
   faceDy: number;
 
@@ -57,6 +59,8 @@ export type FaceState = {
   jawScaleX: number;
   jawDy: number;
   jawDx: number;
+  /** Protrusion / retrusion (z-axis). + = forward, - = back. Range ~ -1..+1. */
+  jawDz: number;
 
   // --- Tongue overlay (visible only when show_xray=true OR a tongue primitive is active) ---
   tongueVisible: boolean;
@@ -95,6 +99,7 @@ export const NEUTRAL_FACE_STATE: FaceState = {
   skinOpacity: 1,
   faceRotate: 0,
   faceTilt: 0,
+  facePitch: 0,
   faceDy: 0,
   browLDy: 0, browLDx: 0, browLRotate: 0,
   browRDy: 0, browRDx: 0, browRRotate: 0,
@@ -107,7 +112,7 @@ export const NEUTRAL_FACE_STATE: FaceState = {
   mouthScaleX: 1, mouthScaleY: 1, mouthDy: 0,
   lipCornerLDy: 0, lipCornerRDy: 0,
   mouthShape: 'smile',
-  jawScaleX: 1, jawDy: 0, jawDx: 0,
+  jawScaleX: 1, jawDy: 0, jawDx: 0, jawDz: 0,
   tongueVisible: false,
   tongueShape: 'rest',
   tongueDx: 0, tongueDy: 0,

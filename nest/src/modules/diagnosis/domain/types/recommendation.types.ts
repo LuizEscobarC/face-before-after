@@ -174,7 +174,7 @@ export type HeatRegionId =
  *
  * Invariants (enforced by DB CHECK `chk_rec_animation_config_schema`):
  *   - schema_version === 1
- *   - primitives.length >= 1
+ *   - primitives.length >= 1 OR recorded_timeline.frames.length >= 1
  */
 export type AnimationConfig = {
   /** Always 1. Guard for future schema migrations. */
@@ -223,6 +223,21 @@ export type AnimationConfig = {
    * Required for tongue primitives (tongue_palate_press, tongue_lateral_*, etc.).
    */
   show_xray?: boolean;
+
+  /**
+   * Optional recorded landmark timeline from webcam capture (PR-64).
+   * When present with frames, `primitives` may be empty — the animation is
+   * driven entirely by the landmark data via LandmarkRig.
+   */
+  recorded_timeline?: {
+    fps: number;
+    duration_ms: number;
+    frames: Array<{
+      t: number;
+      delta: Record<string, unknown>;
+      landmarks?: number[][];
+    }>;
+  };
 };
 
 export const FACIAL_PRIMITIVE_IDS: readonly FacialPrimitiveId[] = [

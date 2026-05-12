@@ -21,9 +21,9 @@ let imageLandmarker: FaceLandmarker | null = null;
 let videoLandmarker: FaceLandmarker | null = null;
 
 async function initialize(modelUrl: string): Promise<void> {
-  const filesetResolver = await FilesetResolver.forVisionTasks(
-    'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.18/wasm',
-  );
+  // Use WASM files bundled in /public/wasm/ — no CDN dependency.
+  // Served by nginx at the same origin as the frontend.
+  const filesetResolver = await FilesetResolver.forVisionTasks('/wasm');
 
   imageLandmarker = await FaceLandmarker.createFromOptions(filesetResolver, {
     baseOptions: { modelAssetPath: modelUrl, delegate: 'GPU' },
@@ -54,7 +54,9 @@ function extractPixelLandmarks(
   height: number,
 ): number[][] {
   if (!result.faceLandmarks || result.faceLandmarks.length === 0) return [];
-  return result.faceLandmarks[0].map((pt) => [pt.x * width, pt.y * height]);
+  // Keep z (normalised depth from MediaPipe, typically -0.1..+0.1) so downstream
+  // consumers can compute jaw protrusion and other depth-derived features.
+  return result.faceLandmarks[0].map((pt) => [pt.x * width, pt.y * height, pt.z ?? 0]);
 }
 
 // Simplified pose estimation using 6 PnP anchor landmarks.
@@ -121,4 +123,28 @@ async function analyzeVideoFrame(imageData: ImageData): Promise<FeedbackResult |
   return { face_detected: true, pose_ok: poseOk, light_ok: lightOk };
 }
 
-expose({ initialize, detectLandmarks, analyzeVideoFrame });
+/**
+ * Like analyzeVideoFrame but returns full LandmarkPayload (landmarks + pose)
+ * rather than a simplified FeedbackResult. Used by the live-face instructor
+ * hook to drive the SvgFaceInstructor in real time.
+ */
+async function detectVideoLandmarks(imageData: ImageData): Promise<LandmarkPayload | null> {
+  if (!videoLandmarker) throw new Error('Video landmarker not initialized. Call initialize() first.');
+  const timestamp = Date.now();
+  if (timestamp <= lastVideoTimestamp) return null;
+  lastVideoTimestamp = timestamp;
+
+  const result = videoLandmarker.detectForVideo(
+    imageData as unknown as Parameters<FaceLandmarker['detectForVideo']>[0],
+    timestamp,
+  );
+
+  const faceDetected = (result.faceLandmarks?.length ?? 0) > 0;
+  if (!faceDetected) return null;
+
+  const landmarks = extractPixelLandmarks(result, imageData.width, imageData.height);
+  const pose = estimatePose(landmarks);
+  return { landmarks, pose, processing_mode: 'CLIENT_SIDE' };
+}
+
+expose({ initialize, detectLandmarks, analyzeVideoFrame, detectVideoLandmarks });

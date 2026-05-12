@@ -15,8 +15,7 @@ import {
   updateRecommendation,
 } from '../api';
 import type { RecommendationCatalog, RecommendationCategory_Option } from '../types';
-import { SvgFaceInstructor } from '../components/SvgFaceInstructor';
-import { BiometricFaceSimulator } from '../components/BiometricFaceSimulator';
+import { ExerciseStudioPreview } from '../components/ExerciseStudioPreview';
 import type { AnimationConfig } from '../types/animationConfig';
 import type { BiometricExerciseConfig } from '../biometric/types';
 import './AdminRecommendationsPage.css';
@@ -549,9 +548,11 @@ export default function AdminRecommendationsPage() {
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
                   <span style={{ fontSize: 11, color: 'var(--muted)' }}>Preview ao vivo</span>
                   {parsedAnimationConfig ? (
-                    <SvgFaceInstructor
-                      config={parsedAnimationConfig}
-                      width={200}
+                    <ExerciseStudioPreview
+                      animationConfig={parsedAnimationConfig}
+                      biometricConfig={null}
+                      width={220}
+                      hideHands={false}
                       showCaption={!!parsedAnimationConfig.caption_pt}
                     />
                   ) : (
@@ -631,9 +632,11 @@ export default function AdminRecommendationsPage() {
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
                   <span style={{ fontSize: 11, color: 'var(--muted)' }}>Preview ao vivo</span>
                   {parsedBiometricConfig ? (
-                    <BiometricFaceSimulator
-                      config={parsedBiometricConfig}
-                      size={220}
+                    <ExerciseStudioPreview
+                      animationConfig={null}
+                      biometricConfig={parsedBiometricConfig}
+                      width={220}
+                      hideHands
                       showCaption={!!parsedBiometricConfig.caption_pt}
                     />
                   ) : (

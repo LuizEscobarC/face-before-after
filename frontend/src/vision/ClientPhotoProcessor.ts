@@ -18,7 +18,6 @@ export class ClientPhotoProcessor {
   static async create(): Promise<ClientPhotoProcessor> {
     const worker = new Worker(
       new URL('./mediapipe.worker.ts', import.meta.url),
-      { type: 'module' },
     );
     const workerProxy = wrap<WorkerApi>(worker);
     const modelUrl = `${window.location.origin}/models/face_landmarker.task`;

@@ -6,6 +6,10 @@ export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), "");
   return {
     plugins: [react()],
+    // Bundle workers as classic IIFE so MediaPipe's WASM glue can use
+    // importScripts() and set self.ModuleFactory as a global — this fails
+    // in module workers because importScripts is forbidden there.
+    worker: { format: 'iife' },
     server: {
       port: 5173,
       proxy: {
