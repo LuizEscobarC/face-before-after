@@ -275,6 +275,7 @@ export class AnalysisOrchestratorService {
         direction_label: directionLabel,
         improvement_vector_x: raw.improvement_vector?.[0] ?? null,
         improvement_vector_y: raw.improvement_vector?.[1] ?? null,
+        anchor_landmark_index: raw.dependency_landmarks?.[0] ?? null,
       });
     }
 

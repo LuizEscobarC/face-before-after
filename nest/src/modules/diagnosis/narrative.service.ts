@@ -259,6 +259,153 @@ export class NarrativeService {
   }
 
   // ──────────────────────────────────────────────────────────────────────────
+  // Paginated readers (PR-66) — back GET /v1/analysis/:id/findings and
+  // GET /v1/analysis/:id/recommendations.
+  //
+  // narrativeForReport() returns the curated top-3 findings + top-5
+  // recommendations. The endpoints below expose the full lists with
+  // optional severity / category filters so the frontend can stop
+  // shipping client-side mocks.
+  // ──────────────────────────────────────────────────────────────────────────
+
+  /**
+   * Returns ALL non-ideal findings for a report, sorted by severity weight
+   * descending. Filters by ``minSeverity`` (severity_5 floor) and caps at
+   * ``limit``. Same render pipeline as ``narrativeForReport``.
+   */
+  async getAllFindings(
+    reportId: string,
+    opts: { limit?: number; minSeverity?: string } = {},
+  ): Promise<NarrativeFindingDto[]> {
+    const limit = Math.max(1, Math.min(opts.limit ?? 50, 200));
+    const minSeverity = opts.minSeverity ?? 'mild';
+    const minWeight = SEVERITY_ORDER[minSeverity] ?? SEVERITY_ORDER.mild;
+
+    const report = await this.reportRepo.findOne({ where: { id: reportId } });
+    if (!report) {
+      throw new NotFoundException(`Analysis report not found: ${reportId}`);
+    }
+    const generatedAt = report.generatedAt;
+
+    const evaluations = await this.evalRepo.find({
+      where: { analysisReportId: reportId, analysisReportGeneratedAt: generatedAt },
+    });
+    if (evaluations.length === 0) return [];
+
+    const evalIds = evaluations.map((e) => e.id);
+    const evalMap = new Map(evaluations.map((e) => [e.id, e]));
+
+    const againstIdeals = await this.evalAgainstIdealRepo
+      .createQueryBuilder('ai')
+      .where('ai.metric_evaluation_id IN (:...ids)', { ids: evalIds })
+      .getMany();
+
+    const sorted = againstIdeals
+      .filter(
+        (ai) =>
+          ai.severity5 &&
+          ai.severity5 !== 'ideal' &&
+          (SEVERITY_ORDER[ai.severity5] ?? 0) >= minWeight,
+      )
+      .sort(
+        (a, b) =>
+          (SEVERITY_ORDER[b.severity5 ?? 'ideal'] ?? 0) -
+          (SEVERITY_ORDER[a.severity5 ?? 'ideal'] ?? 0),
+      )
+      .slice(0, limit);
+
+    return Promise.all(
+      sorted.map(async (ai) => {
+        const eval_ = evalMap.get(ai.metricEvaluationId);
+        const metricId = eval_?.metricId ?? 'unknown';
+        const directionPt: string | null = ai.directionLabel?.['pt-BR'] ?? null;
+        const narrativeText = await this._renderFindingText(
+          metricId,
+          ai.severity5 ?? null,
+          ai.severity3 ?? null,
+          directionPt,
+          ai.deviationNormalized,
+        );
+        return {
+          metric_id: metricId,
+          severity_3: ai.severity3,
+          severity_5: ai.severity5,
+          direction_label_pt: directionPt,
+          narrative_text: narrativeText,
+          deviation_normalized: ai.deviationNormalized,
+        };
+      }),
+    );
+  }
+
+  /**
+   * Returns the persisted recommendation_link rows for a report joined with
+   * recommendation_catalog. Includes the long-form copy
+   * (``display_text_long_pt``) so the frontend can render full cards.
+   * Optional ``category`` filter; respects ``limit``. Sorted by
+   * ``finalPriorityInSession`` ascending (lower = higher priority).
+   */
+  async getRecommendations(
+    reportId: string,
+    opts: { limit?: number; category?: string } = {},
+  ): Promise<
+    Array<{
+      recommendation_id: string;
+      final_priority_in_session: number | null;
+      is_displayed_to_user: boolean;
+      category: string;
+      display_text_short_pt: string;
+      display_text_long_pt: string;
+      requires_professional: boolean;
+      professional_type: string | null;
+      priority_default: number;
+      invasiveness_level: number;
+    }>
+  > {
+    const limit = Math.max(1, Math.min(opts.limit ?? 20, 100));
+
+    const links = await this.linkRepo.find({
+      where: { analysisReportId: reportId },
+    });
+    if (links.length === 0) return [];
+
+    const catalogIds = Array.from(new Set(links.map((l) => l.recommendationId)));
+    const catalogRows = await this.catalogRepo
+      .createQueryBuilder('c')
+      .where('c.id IN (:...ids)', { ids: catalogIds })
+      .getMany();
+    const catalogMap = new Map(catalogRows.map((c) => [c.id, c]));
+
+    const rows = links
+      .map((link) => {
+        const cat = catalogMap.get(link.recommendationId);
+        if (!cat) return null;
+        if (opts.category && cat.category !== opts.category) return null;
+        return {
+          recommendation_id: link.recommendationId,
+          final_priority_in_session: link.finalPriorityInSession,
+          is_displayed_to_user: link.isDisplayedToUser,
+          category: cat.category,
+          display_text_short_pt: cat.displayTextShortPt,
+          display_text_long_pt: cat.displayTextLongPt,
+          requires_professional: cat.requiresProfessional,
+          professional_type: cat.professionalType,
+          priority_default: cat.priorityDefault,
+          invasiveness_level: cat.invasivenessLevel,
+        };
+      })
+      .filter((v): v is NonNullable<typeof v> => v !== null)
+      .sort((a, b) => {
+        const ap = a.final_priority_in_session ?? Number.MAX_SAFE_INTEGER;
+        const bp = b.final_priority_in_session ?? Number.MAX_SAFE_INTEGER;
+        return ap - bp;
+      })
+      .slice(0, limit);
+
+    return rows;
+  }
+
+  // ──────────────────────────────────────────────────────────────────────────
   // Private helpers
   // ──────────────────────────────────────────────────────────────────────────
 

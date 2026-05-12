@@ -102,7 +102,7 @@ O disclaimer é **TEXT congelado** em `analysis_report.disclaimer_text_snapshot`
 | DEC-36 | **Validação humana antes de produção** | PR-53 (templates) + PR-56 (recomendações) **devem** passar por revisor humano (prompt-author + alguém com background de produto/legal). Sem isso, M4 não é "DONE". |
 | DEC-37 | **NOVO — Linha vermelha editorial** (B2C+B2B) | Banido: "você precisa", "isso só se resolve com", "é necessário", "indispensável". Permitido: "alguns usuários optam por", "para resolução estrutural completa, há a opção de", "o app cobre as melhorias possíveis sem intervenção clínica". Templates **devem** comunicar quanto da melhoria o app cobre **antes** de mencionar profissional. |
 | DEC-38 | **NOVO — Regra de seleção do engine (PR-57)** | (1) Sempre exibir o degrau mais baixo da escada disponível primeiro. (2) Listar até 2 níveis em paralelo. (3) Nível 4b (`professional_referral`) **nunca isolado** — se entra no top-5, **pelo menos 2** das outras 4 vagas devem ser nível ≤3 (rotina do app). (4) Max 2 recomendações da mesma `category` no top-5 (mitiga armadilha #7). |
-| DEC-39 | **NOVO — Asset pipeline para exercícios** | MVP: Lottie/Rive 2D (PR-63 + PR-64). State-of-the-art: Three.js + Ready Player Me + 52 ARKit BlendShapes (PR-65). Diferencial: MediaPipe FaceMesh AR overlay (PR-66). Schema: nova tabela `recommendation_asset` 1:N com `recommendation_catalog`. Prioridade: 30 animações iniciais para os exercícios de maior peso (categoria=`exercise` + `priority_default<=2`). |
+| DEC-39 | **ARQUIVADO — Asset pipeline para exercícios** | Arquivado. Não faz parte dos próximos passos. |
 | DEC-40 | **NOVO — Tracking longitudinal (PR-67, futuro)** | Modelo de assinatura: rotina diária + before/after semanal/mensal. Tabelas `treatment_routine` (rotina ativa do usuário) + `progress_snapshot` (foto + métricas + delta). Justifica o app como "protagonista do tratamento", não consultório. |
 
 ---
@@ -165,7 +165,7 @@ Templates que usem placeholder fora dessa lista **falham no render** com `Unknow
 - [ ] **PR-57 (RecommendationEngine)** com regra DEC-38 (menor invasiveness primeiro, max 2 categorias, nunca 4b isolado).
 - [ ] **PR-58 (DiagnosticPriorityService)** — usar `risk_level` + `effort_estimate` + `invasiveness_level` na fórmula.
 - [ ] **PR-59 (endpoint narrative)**, **PR-60–62 (PDF)**.
-- [ ] **PR-63 + PR-64 (Lottie/Rive — DEC-39 MVP)** — schema `recommendation_asset` + player frontend.
+- [ ] ~~**PR-70 + PR-71 (vídeo — DEC-39)**~~ Arquivado.
 - [ ] Lint de blacklist verde em CI.
 - [ ] Revisor humano aprovou catálogo de templates e recomendações.
 - [ ] Em ≥10 fotos reais distintas, narrative + PDF inspecionados manualmente sem ressalvas.
@@ -174,4 +174,4 @@ Templates que usem placeholder fora dessa lista **falham no render** com `Unknow
 
 Após isso → produto pode entrar em soft-launch interno. **Hard-launch externo exige revisão jurídica final** sobre o disclaimer e sobre `professional_referral`.
 
-**Pós-MVP** (futuro, fora do M4): PR-65 (3D Three.js + ARKit BlendShapes), PR-66 (MediaPipe AR feedback em tempo real), PR-67 (módulo de assinatura + tracking longitudinal).
+**Pós-MVP** (futuro, fora do M4): PR-74 (módulo de assinatura + tracking longitudinal).

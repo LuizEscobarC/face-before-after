@@ -1,172 +1,208 @@
-# Métricas — Definições Completas
+# Métricas — Catálogo Completo (93 métricas)
 
-Todas as métricas são calculadas sobre 68 landmarks dlib extraídos da imagem alinhada.
-Métricas espaciais são normalizadas pela **IPD** (distância interpupilar) para comparabilidade entre fotos com escalas diferentes.
+Todas as métricas são calculadas sobre **478 landmarks MediaPipe Mesh-478**.
+Métricas espaciais são normalizadas pela **ICD** (intercanthal distance — distância entre cantos mediais dos olhos).
+Origem do sistema de coordenadas = midpoint intercantal; eixo Y cresce para baixo.
 
----
-
-## 1. Assimetria global (face_asymmetry.py)
-
-| Chave JSON | Unidade | Descrição |
-|------------|---------|-----------|
-| `overall_asymmetry_score` | px | Desvio médio absoluto dos landmarks ao espelho — em pixels |
-| `overall_asymmetry_score_pct_ipd` | % IPD | Mesmo desvio, normalizado pela IPD |
-| `asymmetry_eyes` | px | Assimetria bilateral nos landmarks dos olhos (36–47) |
-| `asymmetry_nose` | px | Assimetria nos landmarks do nariz (31–35) |
-| `asymmetry_mouth` | px | Assimetria nos landmarks da boca (48–67) |
-| `asymmetry_chin` | px | Assimetria no ponto do queixo (8) |
-| `asymmetry_jaw` | px | Assimetria nos pontos da mandíbula (0–16) |
+> Stubs DEC-10: métricas que requerem vista lateral/análise de pixel retornam
+> `direction="not_computed"` e `confidence_final=0.0`. Não entram no score.
 
 ---
 
-## 2. Proporções clássicas (face_metrics.proportions)
+## Região: symmetry (5 métricas)
 
-| Chave JSON | Unidade | Ideal | Descrição |
-|------------|---------|-------|-----------|
-| `thirds_upper_ratio` | razão | ~0.333 | Fração trichion→glabela / altura total |
-| `thirds_middle_ratio` | razão | ~0.333 | Fração glabela→subnasale / altura total |
-| `thirds_lower_ratio` | razão | ~0.333 | Fração subnasale→menton / altura total |
-| `thirds_std_dev` | razão | 0 | Desvio padrão das 3 frações; ideal = 0 (terços iguais) |
-| `fifths_std_dev` | razão | 0 | Desvio padrão das 5 larguras horizontais (quintos) |
-| `lower_third_ratio` | razão | ~0.56 (masc.) | terço inferior / (glabela→menton) |
-| `fwhr` | adimensional | ~1.85 | Largura bizigomática / altura superior (lábio→sobrancelha) |
-| `bizygomatic_px` | px | — | Largura bizigomática em pixels |
-| `bigonial_px` | px | — | Largura bigonial em pixels |
-
-> **Nota sobre trichion**: Não existe landmark na linha do cabelo. Estimado por reflexão: trichion_y = nasion_y − (subnasale_y − nasion_y).
+| metric_id | Unidade | Ideal | Direção acima / abaixo | Descrição |
+|-----------|---------|-------|------------------------|-----------|
+| `midline_deviation` | ICU | 0.0 | right_deviation / left_deviation | Desvio horizontal da linha média facial |
+| `eye_height_asymmetry` | ICU | 0.0 | right_eye_higher / left_eye_higher | Assimetria de altura entre centros dos olhos |
+| `brow_height_asymmetry` | ICU | 0.0 | right_brow_higher / left_brow_higher | Assimetria de altura entre centros das sobrancelhas |
+| `lip_canting_angle` | degrees | 0.0 | right_lip_higher / left_lip_higher | Ângulo de inclinação do lábio (canting) |
+| `global_asymmetry_index` | ICU | 0.0 | — | Score composto de assimetria global |
 
 ---
 
-## 3. Dimorfismo masculino (face_metrics.masculinity)
+## Região: global (4 métricas de forma + 1 de C3)
 
-| Chave JSON | Unidade | Ideal | Descrição |
-|------------|---------|-------|-----------|
-| `jaw_width_pct_ipd` | % IPD | ~155% | Largura bigonial (p4–p12) / IPD |
-| `bizygomatic_to_bigonial_ratio` | adimensional | ~1.30 | Zigomático / bigonial (ideal: rosto mais largo em cima) |
-| `gonial_angle_left_deg` | graus | 110–130° | Ângulo gonial esquerdo (p4: vetores p2→p4 e p4→p6) |
-| `gonial_angle_right_deg` | graus | 110–130° | Ângulo gonial direito |
-| `gonial_angle_mean_deg` | graus | ~120° | Média dos dois ângulos goniais |
-| `chin_projection_pct_ipd` | % IPD | — | Distância vertical menton→lábio inferior / IPD |
-| `jawline_definition_score` | adimensional | maior = melhor | Desvio padrão de ângulos sucessivos da mandíbula (0–16) |
+| metric_id | Unidade | Ideal | Direção acima / abaixo | Descrição |
+|-----------|---------|-------|------------------------|-----------|
+| `face_height_to_width_ratio` | ratio | 1.35 | long_face / wide_face | Altura facial / largura bizigomática |
+| `face_shape_classification` | index_0_1 | 0.5 | — | Classificação contínua forma (0=redondo, 1=oblongo) |
+| `total_facial_convexity` | degrees | 175.0 | convex_face / concave_face | Ângulo de convexidade facial total |
+| `e_line_deviation` | ICU | 0.0 | lips_anterior / lips_posterior | Desvio lábios em relação à E-line (nariz–mento) |
+| `facial_index_anthropometric` | ratio | 87.5 | long_face / wide_face | Martin index = (altura / bizyg.) × 100 (C3) |
 
 ---
 
-## 4. Olhos (face_metrics.eyes)
+## Região: thirds (4 métricas)
 
-| Chave JSON | Unidade | Ideal | Descrição |
-|------------|---------|-------|-----------|
-| `canthal_tilt_left_deg` | graus | +3° a +8° | Inclinação canto medial→lateral olho esq (positivo = lateral mais alto) |
-| `canthal_tilt_right_deg` | graus | +3° a +8° | Idem olho direito |
-| `canthal_tilt_mean_deg` | graus | ~+5° | Média dos dois canthal tilts |
-| `eye_aspect_ratio_left` | adimensional | 0.26–0.35 | EAR (Eye Aspect Ratio) olho esquerdo |
-| `eye_aspect_ratio_right` | adimensional | 0.26–0.35 | EAR olho direito |
-| `eye_aspect_ratio_mean` | adimensional | ~0.30 | Média dos EAR |
-| `intercanthal_to_eyewidth_ratio` | adimensional | ~1.0 | Distância intercantal / largura média de um olho |
-| `brow_to_eyelid_left_pct_ipd` | % IPD | — | Espaço sobrancelha→pálpebra sup esquerda / IPD |
-| `brow_to_eyelid_right_pct_ipd` | % IPD | — | Idem direito |
-| `brow_to_eyelid_mean_pct_ipd` | % IPD | — | Média bilateral |
-| `brow_tilt_left_deg` | graus | — | Inclinação lateral sobrancelha esquerda |
-| `brow_tilt_right_deg` | graus | — | Idem direita |
-
-**Fórmula EAR** (Soukupová & Čech, 2016):
-```
-EAR = (‖p1−p5‖ + ‖p2−p4‖) / (2 × ‖p0−p3‖)
-```
-onde p0–p5 são os 6 landmarks do olho (pontos 36–41 para olho esq).
+| metric_id | Unidade | Ideal | Descrição |
+|-----------|---------|-------|-----------|
+| `upper_third_ratio` | ratio | 0.333 | Trichion→nasion / altura total |
+| `middle_third_ratio` | ratio | 0.333 | Nasion→subnasale / altura total |
+| `lower_third_ratio` | ratio | 0.333 | Subnasale→menton / altura total |
+| `dominant_third` | index_0_1 | 0.5 | Qual terço domina (0=superior, 1=inferior) |
 
 ---
 
-## 5. Nariz (face_metrics.nose)
+## Região: fifths (6 métricas)
 
-| Chave JSON | Unidade | Ideal | Descrição |
-|------------|---------|-------|-----------|
-| `nasal_to_mouth_width_ratio` | adimensional | ~0.70 | Largura alar / largura da boca (Regra de Ricketts) |
-| `alar_intercanthal_alignment_pct` | % | — | Desvio % entre largura alar e intercantal |
-| `nasal_length_pct_face_height` | % | — | Comprimento nasal (nasion→subnasale) / altura facial |
-| `alar_width_pct_ipd` | % IPD | — | Largura alar / IPD |
-
----
-
-## 6. Boca / Lábios (face_metrics.mouth)
-
-| Chave JSON | Unidade | Ideal | Descrição |
-|------------|---------|-------|-----------|
-| `mouth_to_ipd_ratio` | adimensional | ~1.50 | Largura boca / IPD |
-| `upper_lower_lip_ratio` | adimensional | ~0.62–0.65 (masc.) | Espessura lábio superior / inferior |
-| `philtrum_length_pct_ipd` | % IPD | ~22–26% | Comprimento do fíltro nasolabial / IPD |
-| `upper_lip_thickness_pct_ipd` | % IPD | — | Espessura lábio superior / IPD |
-| `lower_lip_thickness_pct_ipd` | % IPD | — | Espessura lábio inferior / IPD |
+| metric_id | Unidade | Ideal | Descrição |
+|-----------|---------|-------|-----------|
+| `fifth_1_ratio` | ratio | 0.20 | 1º quinto (margem lateral esq → canto lateral olho esq) |
+| `fifth_2_ratio` | ratio | 0.20 | 2º quinto (largura olho esq) |
+| `fifth_3_ratio` | ratio | 0.20 | 3º quinto (distância intercantal) |
+| `fifth_4_ratio` | ratio | 0.20 | 4º quinto (largura olho dir) |
+| `fifth_5_ratio` | ratio | 0.20 | 5º quinto (canto lateral dir → margem lateral dir) |
+| `intercanthal_to_eye_width_ratio` | ratio | 1.00 | Distância intercantal / largura média de um olho |
 
 ---
 
-## 7. Forma facial (face_metrics.face_shape)
+## Região: eyes (10 métricas — inclui 1 stub C1)
 
-| Chave JSON | Tipo | Valores possíveis |
-|------------|------|------------------|
-| `face_height_to_width_ratio` | adimensional | altura / largura bizigomática |
-| `zygomatic_to_gonial_ratio` | adimensional | bizygomatic / bigonial |
-| `face_shape_label` | string | oblongo, oval, retangular, quadrado, diamante, redondo |
-
-**Regras de classificação**:
-```
-h/w ≥ 1.5            → oblongo
-h/w ≥ 1.3            → oval
-h/w ≥ 1.15, z/g<1.15 → retangular
-h/w ≥ 1.15, z/g≥1.15 → oval
-h/w ≥ 1.0,  z/g<1.15 → quadrado
-h/w ≥ 1.0,  z/g≥1.15 → diamante
-h/w < 1.0            → redondo
-```
+| metric_id | Unidade | Ideal | Stub | Direção acima / abaixo | Descrição |
+|-----------|---------|-------|------|------------------------|-----------|
+| `eye_aperture_ratio_l` | ratio | 0.30 | — | wide_eye / narrow_eye | EAR olho esquerdo |
+| `eye_aperture_ratio_r` | ratio | 0.30 | — | wide_eye / narrow_eye | EAR olho direito |
+| `interpupillary_distance` | ICU | 2.50 | — | wide_set_eyes / close_set_eyes | Distância interpupilar / ICD |
+| `intercanthal_distance` | ICU | 1.00 | — | wide_set_eyes / close_set_eyes | Distância canto-a-canto medial / ICD |
+| `canthal_tilt_l` | degrees | +5.0 | — | positive_tilt / negative_tilt | Inclinação canthal esquerda |
+| `canthal_tilt_r` | degrees | +5.0 | — | positive_tilt / negative_tilt | Inclinação canthal direita |
+| `scleral_show_lower_l` | ICU | 0.0 | — | excess_scleral_show / — | Esclerótica inferior visível esq |
+| `scleral_show_lower_r` | ICU | 0.0 | — | excess_scleral_show / — | Esclerótica inferior visível dir |
+| `palpebral_fissure_inclination` | degrees | +5.0 | — | upward_inclination / downward_inclination | Inclinação média da fissura palpebral |
+| `supratarsal_fold_visibility` | index_0_1 | — | **STUB** | not_computed | Visibilidade da dobra supratarsal (requer análise de pixel) |
 
 ---
 
-## 8. Desvio Marquardt (face_metrics.marquardt_deviation)
+## Região: jaw (7 métricas — inclui 1 de C3)
 
-| Chave JSON | Unidade | Ideal | Descrição |
-|------------|---------|-------|-----------|
-| `marquardt_deviation_px` | px | 0 | RMSE entre landmarks e seus espelhos sobre x_midline |
-| `marquardt_deviation_pct_ipd` | % IPD | 0% (excelente <1%) | Idem normalizado pela IPD |
-
-**Metodologia**: Para cada par espelhado (li, ri) nos 68 landmarks, reflete ri sobre x_midline e calcula distância ao li correspondente. RMSE de todos os pares. Diferente do `overall_asymmetry_score_pct_ipd` (que foca em landmarks específicos com peso regional), este considera todos os pares.
-
----
-
-## 9. Qualidade da foto (face_metrics.photo_quality)
-
-| Chave JSON | Unidade | Limiar OK | Descrição |
-|------------|---------|-----------|-----------|
-| `head_pose_yaw_deg` | graus | ≤ ±7° | Rotação horizontal da cabeça |
-| `head_pose_pitch_deg` | graus | ≤ ±7° | Inclinação vertical (cima/baixo) |
-| `head_pose_roll_deg` | graus | ≤ ±5° | Inclinação lateral da cabeça |
-| `frontal_ok` | bool | True | `|yaw| ≤ 7° AND |pitch| ≤ 7°` |
-| `focal_distortion_ratio` | adimensional | ≤ 0.55 | Largura nariz / largura bizigomática |
-| `focal_distortion_warning` | bool | False | True quando ratio > 0.55 (lente curta/selfie) |
-| `lighting_asymmetry_delta_e` | unidades Lab | < 10 | ΔE entre bochechas esq e dir (iluminação assimétrica) |
-| `face_pixel_width` | px | ≥ 200 | Largura do bounding box da face |
-| `sharpness_laplacian_var` | adimensional | ≥ 50 | Variância do operador Laplaciano na região facial |
-| `warnings` | list[str] | [] | Alertas gerados por cada limiar violado |
-
-**Estimativa de pose** (solvePnP com 6 pontos: nariz, queixo, cantos olhos, cantos boca):
-- Modelo 3D genérico em mm (sem calibração de câmera — focal ≈ largura da imagem)
-- Decomposta via `cv2.RQDecomp3x3` → (yaw, pitch, roll) em graus
+| metric_id | Unidade | Ideal | Direção acima / abaixo | Descrição |
+|-----------|---------|-------|------------------------|-----------|
+| `jaw_width_ratio` | ratio | 0.75 | wide_jaw / narrow_jaw | Largura bigonial / largura bizigomática |
+| `gonial_angle_l` | degrees | 120.0 | obtuse_angle / acute_angle | Ângulo gonial esquerdo |
+| `gonial_angle_r` | degrees | 120.0 | obtuse_angle / acute_angle | Ângulo gonial direito |
+| `gonial_angle_asymmetry` | degrees | 0.0 | — | |gonial_l - gonial_r| |
+| `mandibular_plane_angle` | degrees | 25.0 | steep_plane / flat_plane | Ângulo do plano mandibular |
+| `chin_height_ratio` | ratio | 0.35 | long_chin / short_chin | Altura do queixo / terço inferior |
+| `mentolabial_fold_proxy` | ICU | 0.40 | long_lip_chin / short_lip_chin | Distância lábio-inf→mento / ICD (C3) |
 
 ---
 
-## 10. Pele (face_metrics.skin)
+## Região: nose (9 métricas)
 
-| Chave JSON | Unidade | Ideal | Descrição |
-|------------|---------|-------|-----------|
-| `skin_uniformity_std_lab_left` | Lab σ | < 10 | Desvio padrão da cor Lab na ROI bochecha esquerda |
-| `skin_uniformity_std_lab_right` | Lab σ | < 10 | Idem bochecha direita |
-| `skin_uniformity_std_lab_forehead` | Lab σ | < 10 | Idem testa |
-| `skin_lighting_delta_e_lr` | unidades Lab | < 2 | ΔE perceptual entre bochecha esq e dir (mesma que lighting) |
-| `under_eye_darkness_left` | 0–1 | < 0.05 | Escuridão infra-orbital esq vs bochecha (0=sem olheira, >0.2=visível) |
-| `under_eye_darkness_right` | 0–1 | < 0.05 | Idem direito |
+| metric_id | Unidade | Ideal | Direção acima / abaixo | Descrição |
+|-----------|---------|-------|------------------------|-----------|
+| `nose_length_to_icd` | ICU | 2.20 | long_nose / short_nose | Comprimento nasal (nasion→subnasale) / ICD |
+| `nose_width_to_icd` | ICU | 1.00 | wide_nose / narrow_nose | Largura alar / ICD |
+| `alar_to_face_width_ratio` | ratio | 0.25 | wide_alar_base / narrow_alar_base | Largura alar / largura bizigomática |
+| `nose_to_mouth_width_ratio` | ratio | 0.70 | wide_nose / narrow_nose | Largura alar / largura boca |
+| `dorsum_deviation` | ICU | 0.0 | right_deviation / left_deviation | Desvio lateral do dorso nasal |
+| `nasal_tip_deviation` | ICU | 0.0 | right_deviation / left_deviation | Desvio da ponta nasal da linha média |
+| `alar_base_asymmetry` | ICU | 0.0 | right_flaring / left_flaring | Assimetria entre bases alares |
+| `nasal_dorsum_straightness` | index_0_1 | 1.0 | — | Retidão do dorso nasal (1 = reto) |
+| `columella_show` | ICU | 0.05 | excess_show / no_show | Exposição da columela vista frontal |
 
-**ROIs de pele**:
-- Bochecha esq: triângulo (centro_olho_esq, ala_nariz_esq, p3)
-- Bochecha dir: triângulo (centro_olho_dir, ala_nariz_dir, p13)
-- Testa: retângulo acima das sobrancelhas, altura = IPD × 0.6
+---
 
-**Olheiras**: razão luminância L* (Lab) da região infra-orbital vs bochecha.
-`darkness = max(0, 1 − L_under / L_cheek)` — 0 = sem diferença, positivo = mais escuro.
+## Região: mouth (7 métricas)
+
+| metric_id | Unidade | Ideal | Direção acima / abaixo | Descrição |
+|-----------|---------|-------|------------------------|-----------|
+| `mouth_width_to_icd` | ICU | 1.60 | wide_mouth / narrow_mouth | Largura labial / ICD |
+| `mouth_to_face_width_ratio` | ratio | 0.50 | wide_mouth / narrow_mouth | Largura labial / largura bizigomática |
+| `upper_lip_height_ratio` | ratio | 0.40 | tall_upper_lip / flat_upper_lip | Altura vermilhão superior / soma vermilhões |
+| `lower_lip_height_ratio` | ratio | 0.60 | tall_lower_lip / flat_lower_lip | Altura vermilhão inferior / soma vermilhões |
+| `vermilion_height_total` | ICU | 0.45 | full_lips / thin_lips | Soma das alturas dos vermilhões / ICD |
+| `lip_corner_canting` | degrees | 0.0 | right_corner_higher / left_corner_higher | Inclinação dos comissurais labiais |
+| `mouth_midline_deviation` | ICU | 0.0 | right_deviation / left_deviation | Desvio da linha média da boca |
+
+---
+
+## Região: brows (12 métricas — 9 base + 3 de C3)
+
+| metric_id | Unidade | Ideal | Direção acima / abaixo | Descrição |
+|-----------|---------|-------|------------------------|-----------|
+| `brow_height_l` | ICU | 0.50 | high_brow / low_brow | Altura sobrancelha esq (brow→canto medial) / ICD |
+| `brow_height_r` | ICU | 0.50 | high_brow / low_brow | Altura sobrancelha dir / ICD |
+| `brow_arch_peak_l` | ICU | 0.20 | high_arch / low_arch | Pico do arco sobrancelha esq / ICD |
+| `brow_arch_peak_r` | ICU | 0.20 | high_arch / low_arch | Pico do arco sobrancelha dir / ICD |
+| `brow_thickness_l` | ICU | 0.12 | thick_brow / thin_brow | Espessura sobrancelha esq / ICD |
+| `brow_thickness_r` | ICU | 0.12 | thick_brow / thin_brow | Espessura sobrancelha dir / ICD |
+| `brow_tail_drop_l` | ICU | 0.0 | drooping_tail / elevated_tail | Queda da cauda sobrancelha esq |
+| `brow_tail_drop_r` | ICU | 0.0 | drooping_tail / elevated_tail | Queda da cauda sobrancelha dir |
+| `interbrow_distance_ratio` | ratio | 1.00 | wide_set_brows / close_set_brows | Distância entre sobrancelhas / ICD |
+| `brow_arch_peak_position_l` | index_0_1 | 0.50 | outer_peak / inner_peak | Posição do pico (inner=0, outer=1) sobrancelha esq (C3) |
+| `brow_arch_peak_position_r` | index_0_1 | 0.50 | outer_peak / inner_peak | Posição do pico sobrancelha dir (C3) |
+| `intersuperciliary_distance_ratio` | ratio | 1.00 | wide_set_brows / close_set_brows | Distância intersupercílio / ICD (C3) |
+
+---
+
+## Região: cheekbones (8 métricas — 5 base + 3 de C3)
+
+| metric_id | Unidade | Ideal | Stub | Direção acima / abaixo | Descrição |
+|-----------|---------|-------|------|------------------------|-----------|
+| `zygomatic_width_ratio` | ratio | 1.30 | — | wide_cheekbones / narrow_cheekbones | Largura bizigomática / bigonial |
+| `malar_projection_index` | ICU | 0.30 | — | prominent_malar / flat_malar | Projeção malar / ICD |
+| `midface_height_ratio` | ratio | 0.35 | — | long_midface / short_midface | Altura do médio-face / altura total |
+| `cheekbone_to_jaw_ratio` | ratio | 1.30 | — | dominant_cheekbones / dominant_jaw | Bizigomático / bigonial |
+| `submalar_hollow_index` | ICU | 0.05 | — | deep_hollow / flat_hollow | Profundidade do sulco submalar |
+| `buccal_fat_index` | index_0_1 | 0.45 | — | high_cheek_fat / low_cheek_fat | Posição da bochecha entre linha ocular e gonion (C3) |
+| `ogee_curve_proxy` | index_0_1 | — | **STUB** | not_computed | Curva Ogee (requer vista lateral) (C3) |
+| `infraorbital_hollow_index` | ICU | 0.08 | — | deep_hollow / shallow_hollow | Concavidade infraorbital / ICD (C3) |
+
+---
+
+## Região: forehead (6 métricas — 4 base + 2 de C3)
+
+| metric_id | Unidade | Ideal | Stub | Direção acima / abaixo | Descrição |
+|-----------|---------|-------|------|------------------------|-----------|
+| `forehead_height_ratio` | ratio | 0.333 | — | high_forehead / low_forehead | Altura da testa / altura facial total |
+| `forehead_width_ratio` | ratio | 0.90 | — | wide_forehead / narrow_forehead | Largura frontal / bizigomática |
+| `temporal_width_ratio` | ratio | 0.85 | — | wide_temples / narrow_temples | Largura temporal / bizigomática |
+| `hairline_curvature_index` | index_0_1 | 0.50 | — | rounded_hairline / flat_hairline | Curvatura da linha do cabelo (frontal) |
+| `forehead_slope_proxy` | degrees | — | **STUB** | not_computed | Inclinação frontal (requer vista lateral) (C3) |
+| `glabella_prominence_proxy` | ICU | 0.50 | — | broad_glabella / narrow_glabella | Largura lateral da glabela / ICD (C3) |
+
+---
+
+## Região: global / phi_golden (4 métricas)
+
+| metric_id | Unidade | Ideal | Direção acima / abaixo | Descrição |
+|-----------|---------|-------|------------------------|-----------|
+| `phi_face_height_to_width` | ratio | 1.618 | too_long / too_wide | Razão altura:largura vs proporção áurea |
+| `phi_lower_face_segments` | ratio | 1.618 | — | Razão segmentos do terço inferior vs φ |
+| `phi_eye_to_mouth` | ratio | 1.618 | — | Distância olho→boca vs φ |
+| `phi_nose_to_lip` | ratio | 1.618 | — | Razão nariz→lábio vs φ |
+
+---
+
+## Wave C2 — 10 métricas (nariz/boca/mandíbula avançado)
+
+| metric_id | Região | Unidade | Ideal | Stub | Direção acima / abaixo | Descrição |
+|-----------|--------|---------|-------|------|------------------------|-----------|
+| `nasolabial_angle_proxy` | nose | degrees | — | **STUB** | not_computed | Ângulo nasolabial frontal (requer lateral) |
+| `alar_flare_index` | nose | ICU | 1.00 | — | flared_alae / pinched_alae | Largura alar / ICD |
+| `cupids_bow_definition` | mouth | ratio | 0.05 | — | prominent_bow / flat_bow | Definição do arco de Cupido |
+| `lip_volume_ratio` | mouth | ratio | 0.625 | — | fuller_upper_lip / thinner_upper_lip | Razão volume lábio sup / inf |
+| `oral_commissure_height_asym` | mouth | ICU | 0.0 | — | right_higher / left_higher | Assimetria de altura dos comissurais |
+| `philtrum_width_ratio` | mouth | ratio | 0.30 | — | wide_philtrum / narrow_philtrum | Largura do filtro / largura da boca |
+| `smile_line_curvature` | mouth | ratio | 0.08 | — | pronounced_curve / flat_smile | Curvatura da linha do sorriso |
+| `chin_projection_proxy` | jaw | ratio | 0.33 | — | projected_chin / recessed_chin | Projeção do queixo (terço inferior) |
+| `mandibular_corpus_length_ratio` | jaw | ratio | 0.25 | — | long_corpus / short_corpus | Razão comprimento do corpo mandibular |
+| `masseteric_prominence_proxy` | jaw | ratio | 0.55 | — | prominent_masseter / flat_masseter | Proeminência do masseter / bizigomático |
+
+---
+
+## Stubs DEC-10 (requerem análise de pixel / vista lateral)
+
+| metric_id | Região | Motivo |
+|-----------|--------|--------|
+| `supratarsal_fold_visibility` | eyes | Dobra palpebral — análise de pixel |
+| `nasolabial_angle_proxy` | nose | Ângulo nasolabial — requer vista lateral |
+| `ogee_curve_proxy` | cheekbones | Curva Ogee — requer vista lateral/oblíqua |
+| `forehead_slope_proxy` | forehead | Inclinação frontal — requer vista lateral |
+
+> Todos os stubs retornam: `value=0.0`, `confidence_final=0.0`, `direction="not_computed"`, `is_low_confidence=True`.
+> Não entram no `metric_ideal` e não têm peso em `region_metric_weight`.
+
+

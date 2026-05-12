@@ -1,30 +1,241 @@
-# Cálculos — Fórmulas Completas
+# Cálculos — Fórmulas e Arquitetura
+
+Sistema atual: **MediaPipe Mesh-478 → NormalizedLandmarks (ICU) → MetricCalculator → MetricValue → PostgreSQL → API**.
 
 ---
 
-## 1. IPD — Distância Interpupilar
+## 1. Normalização — ICD (Intercanthal Distance)
 
 ```python
-# Centro de cada olho = média dos 6 landmarks
-left_eye_center  = lm[36:42].mean(axis=0)   # pontos 36, 37, 38, 39, 40, 41
-right_eye_center = lm[42:48].mean(axis=0)   # pontos 42, 43, 44, 45, 46, 47
+# backend/app/domain/normalized_landmarks.py
 
-IPD = ‖right_eye_center − left_eye_center‖  # norma euclidiana em pixels
+# ICD = distância entre cantos mediais dos olhos (inner canthi)
+# Após normalização, ICD = 1.0 ICU por construção.
+# Origem (0, 0) = midpoint do segmento intercanthal.
+# Eixo Y cresce para baixo (convenção imagem).
+
+@dataclass(frozen=True, slots=True)
+class NormalizedLandmarks:
+    points: np.ndarray            # shape (478, 2), em ICU
+    basis: str = "intercanthal"
+    intercanthal_distance_px: float = 1.0
+    pose_correction_applied: bool = False
+    midline_aligned: bool = False
+    source_image_size: tuple[int, int] | None = None
+
+    def xy(self, index: int) -> np.ndarray:
+        """Return the (x, y) coords for landmark *index* in ICU."""
+
+    def dist(self, a: int, b: int) -> float:
+        """Euclidean distance between two landmarks in ICU."""
+
+    def midpoint(self, a: int, b: int) -> np.ndarray:
+        """Midpoint between two landmarks in ICU."""
+
+    def angle_deg(self, a: int, b: int) -> float:
+        """Angle of the vector a→b with respect to horizontal, in degrees."""
 ```
 
-Toda métrica "% IPD" = `(valor_px / IPD) × 100`.
+**Por que ICD e não IPD?**  
+Cantos mediais são pontos ósseos fixos; menos afetados por direção do olhar, expressão ou iluminação. Padrão na análise cefalométrica (Farkas).
 
 ---
 
-## 2. Score de simetria (0–100)
+## 2. MetricValue — dataclass de resultado
 
 ```python
-MAX_ASYMMETRY_REFERENCE = 15.0  # % IPD
+# backend/app/domain/metric_value.py
 
-def asymmetry_to_score(overall_pct_ipd: float) -> int:
-    clamped = min(overall_pct_ipd, MAX_ASYMMETRY_REFERENCE)
-    score = int(round((1.0 - clamped / MAX_ASYMMETRY_REFERENCE) * 100))
-    return score
+@dataclass
+class MetricValue:
+    metric_id: str
+    region: str
+    family: str
+    unit: str                     # "ratio" | "degrees" | "intercanthal_units" | "index_0_1"
+    value: float
+    error: float                  # margem de erro estimada
+    confidence_raw: float         # [0,1] — baseado só na geometria
+    confidence_final: float       # [0,1] — degradado por pose/qualidade
+    is_low_confidence: bool       # cf < LOW_CONF_THRESHOLD
+    direction: str                # "neutral" | label_above | label_below | "not_computed"
+    dependency_landmarks: list[int]  # índices MediaPipe-478 usados
+    presentation_only: bool = False  # sem score no DB
+```
+
+---
+
+## 3. @register — padrão de calculadora
+
+```python
+# backend/app/services/metrics/<region>.py
+
+from app.services.metrics._registry import register
+from app.domain.normalized_landmarks import NormalizedLandmarks
+from app.domain.metric_value import MetricValue
+from app.services.metrics._confidence import propagate, LOW_CONF_THRESHOLD
+from app.services.metrics._pose_params import REGION_POSE_PARAMS
+
+@register
+class ExampleCalculator(MetricCalculator):
+    metric_id = "example_metric"  # deve bater com metric_definition.metric_id
+    region    = "mouth"
+    family    = "mouth"
+    unit      = "ratio"
+
+    def compute(self, lm: NormalizedLandmarks, ctx: QualityContext) -> MetricValue:
+        v  = lm.dist(P_LEFT_MOUTH, P_RIGHT_MOUTH)
+        cr = _conf_raw(v, IDEAL, MAX_DEV)   # confidence baseado na geometria
+        cf = propagate(cr, ctx.quality_score, self.region,
+                       ctx.regional_penalties,
+                       ctx.get_yaw(), ctx.get_pitch(),
+                       MOUTH_POSE_PARAMS)
+        return MetricValue(
+            metric_id=self.metric_id, region=self.region, family=self.family,
+            unit=self.unit, value=v, error=0.05,
+            confidence_raw=cr, confidence_final=cf,
+            is_low_confidence=cf < LOW_CONF_THRESHOLD,
+            direction=_direction(v),
+            dependency_landmarks=[P_LEFT_MOUTH, P_RIGHT_MOUTH],
+        )
+```
+
+`@register` adiciona a classe ao registry global. O runner itera sobre todas as classes registradas e chama `.compute()` para cada foto.
+
+---
+
+## 4. confidence_raw — confiança geométrica
+
+```python
+def _conf_raw(value: float, ideal: float, max_dev: float) -> float:
+    """Confidence based on how close the value is to the ideal range.
+    Returns 1.0 when value == ideal, 0.0 when |value - ideal| >= max_dev.
+    """
+    return max(0.0, 1.0 - abs(value - ideal) / max_dev)
+```
+
+`max_dev` é definido por calculadora (constante no módulo). Cada módulo define seu próprio `max_dev` baseado no que constitui uma medição "absurda".
+
+---
+
+## 5. propagate() — confiança final
+
+```python
+# backend/app/services/metrics/_confidence.py
+
+def propagate(
+    conf_raw: float,
+    quality_score: float,        # 0–1, do photo-quality service
+    region: str,
+    regional_penalties: dict[str, float],  # por região de rosto
+    yaw_deg: float,
+    pitch_deg: float,
+    pose_params: PoseParams,     # limites de yaw/pitch por região
+) -> float:
+    """Degradation pipeline:
+    1. Multiply by photo quality score
+    2. Apply regional penalty (e.g., brows penalized by glare)
+    3. Apply pose degradation (yaw/pitch beyond thresholds → conf → 0)
+    Returns: confidence_final ∈ [0, 1]
+    """
+
+LOW_CONF_THRESHOLD: float = 0.4  # abaixo disso → is_low_confidence = True
+```
+
+**PoseParams** define os limites de yaw e pitch aceitáveis por região:
+- Regiões frontais (boca, nariz): yaw limite ~15°
+- Regiões laterais (orelhas, contorno): yaw limite ~25°
+- Regiões sensíveis ao pitch (testa, sobrancelha): pitch limite ~10°
+
+---
+
+## 6. direction — lógica semântica
+
+```python
+# Padrão por calculadora (não há função global):
+def _direction(value: float) -> str:
+    if abs(value - IDEAL) < NEUTRAL_TOL:
+        return "neutral"
+    return ABOVE_LABEL if value > IDEAL else BELOW_LABEL
+
+# Exemplos reais:
+# wide_mouth  / narrow_mouth
+# high_brow   / low_brow
+# long_nose   / short_nose
+# right_deviation / left_deviation (para desvios)
+# not_computed    (stubs que requerem vista lateral)
+```
+
+`NEUTRAL_TOL` varia por métrica. Stubs retornam `direction="not_computed"` imediatamente.
+
+---
+
+## 7. Scoring — green / yellow / red (metric_ideal)
+
+A lógica de score é computada no **NestJS** após receber os `MetricValue` do Python:
+
+```typescript
+// nest/src/modules/analysis/analysis.service.ts (pseudocódigo)
+
+function classifyZone(value: number, ideal: MetricIdeal): SeverityZone {
+  if (value >= ideal.green_range_min && value <= ideal.green_range_max)
+    return "green";   // severity_5 = "ideal", severity_3 = "LEVE"
+  if (value >= ideal.yellow_range_min && value <= ideal.yellow_range_max)
+    return "yellow";  // severity_5 = "mild"|"moderate", severity_3 = "MODERADO"
+  return "red";       // severity_5 = "strong"|"extreme", severity_3 = "SEVERO"
+}
+```
+
+Métricas com `is_low_confidence=True` ou `presentation_only=True` não entram no score regional.
+
+Score regional = média ponderada das métricas scoráveis da região, usando `region_metric_weight.weight_value`.
+
+---
+
+## 8. Stubs — retorno padrão
+
+```python
+# Todas as 4 métricas DEC-10 stub seguem este padrão:
+return MetricValue(
+    metric_id=self.metric_id, region=self.region, family=self.family,
+    unit=self.unit, value=0.0, error=0.0,
+    confidence_raw=0.0, confidence_final=0.0,
+    is_low_confidence=True,
+    direction="not_computed",
+    dependency_landmarks=[],
+)
+```
+
+Stubs: `supratarsal_fold_visibility`, `nasolabial_angle_proxy`, `ogee_curve_proxy`, `forehead_slope_proxy`.
+
+---
+
+## 9. Constantes de landmarks (MediaPipe-478)
+
+```python
+# backend/app/services/metrics/_landmarks_mesh.py (seleção)
+
+# Olhos
+LM_LEFT_INNER_CANTHUS   = 362  # canto medial olho esq
+LM_RIGHT_INNER_CANTHUS  = 133  # canto medial olho dir
+LM_LEFT_OUTER_CANTHUS   = 263  # canto lateral olho esq
+LM_RIGHT_OUTER_CANTHUS  = 33   # canto lateral olho dir
+LM_LEFT_PUPIL           = 468  # pupila esq (índice iris)
+LM_RIGHT_PUPIL          = 473  # pupila dir (índice iris)
+
+# Nasion / subnasale / menton
+P_NASION     = 168
+P_SUBNASALE  = 2
+P_MENTON     = 152
+
+# Boca
+P_LEFT_MOUTH  = 61   # comissural esq
+P_RIGHT_MOUTH = 291  # comissural dir
+P_UPPER_LIP   = 13   # vermilhão superior central
+P_LOWER_LIP   = 14   # vermilhão inferior central
+```
+
+A referência completa está em `backend/app/services/metrics/_landmarks_mesh.py`.
+
 ```
 
 Exemplos:

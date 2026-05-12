@@ -174,3 +174,46 @@ export interface RegionSummaryDto {
   presentation_only_count: number;
   requires_pixel_analysis_count: number;
 }
+
+// ---------------------------------------------------------------------------
+// Glossary (PR-66) — replaces frontend/src/data/{glossary,feynman}.ts
+// ---------------------------------------------------------------------------
+
+/** External reference link for a metric explainer. */
+export interface MetricReferenceDto {
+  titulo: string;
+  url: string;
+}
+
+/**
+ * Single glossary entry returned by GET /v1/catalog/glossary.
+ *
+ * One entry per metric_id (the i18n locale is fixed per request, defaults
+ * to 'pt-BR'). Built by joining ``metric_definition`` with the optional
+ * ``metric_content`` editorial table.
+ *
+ * Fields are nullable when no content has been seeded yet — UIs should
+ * treat the fields as progressive disclosure: skip the section when null.
+ */
+export interface GlossaryEntryDto {
+  metric_id: string;
+  /** Localised metric label (matches metric_definition.display_name[locale]). */
+  termo: string;
+  /** Unit of measure (e.g. "graus (°)", "razão adimensional"). */
+  unidade: string;
+  /** Layer 1 — plain language analogy ("Feynman"). */
+  feynman: string | null;
+  /** Layer 2 — short technical description. */
+  descricao: string | null;
+  /** Layer 3 — measurement method. */
+  como_medido: string | null;
+  /** Layer 4 — typical value ranges. */
+  faixas: string | null;
+  /** Layer 5 — known caveats / failure modes. */
+  problemas_comuns: string[];
+  /** External references. */
+  referencias: MetricReferenceDto[];
+}
+
+/** Response for GET /v1/catalog/glossary — keyed by metric_id. */
+export type GlossaryResponseDto = Record<string, GlossaryEntryDto>;

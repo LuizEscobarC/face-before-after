@@ -1,5 +1,11 @@
 # Status Visual e Percepção Social
 
+> **⚠️ LEGADO** — Este documento descreve `impression_layer.py` e `visual_status.py` localizados na **raiz do projeto** (pipeline antigo dlib-68). As métricas referenciadas (`fwhr`, `overall_asymmetry_score_pct_ipd`, `canthal_tilt_mean_deg`, `eye_aspect_ratio_mean`, `jawline_definition_score`) pertencem ao pipeline legado e **não existem** como IDs no sistema atual (MediaPipe-478 + NestJS + PostgreSQL).
+>
+> O sistema NestJS atual **não possui** módulo de `visual_status` ou `first_impression` implementado — é um próximo passo do produto.
+
+---
+
 Estes módulos traduzem métricas técnicas em linguagem de percepção humana.
 
 ---

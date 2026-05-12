@@ -24,6 +24,7 @@ import { RecommendationCatalogEntity } from './infrastructure/entities/recommend
 import { RecommendationTriggerEntity } from './infrastructure/entities/recommendation-trigger.entity.js';
 import { RecommendationLinkEntity } from './infrastructure/entities/recommendation-link.entity.js';
 import { PriorityScoreAuditEntity } from './infrastructure/entities/priority-score-audit.entity.js';
+import { DiagnosisReportEntity } from './infrastructure/entities/diagnosis-report.entity.js';
 
 // Cross-module: needed by RecommendationEngine, NarrativeService, PdfService
 import { MetricEvaluationAgainstIdealEntity } from '../analysis/infrastructure/entities/metric-evaluation-against-ideal.entity.js';
@@ -42,6 +43,7 @@ import { GlobalScoreEntity } from '../analysis/infrastructure/entities/global-sc
       RecommendationTriggerEntity,
       RecommendationLinkEntity,
       PriorityScoreAuditEntity,
+      DiagnosisReportEntity,
       // Cross-module entities required by RecommendationEngine + NarrativeService + PdfService
       MetricEvaluationAgainstIdealEntity,
       MetricEvaluationEntity,

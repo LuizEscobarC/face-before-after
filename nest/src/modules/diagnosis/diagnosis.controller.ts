@@ -13,7 +13,7 @@ export class DiagnosisController {
   @ApiParam({ name: 'runId', description: 'ID do run de análise' })
   @ApiResponse({ status: 200, type: DiagnosisReportDto })
   @ApiResponse({ status: 404, description: 'Diagnóstico não encontrado' })
-  getReport(@Param('runId') runId: string): DiagnosisReportDto {
+  getReport(@Param('runId') runId: string): Promise<DiagnosisReportDto> {
     return this.diagnosisService.getReport(runId);
   }
 }

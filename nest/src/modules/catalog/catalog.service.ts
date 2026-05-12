@@ -33,8 +33,11 @@ import { AnalysisThresholdConfigEntity } from '../analysis/infrastructure/entiti
 import { SeverityCollapsePolicyEntity } from '../analysis/infrastructure/entities/severity-collapse-policy.entity.js';
 import { RegionMetricWeightsVersionEntity } from '../analysis/infrastructure/entities/region-metric-weights-version.entity.js';
 import { GlobalWeightsVersionEntity } from '../analysis/infrastructure/entities/global-weights-version.entity.js';
+import { MetricContentEntity } from './infrastructure/entities/metric-content.entity.js';
 import type {
   ActiveVersionsDto,
+  GlossaryEntryDto,
+  GlossaryResponseDto,
   ListIdealsQuery,
   ListMetricsQuery,
   MetricDefinitionDto,
@@ -133,6 +136,9 @@ export class CatalogService {
 
     @InjectRepository(GlobalWeightsVersionEntity)
     private readonly globalWeightVersions: Repository<GlobalWeightsVersionEntity>,
+
+    @InjectRepository(MetricContentEntity)
+    private readonly metricContents: Repository<MetricContentEntity>,
   ) {}
 
   // -------------------------------------------------------------------------
@@ -354,5 +360,49 @@ export class CatalogService {
       where: { isActive: true },
     });
     return active?.version ?? null;
+  }
+
+  // -------------------------------------------------------------------------
+  // getGlossary — joins metric_definition + metric_content (PR-66)
+  // -------------------------------------------------------------------------
+
+  /**
+   * Returns the editorial glossary keyed by ``metric_id``.
+   *
+   * One entry per active metric in the requested registry version. The
+   * baseline label/unit always come from ``metric_definition``; the rich
+   * fields (feynman / descricao / como_medido / faixas / problemas_comuns /
+   * referencias) are pulled from ``metric_content`` when seeded and remain
+   * null/[] otherwise so the frontend can render progressive disclosure.
+   */
+  async getGlossary(locale = 'pt-BR'): Promise<GlossaryResponseDto> {
+    const version = await this._resolveMetricVersion(undefined);
+    const definitions = await this.metricDefs.find({
+      where: { version },
+      order: { metricId: 'ASC' },
+    });
+
+    const contents = await this.metricContents.find({ where: { locale } });
+    const contentMap = new Map(contents.map((c) => [c.metricId, c]));
+
+    const result: GlossaryResponseDto = {};
+    for (const def of definitions) {
+      const content = contentMap.get(def.metricId);
+      const labels = (def.displayName as Record<string, string>) ?? {};
+      const termo = labels[locale] ?? labels['pt-BR'] ?? def.metricId;
+      const entry: GlossaryEntryDto = {
+        metric_id: def.metricId,
+        termo,
+        unidade: def.unit,
+        feynman: content?.feynmanText ?? null,
+        descricao: content?.description ?? null,
+        como_medido: content?.howMeasured ?? null,
+        faixas: content?.rangesText ?? null,
+        problemas_comuns: content?.commonIssues ?? [],
+        referencias: content?.references ?? [],
+      };
+      result[def.metricId] = entry;
+    }
+    return result;
   }
 }

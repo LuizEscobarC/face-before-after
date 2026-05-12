@@ -25,6 +25,7 @@ import { AnalysisThresholdConfigEntity } from '../analysis/infrastructure/entiti
 import { SeverityCollapsePolicyEntity } from '../analysis/infrastructure/entities/severity-collapse-policy.entity.js';
 import { RegionMetricWeightsVersionEntity } from '../analysis/infrastructure/entities/region-metric-weights-version.entity.js';
 import { GlobalWeightsVersionEntity } from '../analysis/infrastructure/entities/global-weights-version.entity.js';
+import { MetricContentEntity } from './infrastructure/entities/metric-content.entity.js';
 import { CatalogController } from './catalog.controller.js';
 import { CatalogService } from './catalog.service.js';
 
@@ -39,6 +40,7 @@ import { CatalogService } from './catalog.service.js';
       SeverityCollapsePolicyEntity,
       RegionMetricWeightsVersionEntity,
       GlobalWeightsVersionEntity,
+      MetricContentEntity,
     ]),
   ],
   controllers: [CatalogController],

@@ -14,6 +14,7 @@ import type {
   GlobalWeight,
   BlacklistTerm,
   ThresholdConfig,
+  ScoreBandConfig,
 } from "./types";
 import type { AnimationConfig } from './types/animationConfig';
 import type { BiometricExerciseConfig } from './biometric/types';
@@ -224,12 +225,111 @@ export async function compareRuns(
   return (await res.json()) as CompareWithConsistency;
 }
 
-// ---------- Glossary (bundle estático no frontend) ----------
+// ---------- Glossary (sourced from GET /v1/catalog/glossary) ----------
 
-import { GLOSSARY } from "./data/glossary";
+/**
+ * Loads the editorial glossary keyed by metric_id from the backend.
+ * Replaces the former static bundle (frontend/src/data/{glossary,feynman}.ts).
+ *
+ * The backend joins ``metric_definition`` with ``metric_content``: ``termo``
+ * and ``unidade`` are always populated from the metric registry; the rich
+ * fields (``feynman``, ``descricao``, ``como_medido``, ``faixas``,
+ * ``problemas_comuns``, ``referencias``) are progressive — null/[] when no
+ * editorial content has been seeded for that metric.
+ */
+export async function fetchGlossary(
+  locale = "pt-BR",
+): Promise<Record<string, GlossaryTerm>> {
+  const res = await fetch(
+    `${BASE}/v1/catalog/glossary?locale=${encodeURIComponent(locale)}`,
+  );
+  if (!res.ok) {
+    throw new Error(await readError(res, "Erro ao carregar glossário."));
+  }
+  return (await res.json()) as Record<string, GlossaryTerm>;
+}
 
-export async function fetchGlossary(): Promise<Record<string, GlossaryTerm>> {
-  return GLOSSARY;
+// ---------- Score bands (DEC-9, sourced from analysis_threshold_config) ----------
+
+/**
+ * Public score band configuration (no auth). Backed by GET /v1/catalog/score-bands.
+ *
+ * Used by result pages to colour the global score and to label bands consistently
+ * with the active analysis_threshold_config in the backend.
+ */
+export async function fetchScoreBands(): Promise<ScoreBandConfig> {
+  const res = await fetch(`${BASE}/v1/catalog/score-bands`);
+  if (!res.ok) {
+    throw new Error(await readError(res, "Falha ao carregar score bands."));
+  }
+  return (await res.json()) as ScoreBandConfig;
+}
+
+// ---------- Findings + Recommendations (paginated, PR-66) ----------
+
+export type NarrativeFinding = {
+  metric_id: string;
+  severity_3: string | null;
+  severity_5: string | null;
+  direction_label_pt: string | null;
+  narrative_text: string;
+  deviation_normalized: number | null;
+};
+
+export type NarrativeRecommendation = {
+  recommendation_id: string;
+  final_priority_in_session: number | null;
+  is_displayed_to_user: boolean;
+  category: string;
+  display_text_short_pt: string;
+  display_text_long_pt: string;
+  requires_professional: boolean;
+  professional_type: string | null;
+  priority_default: number;
+  invasiveness_level: number;
+};
+
+/**
+ * Loads ALL findings for a report sorted by severity desc.
+ * Backed by ``GET /v1/analysis/:id/findings``.
+ */
+export async function fetchFindings(
+  reportId: string,
+  opts: { limit?: number; minSeverity?: string } = {},
+): Promise<NarrativeFinding[]> {
+  const params = new URLSearchParams();
+  if (opts.limit) params.set("limit", String(opts.limit));
+  if (opts.minSeverity) params.set("minSeverity", opts.minSeverity);
+  const qs = params.toString();
+  const res = await fetch(
+    `${BASE}/v1/analysis/${encodeURIComponent(reportId)}/findings${qs ? `?${qs}` : ""}`,
+  );
+  if (!res.ok) {
+    throw new Error(await readError(res, "Falha ao carregar findings."));
+  }
+  return (await res.json()) as NarrativeFinding[];
+}
+
+/**
+ * Loads persisted ``recommendation_link`` rows joined with the catalog
+ * (full long copy + invasiveness). Backed by
+ * ``GET /v1/analysis/:id/recommendations``.
+ */
+export async function fetchReportRecommendations(
+  reportId: string,
+  opts: { limit?: number; category?: string } = {},
+): Promise<NarrativeRecommendation[]> {
+  const params = new URLSearchParams();
+  if (opts.limit) params.set("limit", String(opts.limit));
+  if (opts.category) params.set("category", opts.category);
+  const qs = params.toString();
+  const res = await fetch(
+    `${BASE}/v1/analysis/${encodeURIComponent(reportId)}/recommendations${qs ? `?${qs}` : ""}`,
+  );
+  if (!res.ok) {
+    throw new Error(await readError(res, "Falha ao carregar recomendações."));
+  }
+  return (await res.json()) as NarrativeRecommendation[];
 }
 
 // ---------- Client-side landmark submission ----------

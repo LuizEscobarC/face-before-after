@@ -1,16 +1,11 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import type { AnalysisResult } from "../types";
+import { colorForScore, useScoreBands } from "../hooks/useScoreBands";
 
 type LocationState = { result?: AnalysisResult };
 
-function scoreColor(score: number): string {
-  if (score >= 80) return "#22d3ee";
-  if (score >= 60) return "#22d3ee";
-  if (score >= 40) return "#a78bfa";
-  return "#6366f1";
-}
-
 function ScoreArc({ score }: { score: number }) {
+  const bands = useScoreBands();
   const r = 80;
   const cx = 100;
   const cy = 100;
@@ -19,7 +14,7 @@ function ScoreArc({ score }: { score: number }) {
   const ex = cx + r * Math.cos(rad);
   const ey = cy - r * Math.sin(rad);
   const largeArc = angle > 180 ? 1 : 0;
-  const color = scoreColor(score);
+  const color = colorForScore(score, bands);
 
   return (
     <svg viewBox="0 0 200 110" className="score-arc">

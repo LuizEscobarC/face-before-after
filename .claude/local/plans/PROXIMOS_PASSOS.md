@@ -115,20 +115,12 @@ M2 ✅ ────────────────────────�
 | **PR-59** | `GET /v1/analysis/:id/narrative` (top-3 findings + top-5 recs + disclaimer) | ⏳ TODO | Sonnet | 4h |
 | **PR-60..63** | M5 Admin UX (SvgAnatomicalHand + liveState + WASM offline) | ✅ DONE | Sonnet | — |
 | **PR-64** | **Landmark-Driven Face Rig** — SVG renderizado direto dos 478 landmarks + canonical mesh oficial + One-Euro filter | ✅ DONE [2026-05-11] | Sonnet | — |
-| **PR-65** | **Validação visual do PR-64** — abrir `/admin/animations/preview` (seção "Live Face") + RecordExerciseModal e validar pixel-perfect entre rig SVG e mesh overlay; testar mandíbula lateral, abrir/fechar olho, sorrir, yaw 30° | ⏳ próximo (humano) | humano | 30 min |
-| **PR-66** | **Mapping completo `FaceState → regiões da malha`** no scripted mode. Hoje cobrimos só jaw/lips/eye-openness/brow-lift+rotate/lip-corner — campos de `FaceState` como `cheekScale`/`noseDx`/`forehead*`/`facePinch` ainda degradam para neutro. Adicionar deformações regionais correspondentes em `applyFaceStateDeformation` | ⏳ TODO | Sonnet | 4h |
-| **PR-67** | Python `PdfBuilder` (capa → score → findings → overlays → recs → disclaimer) — 433 linhas ReportLab, design tokens do MVP, 24 unit tests em `test_pdf_builder.py` | ✅ DONE [2026-05-11] | Sonnet | — |
-| **PR-68** | Nest `PdfService` + `POST /v1/analysis/:id/pdf` (MinIO upload, `rendered_asset.asset_type='report_pdf'`, idempotente) + `POST /v1/analysis/run/:runId/pdf` (stateless stream, leve) + `VisionClient.generatePdf`. Módulo: `DiagnosisModule`. | ✅ DONE [2026-05-11] | Sonnet | — |
-| **PR-69** | Frontend: botão "↓ Baixar relatório (PDF)" em `PremiumResultPage` — estado `pdfLoading/pdfError`, chama `POST /v1/analysis/run/:runId/pdf`, `URL.createObjectURL` + trigger download automático | ✅ DONE [2026-05-11] | Sonnet | — |
-| **PR-70** | Asset pipeline para exercícios (Lottie/Rive MVP). Esquema `recommendation_asset` + admin CRUD para upload | ⏳ TODO (era PR-63 na versão antiga) | Sonnet | 1 dia |
-| **PR-71** | Player Lottie/Rive no frontend. Card de exercício com loop visual + cronômetro isométrico + "onde deve sentir queimar" | ⏳ TODO (era PR-64) | Sonnet | 1–2 dias |
-| **PR-72** | Modo 3D (Three.js + Ready Player Me + 52 BlendShapes ARKit). Avatar com músculos visíveis. Feature flag, custo de bandwidth elevado | ⏳ futuro (era PR-65) | Opus | 3–5 dias |
-| **PR-73** | Modo Espelho com IA — agora **viável imediato** porque PR-64 já entregou MediaPipe live + landmark normalization. Reaproveitar `useLiveFaceState` + `LandmarkRig.showMesh` + adicionar overlay AR sobre vídeo (em vez de canvas SVG isolado) | ⏳ destrambou pós-PR-64 (era PR-66) | Opus | 3–5 dias (÷2 vs original — infra pronta) |
-| **PR-74** | Módulo de assinatura + tracking longitudinal (rotina diária, before/after semanal/mensal). Tabelas `treatment_routine` + `progress_snapshot` | ⏳ futuro (era PR-67) | Opus | 5–7 dias |
+| **PR-67** | Python `PdfBuilder` (capa → score → findings → overlays → recs → disclaimer) | ⏳ TODO | Sonnet | 1–2 dias |
+| **PR-68** | Nest endpoint que dispara PDF, salva em MinIO | ⏳ TODO | Sonnet | 4h |
+| **PR-69** | Botão "Baixar relatório completo" no frontend | ⏳ TODO | Sonnet | 4h |
+| **PR-74** | Módulo de assinatura + tracking longitudinal (rotina diária, before/after semanal/mensal). Tabelas `treatment_routine` + `progress_snapshot` | ⏳ futuro | Opus | 5–7 dias |
 
-**Total estimado para fechar o MVP (depois de PR-22, sem PR-72/73/74):** ~7 dias de trabalho técnico + ~2 dias de revisão de tom.
-
-**Total estimado para o "estado da arte" (com 3D + AR):** +8–12 dias adicionais (reduzido vs estimativa anterior porque PR-64 destravou parte da infra do AR).
+**Total estimado para fechar o MVP (sem PR-74):** ~4 dias de trabalho técnico + ~2 dias de revisão de tom.
 
 ---
 
@@ -177,22 +169,6 @@ Plano detalhado da implementação: [`/home/luizescobal/.claude/plans/fa-a-mais-
 - 350 com evidência (strong/moderate) · 84 anecdotal com disclaimer obrigatório
 
 Todas `professional_referral` carregam disclaimer **informativo não-prescritivo**: "A rotina do app cobre as principais melhorias possíveis sem intervenção clínica. Em casos como o seu, alguns usuários optam por consultar [especialidade]... não é exigência nem condição de melhora."
-
-### 4.4 Como ensinar exercícios ao usuário? (NOVA — surge de [`solucoes-para-rotina-de-exercicios.md`](../../../solucoes-para-rotina-de-exercicios.md))
-
-160 exercícios catalogados são inúteis se o usuário não consegue executar corretamente. Foto + texto não funcionam para músculo facial — usuário comum erra a forma e pode piorar assimetria.
-
-**Caminho recomendado em 3 níveis** (PR-63 → PR-64 → PR-65 → PR-66):
-
-| nível | tecnologia | efeito | esforço |
-|---|---|---|---|
-| **MVP** | Lottie/Rive (animação 2D vetorial) | Setas + áreas vermelhas + visão raio-X esquemática | 1–2 dias por lote de 30 animações |
-| **State of the Art** | Three.js + Ready Player Me + 52 ARKit BlendShapes | Avatar 3D com músculos visíveis; modo "raio-x" mostra masseter/hioide contraindo | 3–5 dias |
-| **Diferencial matador** | MediaPipe FaceMesh AR overlay | Câmera frontal + linhas guia em tempo real + feedback "relaxe a testa, segure 5s" | 5–7 dias |
-
-**Decisão recomendada:** começar MVP (PR-63 + PR-64 com Lottie/Rive) e adiar 3D + AR (PR-65 + PR-66) para pós-validação. Asset pipeline + ilustrador freelance para 30 animações de alta prioridade ≈ R$ 3-6k.
-
-**Schema sugerido:** tabela `recommendation_asset` (recommendation_id, asset_type, storage_url, duration_ms, alt_text, thumbnail_url) — 1:N com `recommendation_catalog`. Admin CRUD em `/admin/recommendations/:id/assets`.
 
 ### 4.3 Banding do PDF — relatório só com score >70 ou todos?
 
@@ -245,5 +221,5 @@ Recomendação: PDF sempre tem **conteúdo positivo** (overlays, recomendações
 1. **M2, M3 e M5 (Admin UX) estão prontos** — motor de análise + overlays + admin live preview com SVG renderizado direto dos 478 landmarks (PR-64, 2026-05-11).
 2. **Falta calibrar com 50 fotos reais (PR-22)** — sem isso o produto está "academicamente correto" mas empiricamente cego.
 3. **Depois disso, M4 inteiro** (~10 dias de trabalho técnico + ~3 dias de revisão de tom): texto diagnóstico, recomendações, priorização, PDF.
-4. **Decida agora** quem revisa o tom dos templates (4.1) e como ensinar exercícios (4.4 — Lottie/Rive MVP recomendado, 3D/AR pós-validação).
-5. **Próxima ação concreta:** **PR-65** (validação visual do LandmarkRig — 30 min, abre `/admin/animations/preview` e confirma pixel-perfect) **OU** baixar 50 fotos para PR-22 — escolha sua aposta de impacto.
+4. **Decida agora** quem revisa o tom dos templates (4.1).
+5. **Próxima ação concreta:** baixar 50 fotos para PR-22 **OU** avançar PR-56b (catálogo aesthetic_procedure).

@@ -1,8 +1,157 @@
 # Limiares de Severidade
 
-## Escala de severidade
+Sistema atual: **3 zonas** (green/yellow/red) definidas por métrica na tabela `metric_ideal` do PostgreSQL.
+Não existe mais a escala de 5 níveis uniforme do sistema dlib.
 
-O sistema usa 5 níveis de severidade, aplicados uniformemente a todas as métricas:
+---
+
+## Zonas de severity
+
+| Zona | severity_5 | severity_3 | Descrição |
+|------|------------|------------|-----------|
+| **GREEN** | `ideal` | `LEVE` | Dentro do intervalo verde — resultado esperado |
+| **YELLOW** | `mild` ou `moderate` | `MODERADO` | Fora do verde, dentro do amarelo |
+| **RED** | `strong` ou `extreme` | `SEVERO` | Fora do intervalo amarelo |
+
+**Classificação (NestJS):**
+```typescript
+if (value >= green_range_min && value <= green_range_max)  → GREEN
+else if (value >= yellow_range_min && value <= yellow_range_max) → YELLOW
+else → RED
+```
+
+> Métricas com `is_low_confidence=True` **não** recebem severity — são exibidas como `"confidence_low"`.  
+> Métricas `presentation_only=True` exibem o valor, mas não entram no score regional.  
+> Stubs (`direction="not_computed"`) não têm `metric_ideal` — severity = null.
+
+---
+
+## Limiares por região (seleção dos mais relevantes)
+
+Fonte: migrations `1746000040000-SeedMetricCatalogV1.ts`, `1746000160000-SeedMetricsWaveC2.ts`, `1746000320000-SeedMetricsWaveC3.ts`.
+
+### Região: symmetry
+
+| metric_id | ideal | green_min | green_max | yellow_min | yellow_max |
+|-----------|-------|-----------|-----------|------------|------------|
+| `midline_deviation` | 0.0 | 0.0 | 0.03 | 0.0 | 0.08 |
+| `eye_height_asymmetry` | 0.0 | 0.0 | 0.05 | 0.0 | 0.12 |
+| `brow_height_asymmetry` | 0.0 | 0.0 | 0.05 | 0.0 | 0.12 |
+| `lip_canting_angle` | 0.0 | -2.0 | 2.0 | -5.0 | 5.0 |
+| `global_asymmetry_index` | 0.0 | 0.0 | 0.04 | 0.0 | 0.10 |
+
+### Região: eyes
+
+| metric_id | ideal | green_min | green_max | yellow_min | yellow_max |
+|-----------|-------|-----------|-----------|------------|------------|
+| `eye_aperture_ratio_l` | 0.30 | 0.25 | 0.35 | 0.18 | 0.42 |
+| `eye_aperture_ratio_r` | 0.30 | 0.25 | 0.35 | 0.18 | 0.42 |
+| `interpupillary_distance` | 2.0 | 1.8 | 2.2 | 1.5 | 2.5 |
+| `intercanthal_distance` | 1.0 | 0.90 | 1.10 | 0.75 | 1.25 |
+| `canthal_tilt_l` | 0.0 | -1.0 | 1.0 | -5.0 | 5.0 |
+| `canthal_tilt_r` | 0.0 | -1.0 | 1.0 | -5.0 | 5.0 |
+
+### Região: thirds
+
+| metric_id | ideal | green_min | green_max | yellow_min | yellow_max |
+|-----------|-------|-----------|-----------|------------|------------|
+| `upper_third_ratio` | 0.333 | 0.30 | 0.37 | 0.25 | 0.42 |
+| `middle_third_ratio` | 0.333 | 0.30 | 0.37 | 0.25 | 0.42 |
+| `lower_third_ratio` | 0.333 | 0.30 | 0.37 | 0.25 | 0.42 |
+
+### Região: nose
+
+| metric_id | ideal | green_min | green_max | yellow_min | yellow_max |
+|-----------|-------|-----------|-----------|------------|------------|
+| `nose_width_to_icd` | 1.00 | 0.85 | 1.15 | 0.70 | 1.35 |
+| `alar_to_face_width_ratio` | 0.25 | 0.22 | 0.28 | 0.18 | 0.33 |
+| `dorsum_deviation` | 0.0 | 0.0 | 0.04 | 0.0 | 0.10 |
+| `nasal_tip_deviation` | 0.0 | 0.0 | 0.04 | 0.0 | 0.10 |
+
+### Região: mouth
+
+| metric_id | ideal | green_min | green_max | yellow_min | yellow_max |
+|-----------|-------|-----------|-----------|------------|------------|
+| `mouth_width_to_icd` | 1.60 | 1.40 | 1.80 | 1.20 | 2.00 |
+| `upper_lip_height_ratio` | 0.40 | 0.35 | 0.45 | 0.28 | 0.55 |
+| `lower_lip_height_ratio` | 0.60 | 0.55 | 0.65 | 0.45 | 0.72 |
+
+### Região: jaw
+
+| metric_id | ideal | green_min | green_max | yellow_min | yellow_max |
+|-----------|-------|-----------|-----------|------------|------------|
+| `jaw_width_ratio` | 0.75 | 0.68 | 0.82 | 0.58 | 0.92 |
+| `gonial_angle_l` | 120.0 | 110.0 | 130.0 | 100.0 | 140.0 |
+| `gonial_angle_r` | 120.0 | 110.0 | 130.0 | 100.0 | 140.0 |
+| `chin_height_ratio` | 0.35 | 0.30 | 0.40 | 0.24 | 0.46 |
+
+### Região: brows
+
+| metric_id | ideal | green_min | green_max | yellow_min | yellow_max |
+|-----------|-------|-----------|-----------|------------|------------|
+| `brow_height_l` | 0.50 | 0.40 | 0.60 | 0.30 | 0.72 |
+| `brow_height_r` | 0.50 | 0.40 | 0.60 | 0.30 | 0.72 |
+| `brow_arch_peak_l` | 0.20 | 0.14 | 0.26 | 0.08 | 0.34 |
+| `brow_arch_peak_r` | 0.20 | 0.14 | 0.26 | 0.08 | 0.34 |
+| `interbrow_distance_ratio` | 1.00 | 0.85 | 1.15 | 0.70 | 1.30 |
+
+### Região: cheekbones
+
+| metric_id | ideal | green_min | green_max | yellow_min | yellow_max |
+|-----------|-------|-----------|-----------|------------|------------|
+| `zygomatic_width_ratio` | 1.30 | 1.20 | 1.40 | 1.05 | 1.55 |
+| `malar_projection_index` | 0.30 | 0.22 | 0.38 | 0.14 | 0.48 |
+| `cheekbone_to_jaw_ratio` | 1.30 | 1.18 | 1.42 | 1.05 | 1.56 |
+
+### Região: forehead
+
+| metric_id | ideal | green_min | green_max | yellow_min | yellow_max |
+|-----------|-------|-----------|-----------|------------|------------|
+| `forehead_height_ratio` | 0.333 | 0.29 | 0.38 | 0.24 | 0.44 |
+| `forehead_width_ratio` | 0.90 | 0.80 | 1.00 | 0.68 | 1.12 |
+
+### global / phi_golden
+
+| metric_id | ideal | green_min | green_max | yellow_min | yellow_max |
+|-----------|-------|-----------|-----------|------------|------------|
+| `face_height_to_width_ratio` | 1.35 | 1.20 | 1.50 | 1.05 | 1.70 |
+| `phi_face_height_to_width` | 1.618 | 1.50 | 1.75 | 1.35 | 1.90 |
+
+---
+
+## Métricas scoráveis vs. não-scoráveis
+
+| Categoria | Quantidade | Motivo |
+|-----------|-----------|--------|
+| Com `metric_ideal` (scoráveis) | 88 | Entram no score regional |
+| Stubs DEC-10 | 4 | `direction="not_computed"`, `confidence_final=0` — sem ideal |
+| `presentation_only=True` | alguns | Exibidos mas não somam score |
+
+**Os 4 stubs** (`supratarsal_fold_visibility`, `nasolabial_angle_proxy`, `ogee_curve_proxy`, `forehead_slope_proxy`) nunca têm severity — sempre null.
+
+---
+
+## Score regional
+
+```typescript
+// Pseudocódigo NestJS (analysis.service.ts)
+const regionalScore = weightedAverage(
+  metricsInRegion
+    .filter(m => !m.is_low_confidence && !m.presentation_only && m.severity_5 !== null)
+    .map(m => ({ value: zoneToScore(m.severity_5), weight: m.weight_in_region }))
+);
+
+function zoneToScore(severity: string): number {
+  switch (severity) {
+    case "ideal":    return 1.0;
+    case "mild":     return 0.75;
+    case "moderate": return 0.50;
+    case "strong":   return 0.25;
+    case "extreme":  return 0.0;
+  }
+}
+```
+
 
 | Nível | Cor HTML | Css class | Significado |
 |-------|----------|-----------|-------------|
@@ -168,46 +317,7 @@ Mesma escala que terços.
 
 | Severidade | Intervalo |
 |-----------|-----------|
-| Excelente | 22% – 30% |
-| Leve | 18% – 34% |
-| Moderada | 14% – 38% |
 
----
-
-## Jawline definition score (regra especial)
-
-Ao contrário das demais, esta métrica usa regra "maior = melhor":
-
-```python
-if   value >= 7: sev = "excelente"
-elif value >= 5: sev = "leve"
-elif value >= 3: sev = "moderada"
-else:            sev = "acentuada"
-```
-
----
-
-## Score de simetria → tier
-
-| Score | Tier | Descrição |
-|-------|------|-----------|
-| ≥ 80 | Alta | Simetria excelente — assimetria praticamente imperceptível |
-| ≥ 60 | Boa | Assimetria leve — dentro da variação natural |
-| ≥ 40 | Moderada | Assimetria moderada — perceptível em análise detalhada |
-| < 40 | Baixa | Assimetria marcada — perceptível a olho nu |
-
----
-
-## Qualidade da captura — alertas
-
-| Condição | Alerta gerado |
-|----------|---------------|
-| `|yaw| > 7° ou |pitch| > 7°` | "Pose facial fora do limite frontal (|yaw|=X°, |pitch|=Y°). Métricas podem estar enviesadas." |
-| `focal_ratio > 0.55` | "Possível distorção por lente curta (nariz/bizigomática=X.XX)." |
-| `face_pixel_width < 200` | "Resolução facial baixa (Xpx). Use foto >= 400px." |
-| `sharpness < 50` | "Foto pouco nítida (variância do laplaciano=X)." |
-
----
 
 ## Designação das classes CSS no relatório HTML
 

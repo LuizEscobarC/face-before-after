@@ -1,5 +1,9 @@
 # Recomendações, Trilha de Evolução e Glossário
 
+> **⚠️ LEGADO** — `REC_CATALOG` documenta o pipeline raiz antigo (dlib-68). As métricas referenciadas (`overall_asymmetry_score_pct_ipd`, `canthal_tilt_mean_deg`, etc.) não existem no sistema atual (NestJS + PostgreSQL).
+>
+> O sistema NestJS atual **não possui** módulo de recomendações implementado — é o próximo passo do produto após o módulo de análise.
+
 ---
 
 ## 1. Catálogo de Recomendações (`REC_CATALOG`)

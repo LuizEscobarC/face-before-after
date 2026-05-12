@@ -1,4 +1,3 @@
-import { feynmanFor } from "../data/feynman";
 import type { GlossaryTerm } from "../types";
 
 interface Props {
@@ -11,43 +10,10 @@ interface Props {
   glossary?: Record<string, GlossaryTerm>;
 }
 
-/**
- * Mapeia uma métrica (com sufixos como _mean_deg, _pct_ipd, _left)
- * para a chave-base do glossário.
- */
-function glossaryKeyFor(metricKey: string): string {
-  // Mapeamento direto dos termos curados em backend/app/domain/layers/glossary.py
-  const direct: Record<string, string> = {
-    fwhr: "fwhr",
-    canthal_tilt_left_deg: "canthal_tilt",
-    canthal_tilt_right_deg: "canthal_tilt",
-    canthal_tilt_mean_deg: "canthal_tilt",
-    gonial_angle_left_deg: "gonial_angle",
-    gonial_angle_right_deg: "gonial_angle",
-    gonial_angle_mean_deg: "gonial_angle",
-    marquardt_deviation_pct_ipd: "marquardt",
-    marquardt_deviation_px: "marquardt",
-    skin_uniformity_std_lab_left: "skin_uniformity",
-    skin_uniformity_std_lab_right: "skin_uniformity",
-    skin_uniformity_std_lab_forehead: "skin_uniformity",
-    skin_lighting_delta_e_lr: "lab_delta_e",
-    lighting_asymmetry_delta_e: "lab_delta_e",
-    under_eye_darkness_left: "under_eye_darkness",
-    under_eye_darkness_right: "under_eye_darkness",
-    sharpness_laplacian_var: "laplacian_sharpness",
-    head_pose_yaw_deg: "solvepnp_pose",
-    head_pose_pitch_deg: "solvepnp_pose",
-    head_pose_roll_deg: "solvepnp_pose",
-    thirds_std_dev: "thirds_fifths",
-    fifths_std_dev: "thirds_fifths",
-    thirds_upper_ratio: "thirds_fifths",
-    thirds_middle_ratio: "thirds_fifths",
-    thirds_lower_ratio: "thirds_fifths",
-    jawline_definition_score: "jawline_definition_score",
-    ipd_px: "ipd",
-  };
-  return direct[metricKey] ?? metricKey;
-}
+// Glossary entries are now keyed by the concrete ``metric_id`` (the backend
+// resolves former aliases like canthal_tilt_left_deg → canthal_tilt at seed
+// time inside ``metric_content``). The Feynman analogy lives on the same
+// entry as ``term.feynman``.
 
 function severityClass(severity: string | undefined): string {
   if (!severity) return "sev-pill sev-info";
@@ -69,8 +35,8 @@ export function MetricExplainer({
   severity,
   glossary,
 }: Props) {
-  const feynman = feynmanFor(metricKey);
-  const term = glossary?.[glossaryKeyFor(metricKey)];
+  const term = glossary?.[metricKey];
+  const feynman = term?.feynman ?? null;
 
   return (
     <details className="metric-explainer">

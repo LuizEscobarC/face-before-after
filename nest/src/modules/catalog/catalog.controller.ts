@@ -172,4 +172,24 @@ export class CatalogController {
   listRegions() {
     return this.catalogService.listRegions();
   }
+
+  // -------------------------------------------------------------------------
+  // GET /v1/catalog/glossary
+  // -------------------------------------------------------------------------
+
+  @Get('glossary')
+  @ApiOperation({
+    summary: 'Editorial glossary keyed by metric_id',
+    description:
+      'Returns one entry per active metric_definition with the rich editorial ' +
+      'content (feynman analogy + technical description + how measured + ranges + ' +
+      'common issues + references) sourced from metric_content. ' +
+      'Replaces the static frontend bundle frontend/src/data/{glossary,feynman}.ts. ' +
+      'Locale defaults to pt-BR.',
+  })
+  @ApiQuery({ name: 'locale', required: false, type: String })
+  @ApiResponse({ status: 200, description: 'Glossary keyed by metric_id' })
+  getGlossary(@Query('locale') locale?: string) {
+    return this.catalogService.getGlossary(locale ?? 'pt-BR');
+  }
 }

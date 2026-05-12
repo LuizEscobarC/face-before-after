@@ -41,14 +41,12 @@ const P_ZYGO_IMG_RIGHT = 454; // image-right zygomatic arch (person's left cheek
 const P_ZYGO_IMG_LEFT  = 234; // image-left  zygomatic arch (person's right cheek)
 const LM_JAWLINE  = [10, 338, 297, 332, 284, 251, 389, 356, 454, 323, 361, 288, 397, 365, 379, 378, 400, 377, 152, 148, 176, 149, 150, 136, 172, 58, 132, 93, 234, 127, 162, 21, 54, 103, 67, 109, 10];
 
-// Anchor landmark per metric_id — hardcoded for the 4 calculators that emit improvement_vector (PR-34).
+// Anchor landmark indices for improvement-vector arrows used to come from
+// a hardcoded ``IMPROVEMENT_ANCHOR`` map. The backend now ships the anchor
+// per-metric on ``MetricEvaluationResult.anchor_landmark_index`` (sourced
+// from ``metric_definition.dependency_landmarks[0]``), so we read it from
+// the payload instead of duplicating the table client-side.
 // Reference: PLAN_M3_OVERLAYS §2, backend/app/services/metrics/{symmetry,jaw,brows}.py
-const IMPROVEMENT_ANCHOR: Record<string, number> = {
-  midline_deviation:  P_NOSE_TIP,
-  chin_height_ratio:  P_MENTON,
-  brow_height_l:      P_BROW_LEFT_INNER,
-  brow_height_r:      P_BROW_RIGHT_INNER,
-};
 
 // Arrow color by severity5 (DEC-3, PLAN_M3_OVERLAYS §2)
 const SEVERITY_ARROW_COLORS: Record<string, string> = {
@@ -323,7 +321,8 @@ function OutlineFace({ landmarks }: { landmarks: Array<[number, number]> }) {
  * ImprovementVectors — PR-36 (M3.2).
  *
  * Renders one SVG arrow per metric that has a non-null improvement_vector.
- * - Anchor: hardcoded landmark per metric_id (see IMPROVEMENT_ANCHOR).
+ * - Anchor: ``MetricEvaluationResult.anchor_landmark_index`` (server-supplied,
+ *   from ``metric_definition.dependency_landmarks[0]``).
  * - Direction: (dx * icd_px, dy * icd_px) where icd_px is intercanthal distance in pixels.
  * - Color: per severity_5 (SEVERITY_ARROW_COLORS).
  * - "ideal" and null severities are skipped (no correction needed).
@@ -347,14 +346,13 @@ function ImprovementVectors({
   const arrows: JSX.Element[] = [];
 
   for (const metric of metricEvaluations) {
-    const { metric_id, improvement_vector_x, improvement_vector_y, severity_5 } = metric;
+    const { metric_id, improvement_vector_x, improvement_vector_y, severity_5, anchor_landmark_index } = metric;
     if (improvement_vector_x == null || improvement_vector_y == null) continue;
     if (!severity_5 || severity_5 === "ideal") continue;
     const color = SEVERITY_ARROW_COLORS[severity_5] ?? "#94a3b8";
 
-    const anchorIdx = IMPROVEMENT_ANCHOR[metric_id];
-    if (anchorIdx == null) continue;
-    const [sx, sy] = lm(landmarks, anchorIdx);
+    if (anchor_landmark_index == null) continue;
+    const [sx, sy] = lm(landmarks, anchor_landmark_index);
 
     const ex = sx + improvement_vector_x * icdPx;
     const ey = sy + improvement_vector_y * icdPx;

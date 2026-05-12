@@ -56,6 +56,13 @@ export type MetricEvaluationResult = {
   improvement_vector_x: number | null;
   /** Vertical improvement vector in normalised intercanthal units. Positive = downward. Null = N/A. */
   improvement_vector_y: number | null;
+  /**
+   * MediaPipe Mesh-478 landmark index used as the visual anchor when drawing
+   * the improvement vector overlay for this metric. Sourced server-side from
+   * ``metric_definition.dependency_landmarks[0]``. Null when the metric has
+   * no anchor landmarks.
+   */
+  anchor_landmark_index: number | null;
 };
 
 export type VisualStatus = {
@@ -103,13 +110,22 @@ export type MetricRecommendation = {
 };
 
 export type GlossaryTerm = {
+  /** Always present — comes from metric_definition.display_name. */
   termo: string;
+  /** Always present — comes from metric_definition.unit. */
   unidade: string;
-  descricao: string;
-  como_medido: string;
-  faixas: string;
-  problemas_comuns: string[];
-  referencias: { titulo: string; url: string }[];
+  /** Layer 1 — plain-language analogy ("Feynman"). */
+  feynman?: string | null;
+  /** Layer 2 — short technical description. */
+  descricao?: string | null;
+  /** Layer 3 — measurement method. */
+  como_medido?: string | null;
+  /** Layer 4 — typical value ranges. */
+  faixas?: string | null;
+  /** Layer 5 — known caveats / failure modes. */
+  problemas_comuns?: string[];
+  /** External references. */
+  referencias?: { titulo: string; url: string }[];
 };
 
 export type CompareMetric = {
@@ -395,3 +411,25 @@ export type ThresholdConfig = {
   isActive: boolean;
   createdAt: string;
 };
+
+/**
+ * Active score band configuration returned by GET /v1/catalog/score-bands.
+ * Mirrors ScoreBandConfigDto in nest/src/modules/catalog/dto/catalog.dto.ts.
+ *
+ * Band mapping (DEC-9):
+ *   score < no_number_max         → "no_number" (do not display number)
+ *   no_number_max ≤ s < refine_max → "refine"   (low band)
+ *   refine_max    ≤ s < good_max  → "good"     (mid band)
+ *   good_max      ≤ s             → "high"     (top band)
+ */
+export type ScoreBandConfig = {
+  no_number_max: number;
+  refine_max: number;
+  good_max: number;
+  min_confidence_to_display_metric: number;
+  min_confidence_to_show_global_score: number;
+  version: string;
+  disclaimer_text_snapshot: string;
+};
+
+export type ScoreBandName = "no_number" | "refine" | "good" | "high";

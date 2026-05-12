@@ -3,30 +3,21 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { evaluateFromLandmarks, fetchGlossary, fetchNarrative } from "../api";
 import { MetricExplainer } from "../components/MetricExplainer";
 import { DEFAULT_OVERLAYS, HeatmapImageLayer, OverlayLayer, OverlayToggleBar } from "../components/OverlayLayer";
-import { feynmanFor } from "../data/feynman";
 import type { AnalysisResult, GlossaryTerm, MetricEvaluationResult, NarrativeResponseDto, PremiumMetricCategory } from "../types";
 
 type LocationState = { result?: AnalysisResult };
 type ViewMode = "landmarks" | "ideal" | "compare" | "overlays" | "before_ideal";
 
 /**
- * PR-42/PR-43 (M3.4) — anchor landmark per metric_id for the before/ideal composer.
- * Mirrors IMPROVEMENT_ANCHOR in OverlayLayer.tsx (MediaPipe Mesh-478).
- * Only metrics that emit improvement_vector_x/y are listed here.
- * References: PLAN_M3_OVERLAYS §2 PR-41/PR-42, MediaPipe Mesh-478
- *   https://github.com/google-ai-edge/mediapipe/blob/master/docs/solutions/face_mesh.md
- */
-const COMPOSE_ANCHOR: Record<string, number> = {
-  midline_deviation:  1,    // P_NOSE_TIP (landmark 1)
-  chin_height_ratio:  152,  // P_MENTON (landmark 152)
-  brow_height_l:      107,  // P_BROW_LEFT_INNER
-  brow_height_r:      336,  // P_BROW_RIGHT_INNER
-};
-
-/**
- * Build the offsets array for POST /v1/vision/compose-before-ideal from
- * metric_evaluations that carry improvement_vector_x/y.
- * Only metrics present in COMPOSE_ANCHOR are included.
+ * Build the offsets array for POST /v1/vision/compose-before-ideal from the
+ * metric evaluations carried by ``AnalysisResult``.
+ *
+ * The visual anchor (``landmark_index``) is supplied by the backend on each
+ * ``MetricEvaluationResult.anchor_landmark_index`` (= first entry of the
+ * metric's ``dependency_landmarks`` in ``metric_definition``). Metrics with
+ * a null anchor or no improvement vector are skipped.
+ *
+ * Reference: PLAN_M3_OVERLAYS §2 PR-41/PR-42, MediaPipe Mesh-478.
  */
 function buildComposeOffsets(
   evals: MetricEvaluationResult[],
@@ -34,11 +25,11 @@ function buildComposeOffsets(
   return evals
     .filter(
       (m) =>
-        COMPOSE_ANCHOR[m.metric_id] !== undefined &&
+        m.anchor_landmark_index !== null &&
         (m.improvement_vector_x !== null || m.improvement_vector_y !== null),
     )
     .map((m) => ({
-      landmark_index: COMPOSE_ANCHOR[m.metric_id],
+      landmark_index: m.anchor_landmark_index as number,
       dx_icu: m.improvement_vector_x ?? 0,
       dy_icu: m.improvement_vector_y ?? 0,
       metric_id: m.metric_id,
@@ -545,7 +536,7 @@ export function PremiumResultPage() {
     !!(result.landmarks && result.run_id) &&
     !!(result.metric_evaluations?.some(
       (m) =>
-        COMPOSE_ANCHOR[m.metric_id] !== undefined &&
+        m.anchor_landmark_index !== null &&
         (m.improvement_vector_x !== null || m.improvement_vector_y !== null),
     ));
 
@@ -923,12 +914,19 @@ export function PremiumResultPage() {
               {result.main_insight.detail && (
                 <p className="main-insight-detail">{result.main_insight.detail}</p>
               )}
-              {result.main_insight.metric_key && feynmanFor(result.main_insight.metric_key) && (
-                <details className="main-insight-feynman">
-                  <summary>💡 Explicar como se eu tivesse 5 anos</summary>
-                  <p>{feynmanFor(result.main_insight.metric_key)}</p>
-                </details>
-              )}
+              {(() => {
+                // Feynman now comes from the backend glossary entry keyed by
+                // the concrete metric_id (no more static lookup table).
+                const mk = result.main_insight.metric_key;
+                const feynman = mk ? glossary?.[mk]?.feynman ?? null : null;
+                if (!feynman) return null;
+                return (
+                  <details className="main-insight-feynman">
+                    <summary>💡 Explicar como se eu tivesse 5 anos</summary>
+                    <p>{feynman}</p>
+                  </details>
+                );
+              })()}
             </section>
           )}
 

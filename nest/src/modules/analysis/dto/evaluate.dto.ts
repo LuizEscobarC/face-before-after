@@ -103,6 +103,13 @@ export interface MetricEvaluationResultDto {
   improvement_vector_x: number | null;
   /** Improvement vector Y in normalised intercanthal units (ICU). Positive = downward. Null when N/A. */
   improvement_vector_y: number | null;
+  /**
+   * MediaPipe Mesh-478 landmark index used as the visual anchor when drawing
+   * the improvement vector overlay for this metric. Sourced from the first
+   * entry of ``metric_definition.dependency_landmarks``. Null when the metric
+   * has no anchor landmarks (e.g. global-only metrics or photo_quality flags).
+   */
+  anchor_landmark_index: number | null;
 }
 
 export interface EvaluateVersionsDto {

@@ -176,6 +176,7 @@ export class ReportReaderService {
         direction_label: against?.directionLabel ?? {},
         improvement_vector_x: against?.improvementVectorX ?? null,
         improvement_vector_y: against?.improvementVectorY ?? null,
+        anchor_landmark_index: def?.dependencyLandmarks?.[0] ?? null,
       };
     });
 

@@ -1,6 +1,7 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import { ConsistencyWarning } from "../components/ConsistencyWarning";
 import type { AnalysisResult, CompareWithConsistency } from "../types";
+import { colorForScore, useScoreBands } from "../hooks/useScoreBands";
 
 type LocationState = {
   compareResult?: CompareWithConsistency;
@@ -9,6 +10,7 @@ type LocationState = {
 };
 
 function ScoreArc({ score, label }: { score: number; label: string }) {
+  const bands = useScoreBands();
   const r = 80;
   const cx = 100;
   const cy = 100;
@@ -17,7 +19,7 @@ function ScoreArc({ score, label }: { score: number; label: string }) {
   const ex = cx + r * Math.cos(rad);
   const ey = cy - r * Math.sin(rad);
   const largeArc = angle > 180 ? 1 : 0;
-  const color = score >= 60 ? "#22d3ee" : "#a78bfa";
+  const color = colorForScore(score, bands);
 
   return (
     <div style={{ textAlign: "center" }}>

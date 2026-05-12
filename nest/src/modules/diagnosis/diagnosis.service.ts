@@ -4,6 +4,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import type { DiagnosisReportDto, ConcernDto } from './dto/diagnosis.dto.js';
 import { DiagnosticTemplateEntity } from './infrastructure/entities/diagnostic-template.entity.js';
+import { DiagnosisReportEntity } from './infrastructure/entities/diagnosis-report.entity.js';
 
 interface AnalysisCompletedPayload {
   session_id?: string;
@@ -15,26 +16,39 @@ interface AnalysisCompletedPayload {
 @Injectable()
 export class DiagnosisService {
   private readonly logger = new Logger(DiagnosisService.name);
-  private readonly reports = new Map<string, DiagnosisReportDto>();
 
   constructor(
     @InjectRepository(DiagnosticTemplateEntity)
     private readonly templateRepository: Repository<DiagnosticTemplateEntity>,
+
+    @InjectRepository(DiagnosisReportEntity)
+    private readonly reportRepository: Repository<DiagnosisReportEntity>,
   ) {}
 
   @OnEvent('analysis.completed')
-  handleAnalysisCompleted(payload: AnalysisCompletedPayload): void {
+  async handleAnalysisCompleted(payload: AnalysisCompletedPayload): Promise<void> {
     const report = this._buildReport(payload.run_id, payload.result ?? {});
-    this.reports.set(payload.run_id, report);
-    this.logger.log(`DiagnosisReport stored for run_id=${payload.run_id}`);
+    // Idempotent upsert: same run_id replaces previous record.
+    await this.reportRepository.save({
+      runId: report.run_id,
+      topConcerns: report.top_concerns,
+      summary: report.summary,
+      timestamp: report.timestamp,
+    });
+    this.logger.log(`DiagnosisReport persisted for run_id=${payload.run_id}`);
   }
 
-  getReport(runId: string): DiagnosisReportDto {
-    const report = this.reports.get(runId);
-    if (!report) {
+  async getReport(runId: string): Promise<DiagnosisReportDto> {
+    const row = await this.reportRepository.findOne({ where: { runId } });
+    if (!row) {
       throw new NotFoundException(`Diagnóstico não encontrado para run_id=${runId}`);
     }
-    return report;
+    return {
+      run_id: row.runId,
+      top_concerns: row.topConcerns,
+      summary: row.summary,
+      timestamp: row.timestamp,
+    };
   }
 
   private _buildReport(runId: string, result: Record<string, unknown>): DiagnosisReportDto {
