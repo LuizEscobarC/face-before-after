@@ -892,14 +892,14 @@ export function PremiumResultPage() {
               )}
 
               {view === "overlays" && originalUrl && result.landmarks && (
-                <div style={{ display: "flex", gap: 16, alignItems: "flex-start", flexWrap: "wrap" }}>
-                <div style={{ position: "relative", display: "inline-block", flex: "1 1 480px", minWidth: 0 }}>
+                <div style={{ display: "flex", gap: 16, alignItems: "flex-start", flexWrap: "nowrap", overflow: "auto" }}>
+                <div style={{ position: "relative", display: "inline-block", flex: "1 1 300px", minWidth: 0 }}>
                   <img
                     ref={overlayImgRef}
                     src={originalUrl}
                     alt="Rosto com overlays de referência"
                     className="panel-img"
-                    style={{ display: "block" }}
+                    style={{ display: "block", maxWidth: "100%", height: "auto" }}
                     onLoad={(e) => {
                       const img = e.currentTarget;
                       // getBoundingClientRect() gives the rendered (CSS-constrained) size.
