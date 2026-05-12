@@ -238,6 +238,42 @@ overlay-test id:
     node scripts/test-overlay-{{id}}.mjs
 
 ##############################
+# PLAYWRIGHT E2E (frontend)
+##############################
+
+# Fluxo completo E2E no frontend (upload Premium + checagens de layout/overlay).
+# Uso:
+#   just pw-overlays
+#   PW_IMAGE=bradpitt-reference.jpg just pw-overlays
+#   PW_BASE_URL=http://localhost:9016 just pw-overlays
+pw-install:
+    cd scripts && npm install
+    cd scripts && npx playwright install chromium
+
+pw-overlays:
+    @if [ ! -d scripts/node_modules/playwright ]; then \
+      echo "Playwright nao encontrado. Rode: just pw-install"; \
+      exit 1; \
+    fi
+    PW_BASE_URL="${PW_BASE_URL:-http://localhost:9016}" \
+    PW_IMAGE="${PW_IMAGE:-rosto_exemplo.jpg}" \
+    PW_OUT_DIR="${PW_OUT_DIR:-review/playwright}" \
+    node scripts/playwright-overlays-e2e.mjs
+
+# Roda a bateria E2E para multiplas imagens.
+# Uso:
+#   just pw-overlays-matrix
+#   just pw-overlays-matrix rosto_exemplo.jpg bradpitt-reference.jpg
+pw-overlays-matrix *imgs:
+    @if [ ! -d scripts/node_modules/playwright ]; then \
+      echo "Playwright nao encontrado. Rode: just pw-install"; \
+      exit 1; \
+    fi
+    PW_BASE_URL="${PW_BASE_URL:-http://localhost:9016}" \
+    PW_OUT_ROOT="${PW_OUT_ROOT:-review/playwright-matrix}" \
+    node scripts/playwright-overlays-matrix.mjs {{imgs}}
+
+##############################
 # DOCKER
 #############################
 

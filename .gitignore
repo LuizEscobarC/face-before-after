@@ -18,3 +18,5 @@ resultado_mvp/
 .claude/hooks/logs/
 
 review/
+scripts/__pycache__
+scripts/node_modules

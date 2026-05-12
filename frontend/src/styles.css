@@ -724,6 +724,39 @@ body {
   overflow: hidden;
 }
 
+.overlay-stage {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(220px, 280px);
+  gap: 16px;
+  width: 100%;
+  align-items: flex-start;
+}
+
+.overlay-media {
+  position: relative;
+  min-width: 0;
+}
+
+.overlay-media > .overlay-stage-image {
+  width: 100%;
+  max-width: 100%;
+}
+
+.overlay-sidebars {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+
+.overlay-sidebars > * {
+  width: 100%;
+}
+
+.overlay-sidebars-ideal {
+  justify-content: flex-start;
+}
+
 .panel-img {
   display: block;
   max-width: 100%;
@@ -833,6 +866,22 @@ body {
   .view-btn { width: auto; flex: 1 1 140px; }
   .sidebar-score { display: none; }
 }
+
+@media (max-width: 640px) {
+  .overlay-stage {
+    grid-template-columns: 1fr;
+  }
+
+  .overlay-sidebars {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+
+  .overlay-sidebars > * {
+    flex: 1 1 220px;
+  }
+}
+
 @media (max-width: 480px) {
   .section { padding: 20px 16px; }
   .action-card { flex-direction: column; gap: 8px; }

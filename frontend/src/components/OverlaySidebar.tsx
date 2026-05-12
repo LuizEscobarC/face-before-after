@@ -75,6 +75,18 @@ const legendStyle: React.CSSProperties = {
   fontSize: 12,
 };
 
+const IDEAL_PROPORTION_LABELS: Record<string, string> = {
+  forehead_height_ratio: "Altura da testa",
+  lower_third_ratio: "Terço inferior",
+  middle_third_ratio: "Terço médio",
+  upper_third_ratio: "Terço superior",
+};
+
+function idealProportionLabel(metricId?: string): string {
+  if (!metricId) return "Proporção";
+  return IDEAL_PROPORTION_LABELS[metricId] ?? metricId.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
 export function OverlaySidebar({ variant, data }: Props) {
   switch (variant) {
     case "grid_thirds":
@@ -177,14 +189,22 @@ function renderIdealProportions(rows: Annotations["ideal_proportions"]) {
   if (!rows || rows.length === 0) return null;
   return (
     <aside style={cardStyle}>
-      <div style={titleStyle}>Proporções ideais (referência canônica)</div>
+      <div style={titleStyle}>Proporções ideais</div>
+      <div style={{ color: "var(--muted)", fontSize: 12, marginBottom: 10, lineHeight: 1.5 }}>
+        Referências canônicas usadas para alinhar a leitura dos terços faciais.
+      </div>
       {rows.map((r, i) => {
         const sev = r.severity_5 ?? undefined;
         const bg = (sev && SEVERITY_BG[sev]) || "rgba(255,255,255,0.04)";
         const fg = (sev && SEVERITY_FG[sev]) || "var(--text)";
         return (
           <div key={r.metric_id ?? i} style={{ ...rowStyle, background: bg }}>
-            <div style={{ color: fg }}>{r.metric_id}</div>
+            <div>
+              <div style={{ color: fg, fontWeight: 600 }}>{idealProportionLabel(r.metric_id)}</div>
+              <div style={{ color: "var(--muted)", fontSize: 11, marginTop: 2 }}>
+                {r.direction ? r.direction.replace(/_/g, " ") : "referência"}
+              </div>
+            </div>
             <div style={{ color: fg, fontVariantNumeric: "tabular-nums" }}>
               {r.value != null ? Number(r.value).toFixed(3) : "—"}
             </div>

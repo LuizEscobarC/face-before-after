@@ -1,0 +1,8 @@
+{
+  "name": "face-before-after-playwright-scripts",
+  "private": true,
+  "type": "module",
+  "devDependencies": {
+    "playwright": "^1.54.2"
+  }
+}
