@@ -1423,6 +1423,8 @@ def run(image_path: str, output_dir: str, mode: str = "premium") -> dict:
             build_grid_thirds_annotations,
             build_grid_fifths_annotations,
             build_face_extents_annotations,
+            build_ideal_proportions_zones,
+            build_metrics_map_metadata,
         )
         _lm_xy = [[float(canonical.landmarks[i, 0]), float(canonical.landmarks[i, 1])]
                   for i in range(len(canonical.landmarks))]
@@ -1448,6 +1450,15 @@ def run(image_path: str, output_dir: str, mode: str = "premium") -> dict:
                     'phi_ratio', 'forehead_height_ratio', 'chin_projection_ratio',
                 }
             ],
+            'ideal_proportions_zones': build_ideal_proportions_zones(
+                _lm_xy,
+                metric_evals=_metric_evaluations_v2,
+            ),
+            'metrics_map': build_metrics_map_metadata(
+                _lm_xy,
+                metric_evals=_metric_evaluations_v2,
+                region_adherence=result.get('region_adherence'),
+            ),
         }
     except Exception as _ann_exc:  # pylint: disable=broad-except
         import logging as _logging

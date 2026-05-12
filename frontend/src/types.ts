@@ -221,6 +221,22 @@ export type AnalysisResult = {
       metric_id?: string; value?: number | null;
       severity_5?: string | null; direction?: string | null;
     }>;
+    ideal_proportions_zones?: {
+      zones: Array<{
+        metric_id: string;
+        rect: { x: number; y: number; w: number; h: number };
+        severity_5?: string | null;
+        direction?: string | null;
+      }>;
+    };
+    metrics_map?: {
+      regions: Array<{
+        region: string;
+        bounds: { x: number; y: number; w: number; h: number };
+        adherence?: number | null;
+        confidence?: number | null;
+      }>;
+    };
   };
   score: number;
   tier: string;

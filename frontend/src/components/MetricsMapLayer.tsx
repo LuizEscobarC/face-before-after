@@ -7,11 +7,19 @@ interface RegionAdherence {
   confidence: number;
 }
 
+interface MetricsMapRegion {
+  region: string;
+  bounds: { x: number; y: number; w: number; h: number };
+  adherence?: number | null;
+  confidence?: number | null;
+}
+
 interface MetricsMapLayerProps {
   viewBoxWidth: number;
   viewBoxHeight: number;
   metric_evaluations: MetricEvaluationResult[];
   region_adherence: RegionAdherence[] | Record<string, number>;
+  overlay_metrics_map?: { regions: MetricsMapRegion[] };
   onRegionClick?: (region: string) => void;
   selectedRegion?: string | null;
 }
@@ -38,24 +46,25 @@ interface RegionBounds {
  *   - 0.7–0.9 (good): amber (#f59e0b)
  *   - < 0.7 (needs work): red (#ef4444)
  */
+// Fallback bounds in canonical image space (1200×800) — used only when
+// backend does not emit overlay_annotations.metrics_map.
+const REGION_BOUNDS_FALLBACK: Record<string, RegionBounds> = {
+  FOREHEAD: { x: 250, y: 80,  width: 700, height: 150 },
+  EYES:     { x: 300, y: 210, width: 600, height: 120 },
+  NOSE:     { x: 450, y: 310, width: 300, height: 140 },
+  MOUTH:    { x: 380, y: 450, width: 440, height: 110 },
+  JAW:      { x: 220, y: 530, width: 760, height: 180 },
+};
+
 export const MetricsMapLayer: React.FC<MetricsMapLayerProps> = ({
   viewBoxWidth,
   viewBoxHeight,
   metric_evaluations,
   region_adherence,
+  overlay_metrics_map,
   onRegionClick,
   selectedRegion,
 }) => {
-  // Define approximate region bounds in canonical image space
-  // (adjust based on your canonical image dimensions: typically 1200×800)
-  const REGION_BOUNDS: Record<string, RegionBounds> = {
-    FOREHEAD: { x: 250, y: 80, width: 700, height: 150 },
-    EYES: { x: 300, y: 210, width: 600, height: 120 },
-    NOSE: { x: 450, y: 310, width: 300, height: 140 },
-    MOUTH: { x: 380, y: 450, width: 440, height: 110 },
-    JAW: { x: 220, y: 530, width: 760, height: 180 },
-  };
-
   // Normalize region_adherence to object format
   const adherenceMap = useMemo(() => {
     if (Array.isArray(region_adherence)) {
@@ -63,6 +72,19 @@ export const MetricsMapLayer: React.FC<MetricsMapLayerProps> = ({
     }
     return region_adherence;
   }, [region_adherence]);
+
+  // Build REGION_BOUNDS: prefer backend-computed landmarks-based bounds; fall back to hardcoded.
+  const REGION_BOUNDS: Record<string, RegionBounds> = useMemo(() => {
+    if (overlay_metrics_map?.regions?.length) {
+      return Object.fromEntries(
+        overlay_metrics_map.regions.map(r => [
+          r.region,
+          { x: r.bounds.x, y: r.bounds.y, width: r.bounds.w, height: r.bounds.h },
+        ])
+      );
+    }
+    return REGION_BOUNDS_FALLBACK;
+  }, [overlay_metrics_map]);
 
   // Count metrics per region
   const metricsByRegion = useMemo(() => {

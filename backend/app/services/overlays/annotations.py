@@ -29,6 +29,27 @@ P_ZYGO_IMG_LEFT       = 234
 P_EYE_OUTER_IMG_LEFT  = 33
 P_EYE_OUTER_IMG_RIGHT = 263
 
+# Forehead ridge landmark indices (mirrors IdealProportionsLayer.tsx LM_FOREHEAD_RIDGE)
+_FOREHEAD_RIDGE = [109, 67, 103, 54, 21, 162, 10, 338, 297, 332, 284, 251]
+
+# Metric-to-anatomical-region mapping (matches MetricsMapLayer frontend logic)
+_METRIC_REGION_MAP: dict[str, str] = {
+    "upper_third_ratio":      "FOREHEAD",
+    "forehead_height_ratio":  "FOREHEAD",
+    "lower_third_ratio":      "JAW",
+    "chin_projection_ratio":  "JAW",
+    "middle_third_ratio":     "NOSE",
+    "facial_index":           "NOSE",
+    "face_height_ratio":      "NOSE",
+    "face_width_ratio":       "NOSE",
+    "phi_ratio":              "EYES",
+    "eye_width_ratio":        "EYES",
+    "eye_spacing_ratio":      "EYES",
+    "mouth_width_ratio":      "MOUTH",
+    "lip_ratio":              "MOUTH",
+    "philtrum_ratio":         "MOUTH",
+}
+
 
 def _xy(lm: Sequence[Sequence[float]], idx: int) -> tuple[float, float]:
     if idx < 0 or idx >= len(lm):
@@ -144,3 +165,140 @@ def build_face_extents_annotations(
         "face_width_px": round(x_right - x_left, 1),
         "legend": "Caixa branca: extensão facial Trichion → Menton (altura) · Zigomáticos (largura).",
     }
+
+
+def build_ideal_proportions_zones(
+    lm: Sequence[Sequence[float]],
+    metric_evals: Iterable[dict] | None = None,
+) -> dict:
+    """Compute anatomical zone rects for IdealProportionsLayer from landmarks.
+
+    Returns JSON consumed by IdealProportionsLayer.tsx so the frontend can
+    render SVG rects without any hardcoded geometry.
+
+    Output shape::
+
+        {
+          "zones": [
+            {"metric_id": "upper_third_ratio", "rect": {"x":…,"y":…,"w":…,"h":…},
+             "severity_5": "mild", "direction": "low"},
+            …
+          ]
+        }
+    """
+    x_zygo_l = _xy(lm, P_ZYGO_IMG_LEFT)[0]
+    x_zygo_r = _xy(lm, P_ZYGO_IMG_RIGHT)[0]
+    x_face_l = min(x_zygo_l, x_zygo_r)
+    x_face_r = max(x_zygo_l, x_zygo_r)
+    face_w   = max(1.0, x_face_r - x_face_l)
+
+    y_brow_l = _xy(lm, P_BROW_LEFT_INNER)[1]
+    y_brow_r = _xy(lm, P_BROW_RIGHT_INNER)[1]
+    y_brow   = (y_brow_l + y_brow_r) / 2.0
+
+    # Trichion: top of face (min y of forehead ridge landmarks)
+    ridge_ys = [_xy(lm, idx)[1] for idx in _FOREHEAD_RIDGE if idx < len(lm)]
+    y_top    = min(ridge_ys) if ridge_ys else _xy(lm, P_FOREHEAD_CROWN)[1]
+    y_top    = max(0.0, min(y_top, y_brow - 1))
+
+    y_sub = _xy(lm, P_SUBNASALE)[1]
+    y_men = _xy(lm, P_MENTON)[1]
+    y_mid = max(y_brow + 1, y_sub)
+    y_bot = max(y_mid + 1, y_men)
+
+    def _met(mid: str) -> dict | None:
+        return _metric_get(metric_evals, mid) if metric_evals else None
+
+    zone_defs = [
+        ("forehead_height_ratio", x_face_l + face_w * 0.16, y_top, face_w * 0.68, max(12.0, y_brow - y_top)),
+        ("upper_third_ratio",     x_face_l + face_w * 0.08, y_top, face_w * 0.84, max(12.0, y_brow - y_top)),
+        ("middle_third_ratio",    x_face_l + face_w * 0.08, y_brow, face_w * 0.84, max(12.0, y_mid - y_brow)),
+        ("lower_third_ratio",     x_face_l + face_w * 0.05, y_mid, face_w * 0.90, max(12.0, y_bot - y_mid)),
+    ]
+
+    zones = []
+    for metric_id, rx, ry, rw, rh in zone_defs:
+        m = _met(metric_id)
+        zones.append({
+            "metric_id":  metric_id,
+            "rect":       {"x": round(rx, 1), "y": round(ry, 1), "w": round(rw, 1), "h": round(rh, 1)},
+            "severity_5": m.get("severity_5") if m else None,
+            "direction":  m.get("direction") if m else None,
+        })
+
+    return {"zones": zones}
+
+
+def build_metrics_map_metadata(
+    lm: Sequence[Sequence[float]],
+    metric_evals: Iterable[dict] | None = None,
+    region_adherence: Iterable[dict] | None = None,
+) -> dict:
+    """Compute per-region bounding boxes from landmarks for MetricsMapLayer.
+
+    Replaces the hardcoded REGION_BOUNDS object in the frontend.
+
+    Output shape::
+
+        {
+          "regions": [
+            {"region": "FOREHEAD", "bounds": {"x":…,"y":…,"w":…,"h":…},
+             "adherence": 0.87, "confidence": 0.9},
+            …
+          ]
+        }
+    """
+    x_zygo_l = _xy(lm, P_ZYGO_IMG_LEFT)[0]
+    x_zygo_r = _xy(lm, P_ZYGO_IMG_RIGHT)[0]
+    x_face_l = min(x_zygo_l, x_zygo_r)
+    x_face_r = max(x_zygo_l, x_zygo_r)
+    face_w   = max(1.0, x_face_r - x_face_l)
+
+    y_brow_l = _xy(lm, P_BROW_LEFT_INNER)[1]
+    y_brow_r = _xy(lm, P_BROW_RIGHT_INNER)[1]
+    y_brow   = (y_brow_l + y_brow_r) / 2.0
+
+    ridge_ys = [_xy(lm, idx)[1] for idx in _FOREHEAD_RIDGE if idx < len(lm)]
+    y_top    = min(ridge_ys) if ridge_ys else _xy(lm, P_FOREHEAD_CROWN)[1]
+    y_top    = max(0.0, min(y_top, y_brow - 1))
+
+    y_sub = _xy(lm, P_SUBNASALE)[1]
+    y_men = _xy(lm, P_MENTON)[1]
+    y_eye_inner_l = _xy(lm, P_LEFT_EYE_INNER)[1]
+    y_eye_inner_r = _xy(lm, P_RIGHT_EYE_INNER)[1]
+    y_eye_center  = (y_eye_inner_l + y_eye_inner_r) / 2.0
+
+    # Eye outer x coords for eye-region width
+    x_eye_ol = _xy(lm, P_EYE_OUTER_IMG_LEFT)[0]
+    x_eye_or = _xy(lm, P_EYE_OUTER_IMG_RIGHT)[0]
+    x_eye_l  = min(x_eye_ol, x_eye_or)
+    x_eye_r  = max(x_eye_ol, x_eye_or)
+
+    # Region bounding rects computed from landmarks
+    pad_x = face_w * 0.05
+    region_bounds_lm: dict[str, dict] = {
+        "FOREHEAD": {"x": x_face_l + pad_x, "y": y_top,           "w": face_w - pad_x * 2, "h": max(12.0, y_brow - y_top)},
+        "EYES":     {"x": x_eye_l - pad_x,  "y": y_brow,          "w": (x_eye_r - x_eye_l) + pad_x * 2, "h": max(12.0, y_sub - y_brow) * 0.5},
+        "NOSE":     {"x": x_face_l + face_w * 0.2, "y": y_brow + (y_sub - y_brow) * 0.4, "w": face_w * 0.6, "h": max(12.0, (y_sub - y_brow) * 0.6)},
+        "MOUTH":    {"x": x_face_l + face_w * 0.15, "y": y_sub,   "w": face_w * 0.70, "h": max(12.0, (y_men - y_sub) * 0.5)},
+        "JAW":      {"x": x_face_l + pad_x, "y": y_sub + (y_men - y_sub) * 0.4, "w": face_w - pad_x * 2, "h": max(12.0, (y_men - y_sub) * 0.6)},
+    }
+
+    # Build adherence lookup
+    adh_map: dict[str, dict] = {}
+    if region_adherence:
+        for ra in region_adherence:
+            if ra and ra.get("region"):
+                adh_map[ra["region"]] = ra
+
+    regions = []
+    for region_name, bounds in region_bounds_lm.items():
+        ra = adh_map.get(region_name, {})
+        regions.append({
+            "region":     region_name,
+            "bounds":     {k: round(v, 1) for k, v in bounds.items()},
+            "adherence":  ra.get("adherence"),
+            "confidence": ra.get("confidence"),
+        })
+
+    return {"regions": regions}

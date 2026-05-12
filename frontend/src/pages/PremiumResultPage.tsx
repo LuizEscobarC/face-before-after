@@ -634,7 +634,6 @@ export function PremiumResultPage() {
   const originalUrl  = canonicalUrl;  // alias kept for compatibility w/ rest of page
   const simBase = result.run_id ? `/v1/vision/results/${result.run_id}/simulation` : null;
   const hasSimulation = !!(simBase && result.simulation_paths && !result.simulation_error);
-  const hasIdeal = hasSimulation && !!result.simulation_paths?.ideal_proportions;
   const hasSymmetrized = hasSimulation && !!result.simulation_paths?.symmetrized;
   const hasWarnings = (result.photo_warnings?.length ?? 0) > 0;
   const hasRecs = (result.capture_recommendations?.length ?? 0) > 0;
@@ -695,7 +694,7 @@ export function PremiumResultPage() {
             </button>
           )}
 
-          {hasIdeal && (
+          {result.overlay_annotations?.ideal_proportions && canonicalUrl && (
             <button
               className={`view-btn${view === "ideal" ? " view-btn-active" : ""}`}
               onClick={() => setView("ideal")}
@@ -915,11 +914,11 @@ export function PremiumResultPage() {
                 </div>
               )}
 
-              {view === "ideal" && simBase && (
+              {view === "ideal" && canonicalUrl && (
                 <div className="overlay-stage">
                   <div className="overlay-media">
                     <img
-                      src={`${simBase}/ideal_proportions`}
+                      src={canonicalUrl}
                       alt="Proporções ideais"
                       className="panel-img overlay-stage-image"
                       onLoad={(e) => {
@@ -1014,6 +1013,7 @@ export function PremiumResultPage() {
                         viewBoxHeight={imgDims?.naturalH || 800}
                         metric_evaluations={result.metric_evaluations}
                         region_adherence={result.region_adherence || {}}
+                        overlay_metrics_map={result.overlay_annotations?.metrics_map}
                         onRegionClick={(region) => {
                           setSelectedRegion((prev) => (prev === region ? null : region));
                         }}

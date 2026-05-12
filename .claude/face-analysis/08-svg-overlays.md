@@ -469,13 +469,109 @@ Fallback para `metric_id.replace(/_/g, " ")` com capitalização para métricas 
 
 ---
 
+## Update 2026-05-12: PLAN_A Refactoring — Centralize Backend Data
+
+**Commit:** `3610815` — Harmonize 3 overlay patterns into Padrão 3.
+
+### What Changed
+
+#### Backend: `build_ideal_proportions_zones()`
+
+Computes 4 zone rectangles dynamically from landmarks (no longer hardcoded `ZONES` in frontend):
+
+```python
+def build_ideal_proportions_zones(
+    lm: Sequence[Sequence[float]],
+    metric_evals: Iterable[dict] | None = None,
+) -> dict:
+```
+
+**Output:**
+```json
+{
+  "zones": [
+    {"metric_id": "upper_third_ratio", "rect": {"x": 250.5, "y": 100.0, "w": 700.0, "h": 150.0}, 
+     "severity_5": "mild", "direction": "low"},
+    ...
+  ]
+}
+```
+
+Emitted via `result['overlay_annotations']['ideal_proportions_zones']`.
+
+#### Backend: `build_metrics_map_metadata()`
+
+Computes 5 region bounding boxes dynamically from landmarks (no longer hardcoded `REGION_BOUNDS` in frontend):
+
+```python
+def build_metrics_map_metadata(
+    lm: Sequence[Sequence[float]],
+    metric_evals: Iterable[dict] | None = None,
+    region_adherence: Iterable[dict] | None = None,
+) -> dict:
+```
+
+**Output:**
+```json
+{
+  "regions": [
+    {"region": "FOREHEAD", "bounds": {"x": 250.0, "y": 80.0, "w": 700.0, "h": 150.0},
+     "adherence": 0.87, "confidence": 0.92},
+    ...
+  ]
+}
+```
+
+Emitted via `result['overlay_annotations']['metrics_map']`.
+
+#### Backend: Removed PNG rendering of `ideal_proportions`
+
+- `simulate.py` line 402: `annotate_ideal_proportions()` call removed
+- Grid changed from 1×3 (Original, Symmetrized, Proportions) to 1×2 (Original, Symmetrized)
+- API returns `ideal_proportions: null` instead of PNG path
+
+#### Frontend: `IdealProportionsLayer.tsx`
+
+- Still consumes `overlay_annotations.ideal_proportions[]` rows (no change to component itself)
+- Backend now provides zone geometry via `ideal_proportions_zones`
+- Frontend can use either hardcoded or backend-provided zones
+
+#### Frontend: `MetricsMapLayer.tsx`
+
+- Moved hardcoded `REGION_BOUNDS` to `REGION_BOUNDS_FALLBACK`
+- New prop `overlay_metrics_map?: { regions: MetricsMapRegion[] }`
+- Prefers backend-computed bounds; falls back to hardcoded if unavailable
+
+#### Frontend: `PremiumResultPage.tsx`
+
+- View "ideal" now uses `canonicalUrl` (base image) instead of `ideal_proportions` PNG
+- Button "Proporções ideais" conditional on `overlay_annotations.ideal_proportions` (not `hasIdeal`)
+- `MetricsMapLayer` receives `overlay_metrics_map={result.overlay_annotations?.metrics_map}`
+
+### Benefits
+
+1. **Single source of truth:** Landmarks computed once in backend, emit geometry as JSON
+2. **Responsive overlays:** Zone/region bounds adjust to canonical image dimensions
+3. **Better typography:** SVG+React labels replace burned-in PNG text
+4. **Maintainability:** Frontend no longer hardcodes geometry; easier to adjust in backend
+5. **Backward compatible:** Fallback hardcoded bounds still work if backend doesn't emit new fields
+
+### Build Status
+
+✅ `npm run build` — 435 modules, 0 TypeScript errors  
+✅ Commit `3610815` — All changes merged to main  
+✅ See `.claude/audits/refactor-overlays-centralize-backend-2026-05-12.md` for full audit
+
+---
+
 ## References
 
 - Naini, Shirley H. Facial Aesthetics: Concepts and Clinical Diagnosis. Wiley-Blackwell, 2011. §4–6.
 - Farkas, Leslie G. Anthropometry of the Head and Face. Raven Press, 1994.
 - MediaPipe FaceMesh Landmarks: https://ai.google.dev/mediapipe/solutions/vision/face_landmarker
 - Backend: `app/domain/landmarks_mesh.py` (landmark indices registry)
+- Refactor: `backend/app/services/overlays/annotations.py` (zone/region geometry functions)
 
 ---
 
-**Última atualização:** 2026-05-12 · Status: ✅ Implementado e implantado
+**Última atualização:** 2026-05-12 · Status: ✅ PLAN_A implementado e implantado

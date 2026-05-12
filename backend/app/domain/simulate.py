@@ -393,28 +393,34 @@ def simulate(
     landmarks: Landmarks = [tuple(map(int, pt)) for pt in landmarks_arr]
 
     os.makedirs(output_dir, exist_ok=True)
-    base = os.path.splitext(os.path.basename(frame.source_path))[0]
+    # source_path may be None for API uploads; fallback to run_id or generic name
+    if frame.source_path:
+        base = os.path.splitext(os.path.basename(frame.source_path))[0]
+    elif hasattr(frame, 'run_id') and frame.run_id:
+        base = frame.run_id
+    else:
+        base = "frame"
 
     # Camada A
     img_sym = symmetrize(img, landmarks)
 
-    # Camada B
-    img_prop = annotate_ideal_proportions(img, landmarks, trichion_y_override=trichion_y_override)
+    # Camada B — ideal_proportions PNG deprecated: backend now emits JSON zones
+    # via overlay_annotations.ideal_proportions_zones (annotations.py).
+    # Frontend renders SVG rects from that data; no PNG needed.
+    # annotate_ideal_proportions() is kept below for CLI/debugging purposes.
 
-    # Grid de comparação (1×3)
+    # Grid de comparação (1×2 — sem coluna Proporções Ideais)
     h, w = img.shape[:2]
     label_h = 28
     grid_h = h + label_h
-    grid = np.zeros((grid_h, w * 3, 3), dtype=np.uint8)
+    grid = np.zeros((grid_h, w * 2, 3), dtype=np.uint8)
 
     # Colunas
     grid[label_h:, 0:w] = img
     grid[label_h:, w : w * 2] = img_sym
-    grid[label_h:, w * 2 : w * 3] = img_prop
 
     # Labels de coluna
-    for i, col_label in enumerate(["Original", "Simetrizado", "Proporcoes Ideais"]):
-        x_center = w * i + w // 2 - len(col_label) * 4
+    for i, col_label in enumerate(["Original", "Simetrizado"]):
         cv2.rectangle(grid, (w * i, 0), (w * (i + 1), label_h), (30, 30, 30), -1)
         cv2.putText(
             grid, col_label, (w * i + 8, 20),
@@ -424,17 +430,15 @@ def simulate(
     # Salvar — inclui a foto canônica como referência (foto base usada na análise)
     path_canonical = os.path.join(output_dir, f"{base}_canonical.jpg")
     path_sym = os.path.join(output_dir, f"{base}_symmetrized.jpg")
-    path_prop = os.path.join(output_dir, f"{base}_ideal_proportions.jpg")
     path_grid = os.path.join(output_dir, f"{base}_comparison_grid.jpg")
 
     cv2.imwrite(path_canonical, img)
     cv2.imwrite(path_sym, img_sym)
-    cv2.imwrite(path_prop, img_prop)
     cv2.imwrite(path_grid, grid)
 
     return {
         "canonical": path_canonical,
         "symmetrized": path_sym,
-        "ideal_proportions": path_prop,
+        "ideal_proportions": None,
         "comparison_grid": path_grid,
     }
