@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { evaluateFromLandmarks, fetchGlossary, fetchNarrative } from "../api";
+import { evaluateFromLandmarks, fetchFindings, fetchGlossary, fetchNarrative, fetchReportRecommendations, type NarrativeFinding, type NarrativeRecommendation } from "../api";
 import { MetricExplainer } from "../components/MetricExplainer";
 import { DEFAULT_OVERLAYS, HeatmapImageLayer, OverlayLayer, OverlayToggleBar } from "../components/OverlayLayer";
 import type { AnalysisResult, GlossaryTerm, MetricEvaluationResult, NarrativeResponseDto, PremiumMetricCategory } from "../types";
@@ -156,8 +156,19 @@ function metricLabel(metricId: string): string {
   return metricId.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
-function FindingsSection({ narrative, loading }: { narrative: NarrativeResponseDto | null; loading: boolean }) {
+function FindingsSection({ narrative, findings, glossary, loading }: { narrative: NarrativeResponseDto | null; findings: NarrativeFinding[] | null; glossary: Record<string, GlossaryTerm>; loading: boolean }) {
   if (!loading && !narrative) return null;
+  // Prefer paginated findings (full list, sorted by severity); fall back to top-3 from narrative.
+  const items: { metric_id: string; severity_3: string | null; narrative_text: string; deviation_normalized: number | null }[] =
+    findings && findings.length > 0 ? findings : (narrative?.findings ?? []);
+  const titleFor = (metricId: string) => glossary[metricId]?.termo ?? metricLabel(metricId);
+  // Clamp deviation_normalized to avoid showing absurd values like 3368% (upstream pipeline bug).
+  const fmtDeviation = (d: number) => {
+    const pct = d * 100;
+    if (!isFinite(pct)) return null;
+    if (Math.abs(pct) >= 999) return `${pct > 0 ? '>' : '<'}999%`;
+    return `${pct.toFixed(1)}%`;
+  };
   return (
     <section className="section">
       <h2 className="section-title">🔍 Diagnóstico Narrativo</h2>
@@ -169,23 +180,23 @@ function FindingsSection({ narrative, loading }: { narrative: NarrativeResponseD
           ))}
         </div>
       )}
-      {!loading && narrative && narrative.findings.length === 0 && (
+      {!loading && items.length === 0 && (
         <p style={{ color: "var(--muted)", fontSize: 13 }}>Nenhuma discrepância relevante identificada.</p>
       )}
-      {!loading && narrative && narrative.findings.map((f) => {
+      {!loading && items.map((f) => {
         const color = narrativeSeverityColor(f.severity_3);
         return (
           <div key={f.metric_id} style={{ background: "var(--surface2)", border: "1px solid var(--border)", borderRadius: 12, padding: "14px 16px", marginBottom: 12 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", marginBottom: 8 }}>
-              <span style={{ fontWeight: 600, color: "var(--text)", fontSize: 14 }}>{metricLabel(f.metric_id)}</span>
+              <span style={{ fontWeight: 600, color: "var(--text)", fontSize: 14 }}>{titleFor(f.metric_id)}</span>
               {f.severity_3 && (
                 <span style={{ fontSize: 11, padding: "2px 10px", borderRadius: 99, background: `${color}1e`, border: `1px solid ${color}4d`, color }}>
                   {f.severity_3.toUpperCase()}
                 </span>
               )}
-              {f.deviation_normalized !== null && f.deviation_normalized !== undefined && (
+              {f.deviation_normalized !== null && f.deviation_normalized !== undefined && fmtDeviation(f.deviation_normalized) && (
                 <span style={{ fontSize: 11, color: "var(--muted)", marginLeft: "auto" }}>
-                  Desvio: {(f.deviation_normalized * 100).toFixed(1)}%
+                  Desvio: {fmtDeviation(f.deviation_normalized)}
                 </span>
               )}
             </div>
@@ -200,8 +211,37 @@ function FindingsSection({ narrative, loading }: { narrative: NarrativeResponseD
   );
 }
 
-function RecommendationsSection({ narrative, loading }: { narrative: NarrativeResponseDto | null; loading: boolean }) {
+type RecItem = {
+  recommendation_id: string;
+  rank: number;
+  category: string;
+  display_text_short_pt: string;
+  display_text_long_pt?: string;
+  requires_professional: boolean;
+  professional_type: string | null;
+};
+
+function RecommendationsSection({ narrative, recommendations, loading }: { narrative: NarrativeResponseDto | null; recommendations: NarrativeRecommendation[] | null; loading: boolean }) {
   if (!loading && !narrative) return null;
+  // Prefer paginated recommendations (full long copy); fall back to top-5 from narrative.
+  const items: RecItem[] = recommendations && recommendations.length > 0
+    ? recommendations.map((r, idx) => ({
+        recommendation_id: r.recommendation_id,
+        rank: r.final_priority_in_session ?? idx + 1,
+        category: r.category,
+        display_text_short_pt: r.display_text_short_pt,
+        display_text_long_pt: r.display_text_long_pt,
+        requires_professional: r.requires_professional,
+        professional_type: r.professional_type,
+      }))
+    : (narrative?.recommendations ?? []).map((r) => ({
+        recommendation_id: r.recommendation_id,
+        rank: r.rank,
+        category: r.category,
+        display_text_short_pt: r.display_text_short_pt,
+        requires_professional: r.requires_professional,
+        professional_type: r.professional_type,
+      }));
   return (
     <section className="section">
       <h2 className="section-title">💊 Recomendações Clínicas</h2>
@@ -213,10 +253,10 @@ function RecommendationsSection({ narrative, loading }: { narrative: NarrativeRe
           ))}
         </div>
       )}
-      {!loading && narrative && narrative.recommendations.length === 0 && (
+      {!loading && items.length === 0 && (
         <p style={{ color: "var(--muted)", fontSize: 13 }}>Nenhuma recomendação disponível para este perfil.</p>
       )}
-      {!loading && narrative && narrative.recommendations.map((r) => (
+      {!loading && items.map((r) => (
         <div key={r.recommendation_id} style={{ display: "flex", gap: 12, alignItems: "flex-start", background: "var(--surface2)", border: "1px solid var(--border)", borderRadius: 12, padding: "12px 16px", marginBottom: 10 }}>
           <div style={{ flexShrink: 0, width: 28, height: 28, borderRadius: 99, background: "rgba(99,102,241,0.18)", border: "1px solid rgba(99,102,241,0.3)", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 13, color: "#a5b4fc" }}>
             {r.rank}
@@ -233,6 +273,9 @@ function RecommendationsSection({ narrative, loading }: { narrative: NarrativeRe
                 </span>
               )}
             </div>
+            {r.display_text_long_pt && r.display_text_long_pt !== r.display_text_short_pt && (
+              <p style={{ margin: "8px 0 0", fontSize: 13, color: "var(--text)", lineHeight: 1.6 }}>{r.display_text_long_pt}</p>
+            )}
           </div>
         </div>
       ))}
@@ -293,6 +336,10 @@ export function PremiumResultPage() {
   const [narrative, setNarrative] = useState<NarrativeResponseDto | null>(null);
   const [narrativeLoading, setNarrativeLoading] = useState(false);
 
+  // PR-66 — paginated findings + recommendations (full list, full long copy).
+  const [allFindings, setAllFindings] = useState<NarrativeFinding[] | null>(null);
+  const [allRecommendations, setAllRecommendations] = useState<NarrativeRecommendation[] | null>(null);
+
   // PR-63 — analysis_report_id resolved by evaluateFromLandmarks (or from result.report_id).
   // Used by PR-66 heatmap wiring below.
   const [reportId, setReportId] = useState<string | null>(null);
@@ -345,6 +392,27 @@ export function PremiumResultPage() {
     })();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [result?.run_id, result?.report_id]);
+
+  // PR-66 — once we have a reportId, fetch the full paginated findings + recommendations.
+  // These power the diagnostic + recommendation sections; narrative top-3/top-5 stays as fallback.
+  useEffect(() => {
+    if (!reportId) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const [findings, recs] = await Promise.all([
+          fetchFindings(reportId, { limit: 20, minSeverity: "mild" }),
+          fetchReportRecommendations(reportId, { limit: 20 }),
+        ]);
+        if (cancelled) return;
+        setAllFindings(findings);
+        setAllRecommendations(recs);
+      } catch (err) {
+        console.error("Paginated findings/recommendations load failed:", err);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [reportId]);
 
   /**
    * PR-43 (M3.4) — Fetch the before/ideal composition PNG from
@@ -998,7 +1066,7 @@ export function PremiumResultPage() {
           </section>
 
           {/* ── Diagnóstico Narrativo (M4.4) ── */}
-          <FindingsSection narrative={narrative} loading={narrativeLoading} />
+          <FindingsSection narrative={narrative} findings={allFindings} glossary={glossary} loading={narrativeLoading} />
 
           {/* ── Simulação Visual (comparativo full grid, se disponível) ── */}
           {result.simulation_error && (
@@ -1203,7 +1271,7 @@ export function PremiumResultPage() {
           )}
 
           {/* ── Recomendações Clínicas (M4.4) ── */}
-          <RecommendationsSection narrative={narrative} loading={narrativeLoading} />
+          <RecommendationsSection narrative={narrative} recommendations={allRecommendations} loading={narrativeLoading} />
 
           {/* ── Plano de Ação Detalhado ── */}
           {result.recommendations && result.recommendations.filter(r => !r.severity.toLowerCase().includes("excel")).length > 0 && (

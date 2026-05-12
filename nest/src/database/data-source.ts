@@ -27,8 +27,8 @@ if (!databaseUrl) {
 export const dataSourceOptions: DataSourceOptions = {
   type: 'postgres',
   url: databaseUrl,
-  entities: ['src/**/*.entity.ts', 'dist/**/*.entity.js'],
-  migrations: ['src/database/migrations/*.ts', 'dist/database/migrations/*.js'],
+  entities: [import.meta.url.endsWith('.ts') ? 'src/**/*.entity.ts' : 'dist/**/*.entity.js'],
+  migrations: [import.meta.url.endsWith('.ts') ? 'src/database/migrations/*.ts' : 'dist/src/database/migrations/*.js'],
   migrationsTableName: 'typeorm_migrations',
   synchronize: false,
   migrationsRun: false,

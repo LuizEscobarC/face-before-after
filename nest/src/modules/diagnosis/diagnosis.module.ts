@@ -31,6 +31,7 @@ import { MetricEvaluationAgainstIdealEntity } from '../analysis/infrastructure/e
 import { MetricEvaluationEntity } from '../analysis/infrastructure/entities/metric-evaluation.entity.js';
 import { AnalysisReportEntity } from '../analysis/infrastructure/entities/analysis-report.entity.js';
 import { GlobalScoreEntity } from '../analysis/infrastructure/entities/global-score.entity.js';
+import { MetricDefinitionEntity } from '../analysis/infrastructure/entities/metric-definition.entity.js';
 
 @Module({
   imports: [
@@ -49,6 +50,7 @@ import { GlobalScoreEntity } from '../analysis/infrastructure/entities/global-sc
       MetricEvaluationEntity,
       AnalysisReportEntity,
       GlobalScoreEntity,
+      MetricDefinitionEntity,
     ]),
   ],
   controllers: [DiagnosisController, DiagnosticTemplatesController, RecommendationCatalogController, NarrativeController, PdfController, RunPdfController],

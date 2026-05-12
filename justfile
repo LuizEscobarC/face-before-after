@@ -248,6 +248,30 @@ docker-restart:
 docker-prod-restart:
     docker-compose -f docker-compose.prod.yml restart
 
+##############################
+# DATABASE MIGRATIONS (NestJS backend)
+#############################
+
+# Mostra o status de todas as migrations (executadas + pendentes)
+migration-show:
+    docker compose exec orchestrator npm run migration:show
+
+# Executa as migrations pendentes
+migration-run:
+    docker compose exec orchestrator npm run migration:run
+
+# Reverte a última migration executada
+migration-revert:
+    docker compose exec orchestrator npm run migration:revert
+
+# Cria uma nova migration com um nome descritivo: just migration-create AddNewTable
+migration-create nome:
+    docker compose exec orchestrator npm run migration:create -- src/database/migrations/{{nome}}
+
+# Gera uma migration automática comparando as entities com o DB
+migration-generate nome:
+    docker compose exec orchestrator npm run migration:generate -- src/database/migrations/{{nome}}
+
 # Remove imagens e volumes (desenvolvimento)
 docker-clean:
     docker-compose down --volumes --rmi all

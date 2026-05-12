@@ -53,12 +53,24 @@ P_RIGHT_GONION = 288      # dlib 12 (TODO: verify with real photo)
 P_SUBNASALE = 2           # dlib 33
 P_BROW_LEFT_INNER = 107   # dlib 21
 P_BROW_RIGHT_INNER = 336  # dlib 22
-P_NOSE_LEFT = 48          # dlib 31 (left alar)
-P_NOSE_RIGHT = 45         # dlib 35 (right alar) — NOTE: 45 also appears in LM_NOSE_TIP, anatomically the right alar
-P_UPPER_LIP_TOP = 82      # dlib 50
-P_UPPER_LIP_BOT = 312     # dlib 62
-P_LOWER_LIP_TOP = 86      # dlib 66
-P_LOWER_LIP_BOT = 17      # dlib 58
+P_NOSE_LEFT = 48          # dlib 31 (left alar — lateral nostril wing, x≈220 in canonical face)
+P_NOSE_RIGHT = 278        # dlib 35 (right alar — mirror of 48; corrected from 45 which is mid-bridge, PR-fix-2026-05-12)
+# Lip vertical anchors — corrected to match MediaPipe FaceMesh-478 canonical
+# topology after empirical inspection (PR-fix-2026-05-12):
+#   - p0  = cupid's bow centre (topmost point of upper-lip vermilion)
+#   - p13 = lower edge of upper-lip vermilion (inner mouth opening, top side)
+#   - p14 = upper edge of lower-lip vermilion (inner mouth opening, bottom side)
+#   - p17 = lowest visible point of lower lip (just above the mentolabial fold)
+# Previous values (82/312/86/17) all clustered at y ≈ 479 px in a real photo —
+# they were near-horizontal cluster around the mouth slit, NOT vertical anchors.
+# That made upper_lip_height ≈ 0.02 ICU (essentially zero) and skewed
+# upper_lip_height_ratio, lower_lip_height_ratio, lip_volume_ratio,
+# vermilion_height_total, cupids_bow_definition, mentolabial_fold_proxy by
+# >>500% deviation.
+P_UPPER_LIP_TOP = 0       # cupid's bow centre (topmost upper-lip vermilion)
+P_UPPER_LIP_BOT = 13      # mouth-slit upper edge (lower border of upper vermilion)
+P_LOWER_LIP_TOP = 14      # mouth-slit lower edge (upper border of lower vermilion)
+P_LOWER_LIP_BOT = 17      # lowermost lower-lip vermilion (above mentolabial fold)
 
 # Eyelid midpoints and iris centres — used by eye-aperture and IPD metrics.
 # Top/bot points are the vertical midpoints of the palpebral fissure at the
@@ -98,14 +110,22 @@ P_TEAR_TROUGH_R = 448     # below right lower lid, on tear-trough line
 # ---------------------------------------------------------------------------
 P_NASION = LM_NOSE_BRIDGE[0]                  # dlib 27 — top of nose bridge
 
-# Bizygomatic anchors (dlib 1, 15) — outer cheek points on the jawline.
-# In Mesh-478 the jawline indices LM_JAWLINE map dlib 0..16 → these positions.
-P_LEFT_ZYGOMATIC = LM_JAWLINE[1]              # dlib 1
-P_RIGHT_ZYGOMATIC = LM_JAWLINE[15]            # dlib 15
+# Bizygomatic anchors — outermost cheek points (maxima of facial width).
+# In MediaPipe FaceMesh-478, points 234 (left) and 454 (right) are the
+# canonical lateralmost facial contour landmarks, at the height of the
+# zygomatic arch / cheekbone widest point. Empirically: distance between
+# them divided by ICD gives ~4.3 ICU for an oval face — matches Farkas.
+# Previously this was derived from LM_JAWLINE[1]/[15] (indices 338/378),
+# which point to forehead/jaw-near-chin instead — produced bizygomatic
+# values 10x too small and aspect ratios of 13+ instead of ~1.35.
+P_LEFT_ZYGOMATIC = 234
+P_RIGHT_ZYGOMATIC = 454
 
-# Cheek anchors used in face_metrics skin ROIs (dlib 3, 13).
-P_LEFT_CHEEK = LM_JAWLINE[3]                  # dlib 3
-P_RIGHT_CHEEK = LM_JAWLINE[13]                # dlib 13
+# Cheek anchors used in face_metrics skin ROIs — midpoint of cheek area,
+# below zygomatic and above gonion. Points 50 (left) / 280 (right) are
+# the cheek-prominence centroids in FaceMesh-478.
+P_LEFT_CHEEK = 50
+P_RIGHT_CHEEK = 280
 
 # Brow tilt anchors (dlib 17 outer-left, 21 inner-left, 22 inner-right, 26 outer-right).
 P_BROW_LEFT_OUTER = LM_LEFT_BROW[0]           # dlib 17

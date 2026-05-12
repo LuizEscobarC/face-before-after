@@ -2,17 +2,12 @@ import {
   Column,
   Entity,
   Index,
-  ManyToOne,
   OneToMany,
   OneToOne,
   PrimaryGeneratedColumn,
 } from 'typeorm';
 import type { Relation } from 'typeorm';
 import { LocalizedText } from '../../domain/types/catalog.types.js';
-import { AnalysisThresholdConfigEntity } from './analysis-threshold-config.entity.js';
-import { IdealsVersionEntity } from './ideals-version.entity.js';
-import { MetricRegistryVersionEntity } from './metric-registry-version.entity.js';
-import { SeverityCollapsePolicyEntity } from './severity-collapse-policy.entity.js';
 import { LandmarkPayloadEntity } from './landmark-payload.entity.js';
 import { MetricEvaluationEntity } from './metric-evaluation.entity.js';
 
@@ -70,26 +65,14 @@ export class AnalysisReportEntity {
   @Column({ name: 'metric_registry_version', type: 'text', nullable: true })
   metricRegistryVersion!: string | null;
 
-  @ManyToOne(() => MetricRegistryVersionEntity)
-  metricRegistryVersionRef!: Relation<MetricRegistryVersionEntity> | null;
-
   @Column({ name: 'ideals_version', type: 'text', nullable: true })
   idealsVersion!: string | null;
-
-  @ManyToOne(() => IdealsVersionEntity)
-  idealsVersionRef!: Relation<IdealsVersionEntity> | null;
 
   @Column({ name: 'threshold_config_version', type: 'text', nullable: true })
   thresholdConfigVersion!: string | null;
 
-  @ManyToOne(() => AnalysisThresholdConfigEntity)
-  thresholdConfigVersionRef!: Relation<AnalysisThresholdConfigEntity> | null;
-
   @Column({ name: 'severity_collapse_version', type: 'text', nullable: true })
   severityCollapseVersion!: string | null;
-
-  @ManyToOne(() => SeverityCollapsePolicyEntity)
-  severityCollapseVersionRef!: Relation<SeverityCollapsePolicyEntity> | null;
 
   /** Snapshot of region_metric_weights_version active at evaluation time (PR-12). */
   @Column({ name: 'region_metric_weights_version', type: 'text', nullable: true })

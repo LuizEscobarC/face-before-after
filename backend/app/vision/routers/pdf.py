@@ -54,17 +54,22 @@ router = APIRouter()
 
 class FindingRequest(BaseModel):
     metric_id: str
-    region_pt: str
-    severity_pt: str
-    text_medium: str
+    severity_3: str | None = None
+    narrative_text: str = ""
+    deviation_normalized: float | None = None
+    # Legacy fields kept for backward compatibility (older callers)
+    region_pt: str | None = None
+    severity_pt: str | None = None
+    text_medium: str | None = None
 
 
 class RecommendationRequest(BaseModel):
     recommendation_id: str
-    display_text_short_pt: str
+    display_text_short_pt: str = ""
     requires_professional: bool = False
     professional_type: str | None = None
     category: str = ""
+    rank: int | None = None
 
 
 class GeneratePdfRequest(BaseModel):
@@ -109,9 +114,9 @@ async def generate_pdf(body: GeneratePdfRequest) -> Response:
             "findings": [
                 {
                     "metric_id": f.metric_id,
-                    "region_pt": f.region_pt,
-                    "severity_pt": f.severity_pt,
-                    "text_medium": f.text_medium,
+                    "severity_3": f.severity_3,
+                    "narrative_text": f.narrative_text or (f.text_medium or ""),
+                    "deviation_normalized": f.deviation_normalized,
                 }
                 for f in body.findings
             ],

@@ -49,11 +49,11 @@ from reportlab.platypus import (
 # ──────────────────────────────────────────────────────────────────────────────
 
 
-class FindingData(TypedDict):
+class FindingData(TypedDict, total=False):
     metric_id: str
-    region_pt: str
-    severity_pt: str
-    text_medium: str
+    severity_3: str | None
+    narrative_text: str
+    deviation_normalized: float | None
 
 
 class RecommendationData(TypedDict):
@@ -67,7 +67,7 @@ class RecommendationData(TypedDict):
 class PdfReportData(TypedDict):
     report_id: str
     generated_at: str          # ISO-8601 string
-    global_score: float        # 0–10
+    global_score: float        # 0–100 (DEC-9 score scale)
     findings: list[FindingData]
     recommendations: list[RecommendationData]
     disclaimer: str
@@ -188,20 +188,31 @@ def _build_styles() -> dict[str, ParagraphStyle]:
 
 
 def _score_color(score: float) -> colors.Color:
-    if score >= 7.5:
-        return colors.HexColor("#22d3ee")   # cyan – good
-    if score >= 5.5:
-        return colors.HexColor("#f59e0b")   # amber – moderate
-    return colors.HexColor("#f87171")       # red – low
+    # Score is 0–100 (DEC-9). Thresholds align with score_band_enum defaults
+    # (no_number<=50, refine<=70, good<=85, high>85).
+    if score >= 85:
+        return colors.HexColor("#22d3ee")   # cyan – high
+    if score >= 70:
+        return colors.HexColor("#67e8f9")   # cyan-soft – good
+    if score >= 50:
+        return colors.HexColor("#a78bfa")   # violet – refine
+    return colors.HexColor("#f87171")       # red – no_number
+
+
+# Translate severity_3 from canonical Nest enum to user-facing PT label.
+_SEVERITY_3_PT: dict[str, str] = {
+    "LEVE": "leve",
+    "MODERADO": "moderada",
+    "SEVERO": "severa",
+}
 
 
 def _severity_badge_color(severity_pt: str) -> colors.Color:
     mapping = {
-        "mínimo": colors.HexColor("#6ee7b7"),
         "leve": colors.HexColor("#86efac"),
-        "moderado": colors.HexColor("#fbbf24"),
-        "considerável": colors.HexColor("#f87171"),
-        "extremo": colors.HexColor("#ef4444"),
+        "moderada": colors.HexColor("#fbbf24"),
+        "severa": colors.HexColor("#ef4444"),
+        "indeterminada": _SLATE,
     }
     return mapping.get(severity_pt.lower(), _SLATE)
 
@@ -282,7 +293,7 @@ class PdfBuilder:
             Paragraph("Score Global", styles["section_heading"]),
             Paragraph(
                 f'<font color="{score_color.hexval() if hasattr(score_color, "hexval") else "#6366f1"}">'
-                f"<b>{score:.1f}</b></font>&nbsp;<font size='18' color='#94a3b8'>/&nbsp;10</font>",
+                f"<b>{score:.0f}</b></font>&nbsp;<font size='18' color='#94a3b8'>/&nbsp;100</font>",
                 ParagraphStyle(
                     "ScoreInline",
                     parent=styles["body"],
@@ -314,9 +325,20 @@ class PdfBuilder:
         ]
 
         for i, finding in enumerate(findings[:3], start=1):
-            region = finding.get("region_pt", "—")
-            severity = finding.get("severity_pt", "—")
-            text = finding.get("text_medium", "—")
+            # New canonical fields (PR-59 narrative payload)
+            severity_3 = finding.get("severity_3") or ""
+            severity = _SEVERITY_3_PT.get(
+                severity_3.upper(),
+                # Fallback for legacy callers that send severity_pt directly.
+                finding.get("severity_pt") or "indeterminada",
+            )
+            text = (
+                finding.get("narrative_text")
+                or finding.get("text_medium")
+                or "—"
+            )
+            # Title falls back to metric_id when no editorial region label exists.
+            region = finding.get("region_pt") or finding.get("metric_id", "—")
             sev_color = _severity_badge_color(severity)
 
             badge_table = Table(

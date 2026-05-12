@@ -136,6 +136,28 @@ export class RecommendationEngine {
       .where('rec.version = :version', { version: activeVersion.version })
       .getMany();
 
+    // 2b. Pre-compute trigger-count per recommendation. A recommendation that
+    // fires for 100+ different metrics is a "catch-all" lifestyle/photo nudge
+    // (e.g. routine-400 covers 195 distinct metric×severity combos), and
+    // should not dominate over recommendations specifically targeted at the
+    // user's actual findings. Penalty curve: factor = 1 / log2(2 + triggers).
+    //   1 trigger   → 1.00 (no penalty)
+    //   5 triggers  → 0.39
+    //   20 triggers → 0.22
+    //   100 triggers → 0.15
+    //   200 triggers → 0.13
+    const triggerCountByRec = new Map<string, number>();
+    for (const t of triggers) {
+      triggerCountByRec.set(
+        t.recommendationId,
+        (triggerCountByRec.get(t.recommendationId) ?? 0) + 1,
+      );
+    }
+    const genericityPenalty = (recId: string): number => {
+      const n = triggerCountByRec.get(recId) ?? 1;
+      return 1.0 / Math.log2(2 + n);
+    };
+
     if (triggers.length === 0) {
       this.logger.debug(
         `No recommendation triggers in catalog version=${activeVersion.version}. ` +
@@ -190,13 +212,35 @@ export class RecommendationEngine {
       const confidenceFinal = eval_.confidenceFinal ?? 0;
       if (confidenceFinal < 0.4) continue;  // DEC-7 display threshold
 
+      // Severity matching with downgrade fallback: an "extreme" finding still
+      // matches triggers configured for "strong" / "moderate" / "mild" if no
+      // exact match exists. Preserves DEC-38 escada — a recommendation for
+      // "strong" is semantically applicable to "extreme".
+      const severityCandidates: string[] =
+        severity === 'extreme'
+          ? ['extreme', 'strong', 'moderate', 'mild']
+          : severity === 'strong'
+            ? ['strong', 'moderate', 'mild']
+            : severity === 'moderate'
+              ? ['moderate', 'mild']
+              : [severity];
+
       for (const trigger of triggers) {
         if (trigger.metricId !== eval_.metricId) continue;
-        if (trigger.severity !== severity) continue;
+        const sevIdx = severityCandidates.indexOf(trigger.severity);
+        if (sevIdx < 0) continue;
         if (trigger.direction !== 'any' && trigger.direction !== directionPt) continue;
 
         const severityWeight = SEVERITY_WEIGHTS[severity] ?? 0;
-        const score = severityWeight * confidenceFinal * trigger.recommendation.priorityDefault;
+        // Penalize downgraded matches so exact-severity triggers always win.
+        const sevPenalty = sevIdx === 0 ? 1.0 : Math.pow(0.7, sevIdx);
+        const genPenalty = genericityPenalty(trigger.recommendationId);
+        const score =
+          severityWeight *
+          confidenceFinal *
+          trigger.recommendation.priorityDefault *
+          sevPenalty *
+          genPenalty;
 
         const existing = acc.get(trigger.recommendationId);
         if (existing) {

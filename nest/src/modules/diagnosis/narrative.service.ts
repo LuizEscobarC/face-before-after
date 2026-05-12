@@ -49,6 +49,7 @@ import { MetricEvaluationAgainstIdealEntity } from '../analysis/infrastructure/e
 import { MetricEvaluationEntity } from '../analysis/infrastructure/entities/metric-evaluation.entity.js';
 import { AnalysisReportEntity } from '../analysis/infrastructure/entities/analysis-report.entity.js';
 import { GlobalScoreEntity } from '../analysis/infrastructure/entities/global-score.entity.js';
+import { MetricDefinitionEntity } from '../analysis/infrastructure/entities/metric-definition.entity.js';
 
 // ──────────────────────────────────────────────────────────────────────────────
 // Severity ordering for top-3 finding selection (highest → lowest)
@@ -138,7 +139,26 @@ export class NarrativeService {
 
     @InjectRepository(RecommendationCatalogEntity)
     private readonly catalogRepo: Repository<RecommendationCatalogEntity>,
+
+    @InjectRepository(MetricDefinitionEntity)
+    private readonly metricDefRepo: Repository<MetricDefinitionEntity>,
   ) {}
+
+  /** Cache de display_name[pt-BR] por metric_id para evitar query por finding. */
+  private metricLabelCache: Map<string, string> | null = null;
+
+  private async getMetricLabel(metricId: string): Promise<string> {
+    if (!this.metricLabelCache) {
+      const all = await this.metricDefRepo.find();
+      this.metricLabelCache = new Map();
+      for (const def of all) {
+        const labels = (def.displayName as Record<string, string> | null) ?? {};
+        const pt = labels['pt-BR'] ?? labels['pt'] ?? null;
+        if (pt) this.metricLabelCache.set(def.metricId, pt);
+      }
+    }
+    return this.metricLabelCache.get(metricId) ?? metricId.replace(/_/g, ' ');
+  }
 
   async narrativeForReport(reportId: string): Promise<NarrativeResponseDto> {
     // 1. Load report (partition-scan by id — acceptable for single-row lookup)
@@ -423,20 +443,25 @@ export class NarrativeService {
     deviationNormalized: number | null,
   ): Promise<string> {
     if (severity5) {
-      const template = await this.templateRepo.findOne({
-        where: {
-          metricId,
-          severity: severity5 as any,
-          size: 'medium',
-        },
-      });
+      // Severity fallback chain: if the exact severity has no template, degrade
+      // down. Semantically safe — a "strong" copy still describes the same
+      // deviation when severity escalates to "extreme".
+      const chain: string[] =
+        severity5 === 'extreme'
+          ? ['extreme', 'strong', 'moderate', 'mild']
+          : severity5 === 'strong'
+            ? ['strong', 'moderate', 'mild']
+            : severity5 === 'moderate'
+              ? ['moderate', 'mild']
+              : [severity5];
 
-      if (template) {
+      for (const sev of chain) {
+        const template = await this.templateRepo.findOne({
+          where: { metricId, severity: sev as any, size: 'medium' },
+        });
+        if (!template) continue;
         try {
-          const deviationPct = deviationNormalized
-            ? String(Math.round(deviationNormalized * 100))
-            : '—';
-
+          const deviationPct = this._formatDeviationPct(deviationNormalized);
           return this.renderer.render({
             template: template.templatePt,
             placeholdersUsed: template.placeholdersUsed,
@@ -447,30 +472,39 @@ export class NarrativeService {
           });
         } catch (err) {
           this.logger.warn(
-            `Template render failed for metric=${metricId} sev=${severity5}: ${String(err)}`,
+            `Template render failed for metric=${metricId} sev=${sev}: ${String(err)}`,
           );
         }
       }
     }
 
-    // Fallback (pre-PR-53)
+    // Final fallback: PT-BR label from metric_definition.display_name + safe phrasing.
     return this._buildFallbackFinding(metricId, severity3, directionPt, deviationNormalized);
   }
 
-  private _buildFallbackFinding(
+  /**
+   * Formats deviation_normalized as a percentage string, clamping absurd
+   * values caused by upstream normalization bugs (e.g. pipeline returning
+   * raw pixel ratios > 1000).
+   */
+  private _formatDeviationPct(deviationNormalized: number | null): string {
+    if (deviationNormalized == null || !isFinite(deviationNormalized)) return '—';
+    const pct = Math.round(deviationNormalized * 100);
+    if (Math.abs(pct) >= 999) return pct > 0 ? '>999' : '<-999';
+    return String(pct);
+  }
+
+  private async _buildFallbackFinding(
     metricId: string,
     severity3: string | null,
     directionPt: string | null,
     deviationNormalized: number | null,
-  ): string {
-    const metricLabel = metricId.replace(/_/g, ' ');
+  ): Promise<string> {
+    const metricLabel = await this.getMetricLabel(metricId);
     const severityLabel = this._severityPtBr(severity3);
     const directionStr = directionPt ? ` — ${directionPt}` : '';
-    const deviationStr =
-      deviationNormalized != null
-        ? ` (desvio de ${Math.round(deviationNormalized * 100)}%)`
-        : '';
-
+    const deviationPct = this._formatDeviationPct(deviationNormalized);
+    const deviationStr = deviationPct !== '—' ? ` (desvio de ${deviationPct}%)` : '';
     return `${metricLabel}${deviationStr} — severidade ${severityLabel}${directionStr}.`;
   }
 
