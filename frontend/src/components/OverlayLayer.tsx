@@ -245,7 +245,7 @@ function FaceExtents({ landmarks }: { landmarks: Array<[number, number]> }) {
       <line x1={xL} y1={yTop}    x2={xL} y2={yMenton} stroke={stroke} strokeWidth={1.5} />
       <line x1={xR} y1={yTop}    x2={xR} y2={yMenton} stroke={stroke} strokeWidth={1.5} />
       <text x={xL + 4} y={yTop - 4} fill={stroke} fontSize={11} fontWeight={600}
-        style={{ paintOrder: "stroke", stroke: "#000", strokeWidth: 2 }}>Hairline</text>
+        style={{ paintOrder: "stroke", stroke: "#000", strokeWidth: 2 }}>Trichion (mesh)</text>
       <text x={xL + 4} y={yMenton + 14} fill={stroke} fontSize={11} fontWeight={600}
         style={{ paintOrder: "stroke", stroke: "#000", strokeWidth: 2 }}>Menton</text>
     </g>
@@ -266,6 +266,7 @@ function GridThirds({
   const yBrow = (lm(landmarks, P_BROW_LEFT_INNER)[1] + lm(landmarks, P_BROW_RIGHT_INNER)[1]) / 2;
   const ySub  = lm(landmarks, P_SUBNASALE)[1];
   const yMen  = lm(landmarks, P_MENTON)[1];
+  const xL = lm(landmarks, P_ZYGO_IMG_LEFT)[0];
   const xR = lm(landmarks, P_ZYGO_IMG_RIGHT)[0];
 
   const metricsMap = new Map(
@@ -284,29 +285,55 @@ function GridThirds({
   const middleColor = _severityColor(mMiddle?.severity_5);
   const lowerColor  = _severityColor(mLower?.severity_5);
 
+  // Ideal dividers: where brow and subnasale WOULD be if face were perfectly divided.
+  // These are reference lines — not landmark positions.
   const yT1 = yTop + faceH / 3;
   const yT2 = yTop + (2 * faceH) / 3;
 
   const s = OVERLAY_STYLES.grid_thirds;
-  const labelX = xR + 8;
+  // Lateral labels anchored to the RIGHT zygomatic edge + small margin.
+  // xR is typically close to the viewBox right edge (~94% of vbW), so we place
+  // text anchored to the right margin of the viewBox instead to avoid clipping.
+  const labelX = vbW - 4;
+  const inlineLabelX = xL + 4;
+
+  const thirds = [
+    { yA: yTop,  yB: yBrow, pct: upperPct,  label: "T1", color: upperColor },
+    { yA: yBrow, yB: ySub,  pct: middlePct, label: "T2", color: middleColor },
+    { yA: ySub,  yB: yMen,  pct: lowerPct,  label: "T3", color: lowerColor },
+  ];
+
   return (
     <g>
-      {/* Ideal thirds positions (dashed) — span full viewBox width */}
+      {/* Ideal equal-thirds dividers (dashed purple) — reference, not landmarks */}
       <line x1={0} y1={yT1} x2={vbW} y2={yT1} stroke={s.stroke} strokeWidth={s.strokeWidth} strokeDasharray={s.strokeDasharray} />
       <line x1={0} y1={yT2} x2={vbW} y2={yT2} stroke={s.stroke} strokeWidth={s.strokeWidth} strokeDasharray={s.strokeDasharray} />
-      {/* Actual landmark positions (solid) */}
-      <line x1={0} y1={yBrow} x2={vbW} y2={yBrow} stroke="#f97316" strokeWidth={1} opacity={0.8} />
-      <line x1={0} y1={ySub}  x2={vbW} y2={ySub}  stroke="#f97316" strokeWidth={1} opacity={0.8} />
-      {[
-        { y: yTop  + (yBrow - yTop) / 2,  pct: upperPct,  label: "T1", color: upperColor },
-        { y: yBrow + (ySub  - yBrow) / 2, pct: middlePct, label: "T2", color: middleColor },
-        { y: ySub  + (yMen  - ySub) / 2,  pct: lowerPct,  label: "T3", color: lowerColor },
-      ].map(({ y, pct, label, color }) => (
-        <text key={label} x={labelX} y={y + 4} fill={color} fontSize={11} fontWeight={700}
-          style={{ paintOrder: "stroke", stroke: "#000", strokeWidth: 2 }}>
-          {label} {pct.toFixed(0)}% (33%)
-        </text>
-      ))}
+      <text x={inlineLabelX} y={yT1 - 3} fill={s.stroke} fontSize={10}
+        style={{ paintOrder: "stroke", stroke: "#000", strokeWidth: 2 }}>ideal 1/3</text>
+      <text x={inlineLabelX} y={yT2 - 3} fill={s.stroke} fontSize={10}
+        style={{ paintOrder: "stroke", stroke: "#000", strokeWidth: 2 }}>ideal 2/3</text>
+
+      {/* Actual landmark lines (solid orange) — brow and subnasale */}
+      <line x1={0} y1={yBrow} x2={vbW} y2={yBrow} stroke="#f97316" strokeWidth={1.5} opacity={0.9} />
+      <text x={inlineLabelX} y={yBrow - 3} fill="#f97316" fontSize={10}
+        style={{ paintOrder: "stroke", stroke: "#000", strokeWidth: 2 }}>Sobrancelha</text>
+      <line x1={0} y1={ySub} x2={vbW} y2={ySub} stroke="#f97316" strokeWidth={1.5} opacity={0.9} />
+      <text x={inlineLabelX} y={ySub - 3} fill="#f97316" fontSize={10}
+        style={{ paintOrder: "stroke", stroke: "#000", strokeWidth: 2 }}>Subnasale</text>
+
+      {/* Lateral labels right-aligned to vbW — avoids clipping when xR ≈ vbW */}
+      {thirds.map(({ yA, yB, pct, label, color }) => {
+        const dev = pct - 33.3;
+        const devStr = dev >= 0 ? `+${dev.toFixed(0)}` : `${dev.toFixed(0)}`;
+        return (
+          <text key={label} x={labelX} y={(yA + yB) / 2 + 4}
+            fill={color} fontSize={11} fontWeight={700}
+            textAnchor="end"
+            style={{ paintOrder: "stroke", stroke: "#000", strokeWidth: 2 }}>
+            {label} {pct.toFixed(0)}% ({devStr}%)
+          </text>
+        );
+      })}
     </g>
   );
 }
@@ -314,41 +341,60 @@ function GridThirds({
 function GridFifths({ landmarks }: { landmarks: Array<[number, number]> }) {
   const yTop = lm(landmarks, P_FOREHEAD_CROWN)[1];
   const yMen = lm(landmarks, P_MENTON)[1];
-  // Rule of Fifths (Naini 2011 §6): the face is divided into 5 equal vertical fifths.
-  // The outer boundaries are the bizygomatic edges (234 / 454).
-  // The 1/5 and 4/5 dividers should align with the outer eye corners (33 / 263).
-  // The 2/5 and 3/5 dividers should align with the inner eye corners (133 / 362).
-  // We draw the dividers at the actual landmark x-positions (not equally spaced)
-  // so the user can see how closely each fifth matches the ideal.
+  // Rule of Fifths (Naini 2011 §6): face divided into 5 equal vertical fifths.
+  // Boundaries: bizygomatic edges (234/454).
+  // Ideal dividers: 1/5 & 4/5 = eye outer corners; 2/5 & 3/5 = eye inner corners.
   const xFaceL  = lm(landmarks, P_ZYGO_IMG_LEFT)[0];
   const xFaceR  = lm(landmarks, P_ZYGO_IMG_RIGHT)[0];
-  const xEyeOL  = lm(landmarks, P_EYE_OUTER_IMG_LEFT)[0];   // ideal 1/5 mark
-  const xEyeIL  = lm(landmarks, P_LEFT_EYE_INNER)[0];        // ideal 2/5 mark
-  const xEyeIR  = lm(landmarks, P_RIGHT_EYE_INNER)[0];       // ideal 3/5 mark
-  const xEyeOR  = lm(landmarks, P_EYE_OUTER_IMG_RIGHT)[0];   // ideal 4/5 mark
+  const xEyeOL  = lm(landmarks, P_EYE_OUTER_IMG_LEFT)[0];
+  const xEyeIL  = lm(landmarks, P_LEFT_EYE_INNER)[0];
+  const xEyeIR  = lm(landmarks, P_RIGHT_EYE_INNER)[0];
+  const xEyeOR  = lm(landmarks, P_EYE_OUTER_IMG_RIGHT)[0];
 
-  // Ideal equally-spaced dividers (dashed) for comparison
   const faceW = Math.max(1, xFaceR - xFaceL);
   const fifth = faceW / 5;
   const s = OVERLAY_STYLES.grid_fifths;
+
+  // Ideal x positions for each divider
+  const ideals = [1, 2, 3, 4].map((i) => xFaceL + i * fifth);
+  // Actual landmark x positions aligned to each ideal divider
+  const actuals = [xEyeOL, xEyeIL, xEyeIR, xEyeOR];
+  const names   = ["OExt.E", "OInt.E", "OInt.D", "OExt.D"];
+
+  // Y position for deviation labels — just above menton so they don't overlap with brow labels
+  const yLabel = yMen - 10;
+
   return (
     <g>
-      {/* Ideal equal fifths (dashed) */}
-      {[1, 2, 3, 4].map((i) => (
+      {/* Face edge boundaries (white) */}
+      <line x1={xFaceL} y1={yTop} x2={xFaceL} y2={yMen} stroke="#ffffff" strokeWidth={1} opacity={0.6} />
+      <line x1={xFaceR} y1={yTop} x2={xFaceR} y2={yMen} stroke="#ffffff" strokeWidth={1} opacity={0.6} />
+
+      {/* Ideal equal fifths (dashed purple) */}
+      {ideals.map((x, i) => (
         <line key={`ideal-${i}`}
-          x1={xFaceL + i * fifth} y1={yTop}
-          x2={xFaceL + i * fifth} y2={yMen}
+          x1={x} y1={yTop} x2={x} y2={yMen}
           stroke={s.stroke} strokeWidth={s.strokeWidth} strokeDasharray={s.strokeDasharray} />
       ))}
-      {/* Actual eye-corner positions (solid) */}
-      {[xEyeOL, xEyeIL, xEyeIR, xEyeOR].map((x, i) => (
-        <line key={`actual-${i}`}
-          x1={x} y1={yTop} x2={x} y2={yMen}
-          stroke="#f97316" strokeWidth={1} opacity={0.8} />
-      ))}
-      <text x={xFaceL + 2} y={yTop - 14} fill={s.stroke} fontSize={11} fontWeight={600}
+
+      {/* Actual eye-corner positions (solid orange) + deviation label */}
+      {actuals.map((x, i) => {
+        const dev = Math.round(x - ideals[i]);
+        const devStr = dev === 0 ? "±0" : dev > 0 ? `+${dev}` : `${dev}`;
+        return (
+          <g key={`actual-${i}`}>
+            <line x1={x} y1={yTop} x2={x} y2={yMen} stroke="#f97316" strokeWidth={1.5} opacity={0.9} />
+            <text x={x + 2} y={yLabel} fill="#f97316" fontSize={9} fontWeight={600}
+              style={{ paintOrder: "stroke", stroke: "#000", strokeWidth: 2 }}>
+              {names[i]} {devStr}px
+            </text>
+          </g>
+        );
+      })}
+
+      <text x={xFaceL + 2} y={yTop - 4} fill={s.stroke} fontSize={10} fontWeight={600}
         style={{ paintOrder: "stroke", stroke: "#000", strokeWidth: 2 }}>
-        Quintos (tracejado = ideal, laranja = real)
+        Quintos — tracejado: ideal · laranja: real (desvio em px)
       </text>
     </g>
   );
