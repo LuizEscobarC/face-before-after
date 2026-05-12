@@ -873,12 +873,17 @@ export function PremiumResultPage() {
               )}
 
               {view === "ideal" && simBase && (
-                <div style={{ display: "flex", gap: 16, alignItems: "flex-start", flexWrap: "wrap" }}>
-                  <img src={`${simBase}/ideal_proportions`} alt="Proporções ideais" className="panel-img" style={{ flex: "1 1 480px", minWidth: 0 }} />
+                <div className="overlay-stage">
+                  <div className="overlay-media">
+                    <img
+                      src={`${simBase}/ideal_proportions`}
+                      alt="Proporções ideais"
+                      className="panel-img overlay-stage-image"
+                    />
+                  </div>
                   {result.overlay_annotations && (
-                    <div style={{ flex: "0 0 280px", display: "flex", flexDirection: "column", gap: 12 }}>
+                    <div className="overlay-sidebars overlay-sidebars-ideal">
                       <OverlaySidebar variant="ideal_proportions" data={result.overlay_annotations} />
-                      <OverlaySidebar variant="grid_thirds" data={result.overlay_annotations} />
                     </div>
                   )}
                 </div>
@@ -892,56 +897,56 @@ export function PremiumResultPage() {
               )}
 
               {view === "overlays" && originalUrl && result.landmarks && (
-                <div style={{ display: "flex", gap: 16, alignItems: "flex-start", flexWrap: "nowrap", overflow: "auto" }}>
-                <div style={{ position: "relative", display: "inline-block", flex: "1 1 300px", minWidth: 0 }}>
-                  <img
-                    ref={overlayImgRef}
-                    src={originalUrl}
-                    alt="Rosto com overlays de referência"
-                    className="panel-img"
-                    style={{ display: "block", maxWidth: "100%", height: "auto" }}
-                    onLoad={(e) => {
-                      const img = e.currentTarget;
-                      // getBoundingClientRect() gives the rendered (CSS-constrained) size.
-                      // naturalWidth/Height gives the intrinsic pixel size for the viewBox.
-                      const rect = img.getBoundingClientRect();
-                      setImgDims({
-                        w: Math.round(rect.width)  || img.naturalWidth,
-                        h: Math.round(rect.height) || img.naturalHeight,
-                        naturalW: img.naturalWidth,
-                        naturalH: img.naturalHeight,
-                      });
-                    }}
-                  />
-                  {/* z=30 heatmap layer (PR-40/PR-66, M3.3) — server-rendered PNG.
-                      Fetched from POST /v1/vision/render-overlay (stateless proxy).
-                      heatmapLoading shows a subtle spinner while fetching. */}
-                  <HeatmapImageLayer
-                    imageWidth={imgDims?.w ?? 640}
-                    imageHeight={imgDims?.h ?? 480}
-                    activeOverlays={activeOverlays}
-                    heatmapAssetUrls={heatmapAssetUrls}
-                  />
-                  <OverlayLayer
-                    landmarks={result.landmarks}
-                    imageWidth={imgDims?.w ?? 640}
-                    imageHeight={imgDims?.h ?? 480}
-                    viewBoxWidth={imgDims?.naturalW}
-                    viewBoxHeight={imgDims?.naturalH}
-                    activeOverlays={activeOverlays}
-                    metricEvaluations={result.metric_evaluations}
-                  />
-                </div>
-                {result.overlay_annotations && (
-                  <div style={{ flex: "0 0 280px", display: "flex", flexDirection: "column", gap: 12 }}>
-                    {activeOverlays.includes("grid_thirds") &&
-                      <OverlaySidebar variant="grid_thirds" data={result.overlay_annotations} />}
-                    {activeOverlays.includes("grid_fifths") &&
-                      <OverlaySidebar variant="grid_fifths" data={result.overlay_annotations} />}
-                    {activeOverlays.includes("face_extents") &&
-                      <OverlaySidebar variant="face_extents" data={result.overlay_annotations} />}
+                <div className="overlay-stage">
+                  <div className="overlay-media">
+                    <img
+                      ref={overlayImgRef}
+                      src={originalUrl}
+                      alt="Rosto com overlays de referência"
+                      className="panel-img overlay-stage-image"
+                      onLoad={(e) => {
+                        const img = e.currentTarget;
+                        // getBoundingClientRect() gives the rendered (CSS-constrained) size.
+                        // naturalWidth/Height gives the intrinsic pixel size for the viewBox.
+                        const rect = img.getBoundingClientRect();
+                        setImgDims({
+                          w: Math.round(rect.width)  || img.naturalWidth,
+                          h: Math.round(rect.height) || img.naturalHeight,
+                          naturalW: img.naturalWidth,
+                          naturalH: img.naturalHeight,
+                        });
+                      }}
+                    />
+                    {/* z=30 heatmap layer (PR-40/PR-66, M3.3) — server-rendered PNG.
+                        Fetched from POST /v1/vision/render-overlay (stateless proxy).
+                        heatmapLoading shows a subtle spinner while fetching. */}
+                    <HeatmapImageLayer
+                      imageWidth={imgDims?.w ?? 640}
+                      imageHeight={imgDims?.h ?? 480}
+                      activeOverlays={activeOverlays}
+                      heatmapAssetUrls={heatmapAssetUrls}
+                    />
+                    <OverlayLayer
+                      landmarks={result.landmarks}
+                      imageWidth={imgDims?.w ?? 640}
+                      imageHeight={imgDims?.h ?? 480}
+                      viewBoxWidth={imgDims?.naturalW}
+                      viewBoxHeight={imgDims?.naturalH}
+                      activeOverlays={activeOverlays}
+                      metricEvaluations={result.metric_evaluations}
+                      trichion_source={result.trichion_source}
+                    />
                   </div>
-                )}
+                  {result.overlay_annotations && (
+                    <div className="overlay-sidebars">
+                      {activeOverlays.includes("grid_thirds") &&
+                        <OverlaySidebar variant="grid_thirds" data={result.overlay_annotations} />}
+                      {activeOverlays.includes("grid_fifths") &&
+                        <OverlaySidebar variant="grid_fifths" data={result.overlay_annotations} />}
+                      {activeOverlays.includes("face_extents") &&
+                        <OverlaySidebar variant="face_extents" data={result.overlay_annotations} />}
+                    </div>
+                  )}
                 </div>
               )}
 

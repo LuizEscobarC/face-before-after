@@ -1,7 +1,7 @@
 # Face Analysis Domain — Índice de Contexto
 
 > Documentação da arquitetura atual (MediaPipe-478 + NestJS + PostgreSQL + Python).
-> Última atualização: **2026-05-12** — auditoria do painel premium; integração BiSeNet hairline; OutlineFace horn fix (LM_FOREHEAD_RIDGE); overlay annotations JSON; imagem canônica como fonte única; threshold trichion 0.8→0.5; pose warning acionável.
+> Última atualização: **2026-05-12** — auditoria do painel premium; integração BiSeNet hairline; OutlineFace horn fix (LM_FOREHEAD_RIDGE); overlay annotations JSON; imagem canônica como fonte única; threshold trichion 0.8→0.5; pose warning acionável; layout overlay (SVG 100%, CSS grid 2-col, breakpoint 640px); labels PT-BR proporções ideais.
 
 ## Auditorias / changelog técnico
 

@@ -187,6 +187,8 @@ export type AnalysisResult = {
   /** Canonical (cropped + Frankfort-aligned) image URL — base of every overlay.
    * Always prefer this over photo_url; the latter is a legacy alias. */
   canonical_url?: string;
+  /** BiSeNet hairline source used for this run — "bisenet" | "mesh". */
+  trichion_source?: "bisenet" | "mesh";
   /** Textual annotations rendered next to overlays (formerly burned into PNGs). */
   overlay_annotations?: {
     grid_thirds?: {

@@ -1,8 +1,8 @@
 # Auditoria Completa: Cálculos de Visualização e Sobreposição (SVG Overlays)
 
-**Data:** 2026-05-12  
-**Fase:** M3 (Overlays) — Audit & Fix + Overlay Annotations JSON + OutlineFace Horn Fix  
-**Status:** ✅ 7 bugs / melhorias implementados
+**Data:** 2026-05-12 · **Atualizado:** 2026-05-12 (layout fixes + SVG sizing)  
+**Fase:** M3 (Overlays) — Audit & Fix + Overlay Annotations JSON + OutlineFace Horn Fix + Layout  
+**Status:** ✅ 10 bugs / melhorias implementados
 
 ---
 
@@ -17,6 +17,9 @@ Foram encontrados e corrigidos/implementados **7 itens** nos cálculos e arquite
 5. **OutlineFace com 37 pts:** documentado como feature (polígono facial completo)
 6. **OutlineFace horn:** todos os 12 pontos da crista da testa (`LM_FOREHEAD_RIDGE`) agora nivelados ao trichion (não apenas `lm[10]`)
 7. **Textos burned-in removidos:** labels textuais migrados para JSON (`overlay_annotations`) e renderizados em React via `<OverlaySidebar>`
+8. **SVG width/height fixo causava extravasamento:** `width={pixels}` expandia container; corrigido para `width="100%" height="100%"` (SVG segue `.overlay-media`)
+9. **Sidebar aparecia abaixo da imagem:** layout inline-flex com `flexWrap: "wrap"` e inline-style substituído por classes CSS `.overlay-stage` / `.overlay-media` / `.overlay-sidebars` com grid 2 colunas
+10. **Proporções ideais — rótulos ilegíveis:** `metric_id` exibido cru; adicionado mapa de labels PT-BR + linha de direção (`direction`) abaixo de cada métrica
 
 ---
 
@@ -324,15 +327,128 @@ Todos os `_label()` / `cv2.putText()` removidos de `draw_grid_thirds()`, `draw_g
 
 | Arquivo | Mudanças |
 |---|---|
-| `frontend/src/components/OverlayLayer.tsx` | Bugs #1–3, LM_FOREHEAD_RIDGE (Bug #6), remoção de `<text>` SVG |
-| `frontend/src/components/OverlaySidebar.tsx` | NOVO — 4 variants com paleta CSS vars |
-| `frontend/src/pages/PremiumResultPage.tsx` | `canonicalUrl`, `<OverlaySidebar>` em views "ideal" e "overlays" |
+| `frontend/src/components/OverlayLayer.tsx` | Bugs #1–3, LM_FOREHEAD_RIDGE (Bug #6), remoção de `<text>` SVG, SVG width/height → 100% (Bug #8) |
+| `frontend/src/components/OverlaySidebar.tsx` | NOVO — 4 variants com paleta CSS vars; Melhoria #10: labels PT-BR + direction |
+| `frontend/src/pages/PremiumResultPage.tsx` | `canonicalUrl`, `<OverlaySidebar>` em views "ideal" e "overlays"; Bug #9: migração para classes CSS |
+| `frontend/src/styles.css` | NOVO — `.overlay-stage`, `.overlay-media`, `.overlay-sidebars`, breakpoint 640px (Bug #9) |
 | `frontend/src/types.ts` | `canonical_url`, `overlay_annotations` em `AnalysisResult` |
 | `scripts/_overlay_render.py` | LM_FOREHEAD_RIDGE, remoção de `_label()`, `build_*_annotations()` |
 | `backend/app/services/overlays/annotations.py` | NOVO — 3 funções JSON |
 | `backend/app/domain/pipeline.py` | Canonical save, overlay_annotations, `_fused` reordenado antes do simulate |
 | `backend/app/vision/routers/full_pipeline.py` | Upload canonical (não original) → `canonical_url` HTTP path |
 | `backend/app/vision/routers/results.py` | Endpoint `GET /{run_id}/canonical` |
+
+---
+
+---
+
+## Bug #8: SVG `width/height` Fixo — Heatmap Extravasava Container (2026-05-12)
+
+### Problema
+
+`<OverlayLayer>` renderizava o `<svg>` com `width={w}` e `height={h}` onde `w/h` são CSS pixels do `imgDims` state. Quando o container era menor que esses valores (ex: tela estreita ou sidebar presente), o SVG extravasava o `.overlay-media` e empurrava o sidebar para a direita ou abaixo.
+
+### Fix
+
+```tsx
+// ANTES
+<svg width={w} height={h} viewBox={`0 0 ${vbW} ${vbH}`} ...>
+
+// DEPOIS
+<svg width="100%" height="100%" viewBox={`0 0 ${vbW} ${vbH}`} ...>
+```
+
+O SVG agora segue `position: absolute` dentro de `.overlay-media` (que tem `position: relative; min-width: 0`). O viewBox continua usando dimensões naturais para mapeamento correto de landmarks.
+
+**Arquivo:** `frontend/src/components/OverlayLayer.tsx` — export `OverlayLayer`.
+
+---
+
+## Bug #9: Sidebar Aparecia Abaixo da Imagem (2026-05-12)
+
+### Problema Composto
+
+Dois problemas independentes causavam o colapso do layout para coluna única:
+
+**A) Views usavam inline styles frágeis:**
+```tsx
+// ANTES — view "overlays" e "ideal"
+<div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
+  <div style={{ flex: "1 1 480px" }}>  // imagem
+  <div style={{ flex: "0 0 280px" }}>  // sidebar
+```
+`flexWrap: "wrap"` fazia o sidebar cair abaixo quando o container não cabia 480 + 280 + 16 = 776px — comum em laptops com content-area estreita.
+
+**B) Breakpoint responsivo muito alto:**
+```css
+/* ANTES — no bloco @media (max-width: 980px) com regras de layout geral */
+.overlay-stage { grid-template-columns: 1fr; }  /* colapso em 980px */
+```
+Qualquer tela abaixo de 980px colapsava para 1 coluna, incluindo a maioria dos laptops.
+
+### Fix
+
+**Classes CSS dedicadas** (nunca mais inline para este layout):
+
+```css
+.overlay-stage {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(220px, 280px);
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.overlay-media {
+  position: relative;
+  min-width: 0;
+}
+
+.overlay-media > .overlay-stage-image {
+  width: 100%;
+  max-width: 100%;
+}
+
+.overlay-sidebars {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Colapso apenas em mobile real */
+@media (max-width: 640px) {
+  .overlay-stage { grid-template-columns: 1fr; }
+  .overlay-sidebars { flex-direction: row; flex-wrap: wrap; }
+  .overlay-sidebars > * { flex: 1 1 220px; }
+}
+```
+
+Views `"ideal"` e `"overlays"` em `PremiumResultPage.tsx` migradas de inline styles para estas classes.
+
+---
+
+## Melhoria #10: Proporções Ideais — Rótulos Legíveis (2026-05-12)
+
+### Problema
+
+`renderIdealProportions()` exibia `r.metric_id` cru (ex: `"upper_third_ratio"`) como label da linha. Sem contexto e sem direção.
+
+### Fix
+
+```tsx
+// OverlaySidebar.tsx
+const IDEAL_PROPORTION_LABELS: Record<string, string> = {
+  forehead_height_ratio: "Altura da testa",
+  lower_third_ratio:     "Terço inferior",
+  middle_third_ratio:    "Terço médio",
+  upper_third_ratio:     "Terço superior",
+};
+
+// Em renderIdealProportions — cada row agora mostra:
+// linha 1: label PT-BR em negrito + cor de severidade
+// linha 2: direction ("long", "short", "ideal"…) em --muted tamanho 11px
+```
+
+Fallback para `metric_id.replace(/_/g, " ")` com capitalização para métricas não mapeadas.
 
 ---
 
@@ -343,9 +459,11 @@ Todos os `_label()` / `cv2.putText()` removidos de `draw_grid_thirds()`, `draw_g
 - ✅ `grid_thirds.png`, `grid_fifths.png`, `face_extents.png` sem texto — geometria pura
 - ✅ `overlay_annotations` presente no JSON do pipeline
 - ✅ Endpoint `/v1/vision/results/{run_id}/canonical` retorna imagem canônica (HTTP 200)
-- ✅ Frontend exibe `<OverlaySidebar>` ao lado de cada overlay
+- ✅ Frontend exibe `<OverlaySidebar>` ao lado de cada overlay (desktop ≥ 641px)
+- ✅ SVG não extravasa container (width/height = 100%)
+- ✅ Proporções ideais: labels PT-BR + direction visível
 - ⚠️ Visual regression: QA manual em PremiumResultPage
-  - [ ] Redimensioned images (CSS width ≠ natural width)
+  - [x] Redimensioned images (CSS width ≠ natural width) — corrigido Bug #8
   - [ ] AxisVertical aligns with nose on symmetric faces
   - [ ] GridFifths eye corners visible (not equal spacing only)
 
