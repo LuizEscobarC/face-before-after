@@ -110,6 +110,41 @@ async function run() {
       ...idealGeometry,
     };
 
+    // BEFORE-IDEAL VIEW (Task 3: toggle controls)
+    await clickView(page, /Vetores ideais/is);
+    
+    // Capture baseline screenshot
+    const shotBeforeIdeal1 = path.join(OUT_DIR, "02a-before-ideal-baseline.png");
+    await page.screenshot({ path: shotBeforeIdeal1, fullPage: false });
+    report.screenshots.push(shotBeforeIdeal1);
+
+    // Toggle showGuideLines
+    const guideButton = page.getByRole("button", { name: /Linhas guia/i }).first();
+    assertOrThrow(await guideButton.count(), "before-ideal: botao Linhas guia nao encontrado");
+    await guideButton.click();
+    await page.waitForTimeout(1000); // Wait for compose request
+
+    // Capture after toggle
+    const shotBeforeIdeal2 = path.join(OUT_DIR, "02b-before-ideal-after-guide-toggle.png");
+    await page.screenshot({ path: shotBeforeIdeal2, fullPage: false });
+    report.screenshots.push(shotBeforeIdeal2);
+
+    // Toggle showActualWireframe
+    const wireframeButton = page.getByRole("button", { name: /Wireframe atual/i }).first();
+    assertOrThrow(await wireframeButton.count(), "before-ideal: botao Wireframe atual nao encontrado");
+    await wireframeButton.click();
+    await page.waitForTimeout(1000);
+
+    // Capture after second toggle
+    const shotBeforeIdeal3 = path.join(OUT_DIR, "02c-before-ideal-after-wireframe-toggle.png");
+    await page.screenshot({ path: shotBeforeIdeal3, fullPage: false });
+    report.screenshots.push(shotBeforeIdeal3);
+
+    report.checks.beforeIdeal = {
+      status: "ok",
+      message: "Toggles renderizados; fetchCompose deve ter sido chamado em cada toggle",
+    };
+
     // OVERLAYS VIEW
     await clickView(page, /Overlays/is);
     const overlaysGeometry = await checkSideBySide(page, ".overlay-sidebars", "overlays");

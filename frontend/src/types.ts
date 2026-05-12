@@ -182,6 +182,8 @@ export type AnalysisResult = {
   run_id?: string;
   /** Raw pixel landmark coordinates from MediaPipe Mesh-478. Each entry is [x, y]. */
   landmarks?: Array<[number, number]>;
+  /** Ideal landmark coordinates (same format as landmarks). Used for ideal wireframe overlay (Task 4, M3.5). */
+  landmarks_ideal?: Array<[number, number]>;
   /** Metric evaluations from POST /v1/analysis/evaluate (M1 pipeline, PR-34 M3.2). */
   metric_evaluations?: MetricEvaluationResult[];
   /** Per-region adherence scalars used by heatmap_ideal_adherence rendering. */

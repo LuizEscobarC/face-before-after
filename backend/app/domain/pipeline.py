@@ -1288,6 +1288,8 @@ def run(image_path: str, output_dir: str, mode: str = "premium") -> dict:
             _iv = _d.pop("improvement_vector", None)
             _d["improvement_vector_x"] = float(_iv[0]) if _iv is not None else None
             _d["improvement_vector_y"] = float(_iv[1]) if _iv is not None else None
+            _dep_lms = _d.get("dependency_landmarks", [])
+            _d["anchor_landmark_index"] = _dep_lms[0] if _dep_lms else None
             _metric_evaluations_v2.append(_d)
     except Exception as _v2_exc:  # pylint: disable=broad-except
         import logging as _logging, traceback as _tb

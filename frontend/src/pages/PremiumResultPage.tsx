@@ -4,6 +4,8 @@ import { evaluateFromLandmarks, fetchFindings, fetchGlossary, fetchNarrative, fe
 import { MetricExplainer } from "../components/MetricExplainer";
 import { DEFAULT_OVERLAYS, HeatmapImageLayer, OverlayLayer, OverlayToggleBar } from "../components/OverlayLayer";
 import { OverlaySidebar } from "../components/OverlaySidebar";
+import { BeforeIdealOverlay } from "../components/BeforeIdealOverlay";
+import { MetricsMapLayer } from "../components/MetricsMapLayer";
 import type { AnalysisResult, GlossaryTerm, MetricEvaluationResult, NarrativeResponseDto, PremiumMetricCategory } from "../types";
 
 type LocationState = { result?: AnalysisResult };
@@ -363,6 +365,9 @@ export function PremiumResultPage() {
   // Ref to the overlay image element — used by ResizeObserver to keep imgDims
   // in sync when the window is resized (so the SVG always matches the rendered img).
   const overlayImgRef = useRef<HTMLImageElement>(null);
+
+  // Task 5 (M3.6) — Metrics map layer interactive state
+  const [selectedRegion, setSelectedRegion] = useState<string | null>(null);
 
   // PR-62 (M4.5) — PDF download state
   const [pdfLoading, setPdfLoading] = useState(false);
@@ -976,6 +981,21 @@ export function PremiumResultPage() {
                       metricEvaluations={result.metric_evaluations}
                       trichion_source={result.trichion_source}
                     />
+                    {/* Task 5 (M3.6) — Metrics map layer (interactive SVG heatmap)
+                        Render only when ideal-adherence heatmap is enabled to avoid
+                        persistent translucent region blocks over the image. */}
+                    {result.metric_evaluations && activeOverlays.includes("heatmap_ideal_adherence") && (
+                      <MetricsMapLayer
+                        viewBoxWidth={imgDims?.naturalW || 1200}
+                        viewBoxHeight={imgDims?.naturalH || 800}
+                        metric_evaluations={result.metric_evaluations}
+                        region_adherence={result.region_adherence || {}}
+                        onRegionClick={(region) => {
+                          setSelectedRegion(region);
+                        }}
+                        selectedRegion={selectedRegion}
+                      />
+                    )}
                   </div>
                   {result.overlay_annotations && (
                     <div className="overlay-sidebars">
@@ -1025,12 +1045,25 @@ export function PremiumResultPage() {
                     </div>
                   )}
                   {!composeLoading && beforeIdealUrl && (
-                    <img
-                      src={beforeIdealUrl}
-                      alt="Comparação antes vs ideal com vetores"
-                      className="panel-img"
-                      style={{ width: "100%", borderRadius: "var(--radius)", display: "block" }}
-                    />
+                    <div className="overlay-stage">
+                      <div className="overlay-media">
+                        <img
+                          src={beforeIdealUrl}
+                          alt="Comparação antes vs ideal com vetores"
+                          className="panel-img overlay-stage-image"
+                        />
+                        {result.landmarks && (
+                          <BeforeIdealOverlay
+                            landmarks={result.landmarks}
+                            imageWidth={imgDims?.w || 800}
+                            imageHeight={imgDims?.h || 600}
+                            viewBoxWidth={imgDims?.naturalW || 800}
+                            viewBoxHeight={imgDims?.naturalH || 600}
+                            metricEvaluations={result.metric_evaluations}
+                          />
+                        )}
+                      </div>
+                    </div>
                   )}
                   {!composeLoading && composeError && (
                     <div style={{ color: "#f87171", fontSize: 13, padding: 40, textAlign: "center" }}>
