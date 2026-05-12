@@ -203,6 +203,29 @@ clean-all: clean
     find . -name "*.pyc" -delete
 
 ##############################
+# OVERLAY REVIEW (autopilot rig)
+##############################
+
+# Renderiza TODAS as visualizações do front (axes, grids, contour, extents,
+# vetores, heatmaps, comparativo, mapa de métricas, proporções ideais) como
+# PNGs em review/<stem>/ + um index.html de contact-sheet. Requer a API do
+# vision-service rodando em http://localhost:9015 (docker compose up -d).
+# Uso: just review bradpitt-reference.jpg
+review foto:
+    {{python}} scripts/render_all_overlays.py {{foto}}
+
+# Variante com URL custom da API: just review-api antes.png http://localhost:9015
+review-api foto api:
+    {{python}} scripts/render_all_overlays.py {{foto}} --api {{api}}
+
+# Loop rápido para iteração: roda review e ecoa o caminho do index.html para
+# o agente abrir via view_image.
+review-loop foto:
+    {{python}} scripts/render_all_overlays.py {{foto}}
+    @echo ""
+    @echo "→ review/$(basename {{foto}} | sed 's/\.[^.]*$//')/$(basename {{foto}} | sed 's/\.[^.]*$//')_index.html"
+
+##############################
 # DOCKER
 #############################
 
