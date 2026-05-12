@@ -124,6 +124,9 @@ export interface OverlayLayerProps {
   activeOverlays: string[];
   /** Metric evaluations with improvement_vector_x/y (from Nest M1 pipeline, PR-34). Required for improvement_vectors overlay. */
   metricEvaluations?: MetricEvaluationResult[];
+  /** Source of the trichion landmark: "bisenet" when the BiSeNet hair-parsing model was used,
+   *  "mesh" when falling back to lm[10] (P_FOREHEAD_CROWN). Used to label the FaceExtents overlay. */
+  trichion_source?: "bisenet" | "mesh";
 }
 
 /**
@@ -231,7 +234,7 @@ function _severityColor(severity5: string | null | undefined): string {
  * FaceExtents — desenha linhas sólidas brancas nas extremidades da face
  * (hairline, queixo, têmpora L, têmpora R) com labels.
  */
-function FaceExtents({ landmarks }: { landmarks: Array<[number, number]> }) {
+function FaceExtents({ landmarks, trichion_source = "mesh" }: { landmarks: Array<[number, number]>; trichion_source?: "bisenet" | "mesh" }) {
   const yTop = lm(landmarks, P_FOREHEAD_CROWN)[1];
   const yMenton = lm(landmarks, P_MENTON)[1];
   // 234 = image-left zygomatic arch (lower x), 454 = image-right (higher x).
@@ -245,7 +248,7 @@ function FaceExtents({ landmarks }: { landmarks: Array<[number, number]> }) {
       <line x1={xL} y1={yTop}    x2={xL} y2={yMenton} stroke={stroke} strokeWidth={1.5} />
       <line x1={xR} y1={yTop}    x2={xR} y2={yMenton} stroke={stroke} strokeWidth={1.5} />
       <text x={xL + 4} y={yTop - 4} fill={stroke} fontSize={11} fontWeight={600}
-        style={{ paintOrder: "stroke", stroke: "#000", strokeWidth: 2 }}>Trichion (mesh)</text>
+        style={{ paintOrder: "stroke", stroke: "#000", strokeWidth: 2 }}>{trichion_source === "bisenet" ? "Trichion (BiSeNet)" : "Trichion (mesh)"}</text>
       <text x={xL + 4} y={yMenton + 14} fill={stroke} fontSize={11} fontWeight={600}
         style={{ paintOrder: "stroke", stroke: "#000", strokeWidth: 2 }}>Menton</text>
     </g>
@@ -488,7 +491,7 @@ function ImprovementVectors({
   return <>{arrows}</>;
 }
 
-export function OverlayLayer({ landmarks, imageWidth, imageHeight, viewBoxWidth, viewBoxHeight, activeOverlays, metricEvaluations }: OverlayLayerProps) {
+export function OverlayLayer({ landmarks, imageWidth, imageHeight, viewBoxWidth, viewBoxHeight, activeOverlays, metricEvaluations, trichion_source }: OverlayLayerProps) {
   if (!landmarks || landmarks.length < 478) return null;
 
   const active = new Set(activeOverlays);
@@ -521,7 +524,7 @@ export function OverlayLayer({ landmarks, imageWidth, imageHeight, viewBoxWidth,
       {active.has("grid_fifths")       && <GridFifths       landmarks={landmarks} />}
       {/* z=20: contour */}
       {active.has("outline_face")      && <OutlineFace      landmarks={landmarks} />}
-      {active.has("face_extents")      && <FaceExtents      landmarks={landmarks} />}
+      {active.has("face_extents")      && <FaceExtents      landmarks={landmarks} trichion_source={trichion_source} />}
       {/* z=40: improvement vectors (rendered last = topmost) */}
       {active.has("improvement_vectors") && metricEvaluations && metricEvaluations.length > 0 && (
         <ImprovementVectors landmarks={landmarks} metricEvaluations={metricEvaluations} />

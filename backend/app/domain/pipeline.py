@@ -40,6 +40,7 @@ import app.services.metrics  # noqa: F401 — populates @register decorators
 from app.services.normalization import normalize as _normalize_v2
 from app.services.metrics.registry import compute_all as _compute_metrics_v2
 from app.services.metrics.base import QualityContext as _QualityContext
+from app.services.landmarks.fusion_layer import fuse as _fuse_landmarks
 
 
 # ============================================================================
@@ -1229,6 +1230,7 @@ def run(image_path: str, output_dir: str, mode: str = "premium") -> dict:
 
     # V2 metric evaluations with improvement vectors (for frontend overlays).
     _metric_evaluations_v2: list = []
+    _fused = None
     try:
         _yaw_deg = float(photo_quality_metrics.get("head_pose_yaw_deg", 0.0))
         _pitch_deg = float(photo_quality_metrics.get("head_pose_pitch_deg", 0.0))
@@ -1239,12 +1241,23 @@ def run(image_path: str, output_dir: str, mode: str = "premium") -> dict:
             pitch_deg=_pitch_deg,
             image_size=(_w, _h),
         )
+
+        # BiSeNet fusion: derive trichion virtual landmark from hair-mask segmentation.
+        # Falls back silently to lm[10] mesh trichion on any error.
+        _fused = _fuse_landmarks(canonical.image, canonical.landmarks)
+        _vl_ctx = {
+            "trichion_y_icu":      _fused.trichion_y_icu,
+            "trichion_confidence": _fused.trichion_confidence,
+            "trichion_source":     _fused.trichion_source,
+        }
+
         _qctx_v2 = _QualityContext(
             quality_score=capture_confidence,
             regional_penalties={},
             pose={"yaw": _yaw_deg, "pitch": _pitch_deg, "roll": 0.0},
             landmark_stability_scores=None,
             capture_count=1,
+            virtual_landmarks=_vl_ctx,
         )
         _mv_list = _compute_metrics_v2(_normalised_v2, _qctx_v2)
         for _mv in _mv_list:
@@ -1335,6 +1348,10 @@ def run(image_path: str, output_dir: str, mode: str = "premium") -> dict:
         'landmarks': [[float(canonical.landmarks[i, 0]), float(canonical.landmarks[i, 1])] for i in range(len(canonical.landmarks))],
         # Flat metric evaluations with improvement vectors for "Vetores ideais" view.
         'metric_evaluations': _metric_evaluations_v2,
+        # BiSeNet hairline virtual landmarks (Phase 5 — 2026-05-12)
+        'virtual_landmarks': _fused.virtual_landmarks if _fused is not None else {},
+        'trichion_source': _fused.trichion_source if _fused is not None else "mesh",
+        'trichion_confidence': _fused.trichion_confidence if _fused is not None else 0.0,
     }
 
     # 6. Salvar outputs

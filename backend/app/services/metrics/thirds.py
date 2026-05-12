@@ -2,11 +2,18 @@
 
 Classical facial thirds divide the face into three equal vertical segments:
 
-  Upper third:  forehead crown (P_FOREHEAD_CROWN=10) → inner-brow midline
+  Upper third:  trichion (P_FOREHEAD_CROWN=10 or BiSeNet virtual) → inner-brow midline
   Middle third: inner-brow midline → subnasale (P_SUBNASALE=2)
   Lower third:  subnasale → menton (P_MENTON=152)
 
 Ideal canónico: 0.333 each.  Green ±0.02, Yellow ±0.05 (PLAN_METRICS §5.3).
+
+BiSeNet integration (Phase 5 — 2026-05-12):
+  When QualityContext.virtual_landmarks is set AND trichion_confidence ≥ 0.8,
+  the upper-third boundary uses the BiSeNet-derived trichion_y_icu instead of
+  lm[P_FOREHEAD_CROWN].  The middle and lower thirds are unaffected.
+  confidence_final for upper-third metrics is multiplied by trichion_confidence
+  to propagate the segmentation uncertainty downstream.
 
 Geometry note (NormalizedLandmarks, basis=intercanthal):
   - Inner canthus midpoint = origin (y=0).
@@ -58,18 +65,64 @@ _MAX_DEVIATION: float = 0.5
 
 
 # ---------------------------------------------------------------------------
+# BiSeNet trichion helper
+# ---------------------------------------------------------------------------
+
+def _get_trichion_y(lm: NormalizedLandmarks, ctx: QualityContext) -> float:
+    """Return the trichion y-coordinate in ICU.
+
+    Priority:
+      1. BiSeNet virtual trichion when confidence ≥ TRICHION_CONFIDENCE_THRESHOLD.
+      2. Geometric fallback: lm[P_FOREHEAD_CROWN] (mesh point, same as before).
+    """
+    vl = getattr(ctx, "virtual_landmarks", None)
+    if vl is not None:
+        conf = float(vl.get("trichion_confidence", 0.0))
+        if conf >= 0.8:  # TRICHION_CONFIDENCE_THRESHOLD from fusion_layer
+            y_icu = vl.get("trichion_y_icu")
+            if y_icu is not None:
+                return float(y_icu)
+    return float(lm.xy(P_FOREHEAD_CROWN)[1])
+
+
+def _trichion_confidence_factor(ctx: QualityContext) -> float:
+    """Return the trichion confidence multiplier for upper-third confidence.
+
+    Returns 1.0 when using mesh fallback (no impact on existing confidence).
+    Returns trichion_confidence when using BiSeNet (propagates uncertainty).
+    """
+    vl = getattr(ctx, "virtual_landmarks", None)
+    if vl is not None and vl.get("trichion_source") == "bisenet":
+        return float(vl.get("trichion_confidence", 1.0))
+    return 1.0
+
+
+# ---------------------------------------------------------------------------
 # Pure math helpers
 # ---------------------------------------------------------------------------
 
-def _thirds_geometry(lm: NormalizedLandmarks) -> tuple[float, float, float, float]:
+def _thirds_geometry(
+    lm: NormalizedLandmarks,
+    trichion_y_override: float | None = None,
+) -> tuple[float, float, float, float]:
     """Return (upper, middle, lower, total_height) as ratio tuples.
 
     All values in intercanthal units.  Ratios sum to 1.0 when total > 0.
 
+    Parameters
+    ----------
+    trichion_y_override : float | None
+        When provided, replaces lm[P_FOREHEAD_CROWN] as the upper hairline
+        boundary. Used when BiSeNet confidence ≥ 0.8.
+
     Returns (0.333, 0.333, 0.333, 0.0) when forehead and menton are
     co-located (degenerate face — guard against division by zero).
     """
-    forehead_y = float(lm.xy(P_FOREHEAD_CROWN)[1])
+    if trichion_y_override is not None:
+        forehead_y = trichion_y_override
+    else:
+        forehead_y = float(lm.xy(P_FOREHEAD_CROWN)[1])
+
     brow_y     = float(
         (lm.xy(P_BROW_LEFT_INNER)[1] + lm.xy(P_BROW_RIGHT_INNER)[1]) / 2
     )
@@ -115,7 +168,8 @@ class UpperThirdRatioCalculator(MetricCalculator):
     unit = "ratio"
 
     def compute(self, lm: NormalizedLandmarks, ctx: QualityContext) -> MetricValue:
-        upper, _, _, _ = _thirds_geometry(lm)
+        trichion_y = _get_trichion_y(lm, ctx)
+        upper, _, _, _ = _thirds_geometry(lm, trichion_y_override=trichion_y)
         conf_raw = _ratio_confidence(upper)
         conf_final = propagate(
             conf_raw, ctx.quality_score, self.region,
@@ -123,6 +177,8 @@ class UpperThirdRatioCalculator(MetricCalculator):
             yaw_deg=ctx.get_yaw(), pitch_deg=ctx.get_pitch(),
             pose_params=THIRDS_POSE_PARAMS,
         )
+        # Propagate BiSeNet segmentation uncertainty into confidence
+        conf_final = conf_final * _trichion_confidence_factor(ctx)
         return MetricValue(
             metric_id=self.metric_id, region=self.region, family=self.family,
             unit=self.unit, value=upper, error=0.01,
@@ -146,7 +202,8 @@ class MiddleThirdRatioCalculator(MetricCalculator):
     unit = "ratio"
 
     def compute(self, lm: NormalizedLandmarks, ctx: QualityContext) -> MetricValue:
-        _, middle, _, _ = _thirds_geometry(lm)
+        trichion_y = _get_trichion_y(lm, ctx)
+        _, middle, _, _ = _thirds_geometry(lm, trichion_y_override=trichion_y)
         conf_raw = _ratio_confidence(middle)
         conf_final = propagate(
             conf_raw, ctx.quality_score, self.region,
@@ -177,7 +234,8 @@ class LowerThirdRatioCalculator(MetricCalculator):
     unit = "ratio"
 
     def compute(self, lm: NormalizedLandmarks, ctx: QualityContext) -> MetricValue:
-        _, _, lower, _ = _thirds_geometry(lm)
+        trichion_y = _get_trichion_y(lm, ctx)
+        _, _, lower, _ = _thirds_geometry(lm, trichion_y_override=trichion_y)
         conf_raw = _ratio_confidence(lower)
         conf_final = propagate(
             conf_raw, ctx.quality_score, self.region,
@@ -213,7 +271,8 @@ class DominantThirdCalculator(MetricCalculator):
     unit = "ratio"
 
     def compute(self, lm: NormalizedLandmarks, ctx: QualityContext) -> MetricValue:
-        upper, middle, lower, _ = _thirds_geometry(lm)
+        trichion_y = _get_trichion_y(lm, ctx)
+        upper, middle, lower, _ = _thirds_geometry(lm, trichion_y_override=trichion_y)
         deviations = {
             "upper":  abs(upper  - _IDEAL),
             "middle": abs(middle - _IDEAL),

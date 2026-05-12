@@ -43,12 +43,22 @@ RUN pip install --no-cache-dir --target=/app/site-packages \
     "scipy>=1.11.0" \
     "minio>=7.2.0" \
     "python-dotenv>=1.0.0" \
-    "reportlab>=4.2.0"
+    "reportlab>=4.2.0" \
+    "onnxruntime>=1.17.0"
 
 # Download MediaPipe FaceLandmarker model (~3MB) for Mesh-478 native detection.
 RUN mkdir -p /app/backend/models && \
     curl -fsSL https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task \
         -o /app/backend/models/face_landmarker.task
+
+# Download BiSeNet face-parsing ONNX model (~6MB, CelebAMask-HQ 19 classes, hair=17).
+# URL: yakhyo/face-parsing v0.0.1 release.
+# FALLBACK: If this URL returns 404, replace it with your mirror URL.
+# Without this model the pipeline silently falls back to lm[10] mesh trichion (see fusion_layer.py).
+RUN curl -fsSL \
+    "https://github.com/yakhyo/face-parsing/releases/download/v0.0.1/bisenet_resnet18.onnx" \
+    -o /app/backend/models/bisenet_face_parsing.onnx \
+    || echo "WARNING: BiSeNet ONNX download failed — fallback mesh trichion will be used at runtime"
 
 # Copy application code from backend/ package
 COPY backend/ ./

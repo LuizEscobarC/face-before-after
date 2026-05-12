@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from typing import ClassVar
+from typing import Any, ClassVar
 
 from app.domain.metric_value import MetricValue
 from app.domain.normalized_landmarks import NormalizedLandmarks
@@ -42,6 +42,17 @@ class QualityContext:
     pose: dict[str, float] = field(default_factory=dict)
     landmark_stability_scores: list[float] | None = None
     capture_count: int = 1
+    virtual_landmarks: dict[str, Any] | None = None
+    """BiSeNet fusion output for hairline-aware thirds calculation.
+
+    When set and ``virtual_landmarks["trichion_confidence"] >= 0.8``, the
+    ``UpperThirdRatioCalculator`` (and related thirds metrics) will use the
+    BiSeNet-derived trichion y-value instead of ``lm[P_FOREHEAD_CROWN]``.
+    Keys expected by thirds.py:
+      - "trichion_y_icu":      float — y in intercanthal units
+      - "trichion_confidence": float ∈ [0, 1]
+      - "trichion_source":     "bisenet" | "mesh"
+    """
 
     def get_yaw(self) -> float:
         return float(self.pose.get("yaw", 0.0))

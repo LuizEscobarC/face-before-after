@@ -1,12 +1,13 @@
 # Face Analysis Domain — Índice de Contexto
 
 > Documentação da arquitetura atual (MediaPipe-478 + NestJS + PostgreSQL + Python).
-> Última atualização: **2026-05-12** — auditoria do painel premium (fixes: fwhr canônico, jawline normalizado, marquardt com pose-gate, gaussianas em visual_status); + half-width sided + saturação dn=5 no `IdealComparator`/`RegionalScorer`.
+> Última atualização: **2026-05-12** — auditoria do painel premium (fixes: fwhr canônico, jawline normalizado, marquardt com pose-gate, gaussianas em visual_status); + half-width sided + saturação dn=5 no `IdealComparator`/`RegionalScorer`; + integração BiSeNet hairline (virtual trichion, trichion_source, QualityContext.virtual_landmarks).
 
 ## Auditorias / changelog técnico
 
 - [CALIBRATION_AUDIT_2026-05-12.md](./CALIBRATION_AUDIT_2026-05-12.md) — bugs de landmark (P_NOSE_RIGHT 45→278, zygomatic, lips), recalibração de ideais v1.1, painel premium (D1-D4: jawline, marquardt, fwhr, gaussianas).
 - [08-svg-overlays.md](./08-svg-overlays.md) — 5 bugs corrigidos nos overlays SVG (coordinate space, Rule of Fifths, midline, jawline), sistema de coordenadas viewBox/CSS, checklist QA visual.
+- [09-bisenet-hairline.md](./09-bisenet-hairline.md) — integração BiSeNet: virtual trichion, FusedLandmarks, QualityContext.virtual_landmarks, thirds.py BiSeNet-aware, OverlayLayer trichion_source.
 
 ---
 
@@ -22,6 +23,7 @@
 | [06-visual-status.md](./06-visual-status.md) | Scores compostos: dominância, atratividade, frescor | sessões de visual_status, scoring |
 | [07-recommendations.md](./07-recommendations.md) | Catálogo de recomendações e trilha de evolução | sessões de recomendações/templates |
 | [08-svg-overlays.md](./08-svg-overlays.md) | SVG overlays: bugs corrigidos, coordinate space, componentes, QA | sessões de overlays, OverlayLayer |
+| [09-bisenet-hairline.md](./09-bisenet-hairline.md) | BiSeNet hairline: segmenter, virtual_landmarks, fusion_layer, thirds BiSeNet-aware, trichion_source | sessões de hairline, thirds, trichion |
 
 ---
 
@@ -63,5 +65,5 @@ O sistema analisa uma foto facial frontal usando **MediaPipe Mesh-478** e retorn
 | Eixo Y | cresce para baixo (padrão imagem) | — |
 | LOW_CONF_THRESHOLD | 0.35 | `confidence_propagation.py` |
 | Frontal OK | \|yaw\| ≤ 15° e \|pitch\| ≤ 15° | `confidence_propagation.py` |
-| Pytest | 1394 passed, 48 skipped | `backend/tests/` |
+| Pytest | 1441 passed, 49 skipped | `backend/tests/` |
 | Vitest | 201 passed | `nest/src/` |
