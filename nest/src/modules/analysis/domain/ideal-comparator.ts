@@ -100,13 +100,25 @@ export class IdealComparator {
   ): number | null {
     if (greenMin === null || greenMax === null) return null;
 
-    // green_half_width = distance from centre to nearest green edge
-    const halfWidth = Math.min(
-      Math.abs(central - greenMin),
-      Math.abs(greenMax - central),
-    );
+    // Sided half-width: distance from centre to the green edge on the side
+    // the deviation actually occurred. Using `min()` over both sides (legacy)
+    // produced two failure modes:
+    //   1. Unilateral metrics (asymmetry, abs-deviation) where greenMin == central
+    //      collapsed half-width to 0 → dn=null → metric silently dropped from scoring.
+    //   2. Asymmetric green ranges (e.g. forehead_height_ratio [0.85, 1.20] at 1.00)
+    //      penalised the wider side with the narrower half-width → false `mild`.
+    const halfAbove = Math.abs(greenMax - central);
+    const halfBelow = Math.abs(central - greenMin);
+    const halfWidth = deviationRaw >= 0 ? halfAbove : halfBelow;
 
-    if (halfWidth <= 0) return null;
+    if (halfWidth <= 0) {
+      // value sits exactly on the central anchor: deviation is 0 → dn = 0.
+      // (Unilateral metric with deviationRaw == 0 hits this branch.)
+      if (deviationRaw === 0) return 0;
+      // Unilateral metric pushed to the closed side (should not happen for
+      // abs-valued metrics but guard anyway): treat as out-of-range with sign.
+      return null;
+    }
 
     return deviationRaw / halfWidth;
   }

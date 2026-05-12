@@ -175,9 +175,15 @@ def proportions(lm: np.ndarray) -> Dict[str, Any]:
     glabella_to_menton = float(menton[1] - glabella[1])
     lower_third_ratio = _safe_div(h_lower, glabella_to_menton) if glabella_to_menton > 0 else None
 
-    # fWHR: bizygomatic / upper-face height (glabella -> upper lip).
-    # Issue 2.1: rejeita altura inválida (landmarks degenerados ou face deitada).
-    upper_face_h = float(lm[P_UPPER_LIP][1] - glabella[1])
+    # fWHR canônico (Carré & McCormick 2008, Lefevre 2012):
+    #   bizygomatic_width / (brow_top → upper_lip)
+    # ANTES: usava glabella (ponto entre sobrancelhas) → topo subestimado →
+    # numerador menor → fWHR inflado e ideal=1.85 mal calibrado contra fórmula
+    # errada. Agora usa o brow_top = MIN(y) sobre todos os pontos das sobrancelhas
+    # (Y cresce p/ baixo na imagem, então o "mais alto" tem o menor Y).
+    brow_pts_y = np.concatenate([lm[LM_LEFT_BROW][:, 1], lm[LM_RIGHT_BROW][:, 1]])
+    brow_top_y = float(np.min(brow_pts_y))
+    upper_face_h = float(lm[P_UPPER_LIP][1] - brow_top_y)
     fwhr = (bizygomatic / upper_face_h) if upper_face_h > 0 else None
 
     return {
@@ -219,7 +225,17 @@ def masculinity(lm: np.ndarray, ipd: float) -> Dict[str, Any]:
     # normalizada — apenas indicativo de proeminência relativa).
     chin_proj_px = float(lm[P_MENTON][1] - lm[P_LOWER_LIP][1])
 
-    # Definição da linha mandibular: variância angular entre segmentos
+    # Definição da linha mandibular — score normalizado em [0, 1], MAIOR = MAIS DEFINIDO.
+    #
+    # Cálculo: dispersão angular (std) dos ângulos entre segmentos consecutivos da
+    # jawline. Uma mandíbula bem definida tem ângulos suaves e regulares (std baixo);
+    # uma mandíbula difusa/redonda tem segmentos errantes (std alto). Mapeamos:
+    #   std=0°  → score=1.0 (linha perfeitamente regular)
+    #   std=15° → score=0.0 (limite empírico observado em jaws ruidosas)
+    #
+    # ANTES: retornava o std em graus capped em 30 — unidade inconsistente com
+    # consumidores (visual_status, glossary, ideals) que tratam como [0,1] e
+    # "maior=melhor". Causava saturação artificial de Dominância em 10.0.
     jaw = lm[LM_JAWLINE]
     angles = []
     for i in range(1, len(jaw) - 1):
@@ -227,9 +243,11 @@ def masculinity(lm: np.ndarray, ipd: float) -> Dict[str, Any]:
         v2 = jaw[i + 1] - jaw[i]
         a = math.degrees(math.atan2(v2[1], v2[0]) - math.atan2(v1[1], v1[0]))
         angles.append(abs(a))
-    # Issue 2.10: clamp em [0, 30] (3σ típico em rostos humanos);
-    # acima disso indica landmarks ruins, não rosto realmente irregular.
-    jaw_def_score = float(min(30.0, np.std(angles))) if angles else 0.0
+    if angles:
+        std_deg = float(np.std(angles))
+        jaw_def_score = float(max(0.0, min(1.0, 1.0 - std_deg / 15.0)))
+    else:
+        jaw_def_score = 0.0
 
     return {
         "jaw_width_pct_ipd":             100.0 * _safe_div(bigonial, ipd),
@@ -390,13 +408,27 @@ def face_shape(lm: np.ndarray) -> Dict[str, Any]:
 
 
 def marquardt_deviation(lm: np.ndarray, ipd: float) -> Dict[str, Any]:
-    """Aproximação: desvio bilateral RMS entre cada landmark e seu espelho.
+    """Assimetria bilateral global em RMS de landmarks espelhados.
 
-    Em vez de transportar uma máscara áurea fixa (que requer alinhamento por
-    pose 3D), medimos o quanto o rosto se afasta da própria simetria
-    bilateral perfeita — proxy útil e estável da "máscara áurea" de
-    Marquardt para fotos frontais.
+    NOTA: o nome histórico "marquardt_deviation" é mantido para compat com o
+    schema persistido, mas a métrica NÃO compara contra a máscara áurea de
+    Marquardt — mede o desvio do rosto contra a sua **própria** simetria
+    bilateral (mirror sobre midline x). UI deve rotular como
+    "Assimetria Bilateral (% IPD)".
+
+    Pose gate: a métrica é apenas válida em fotos quase frontais. Quando o
+    roll calculado pelos olhos excede ±5° ou os olhos têm dy/dx > 0.087
+    (≈5°), retornamos ``None`` em vez de inflar o número artificialmente.
     """
+    # ── pose-gate: roll estimado pelos centros dos olhos ────────────────
+    le, re = _eye_centers(lm)
+    dx_eye = float(re[0] - le[0])
+    dy_eye = float(re[1] - le[1])
+    if abs(dx_eye) < 1e-6:
+        return {"marquardt_deviation_px": None, "marquardt_deviation_pct_ipd": None}
+    roll_deg_est = math.degrees(math.atan2(dy_eye, dx_eye))
+    if abs(roll_deg_est) > 5.0:
+        return {"marquardt_deviation_px": None, "marquardt_deviation_pct_ipd": None}
     # Mirror pairs mapped to Mesh-478 indices. Built from region lists in
     # landmarks_mesh so each pair is anatomically symmetric (left ↔ right).
     # Jawline: 8 pairs around the menton (LM_JAWLINE[8] is centre).
@@ -417,8 +449,7 @@ def marquardt_deviation(lm: np.ndarray, ipd: float) -> Dict[str, Any]:
     # LM_INNER_MOUTH dlib order: [60,61,62,63,64,65,66,67]
     im = LM_INNER_MOUTH
     pairs += [(im[0], im[4]), (im[1], im[3]), (im[7], im[5])]
-    # Linha média = média entre eye_midpoint e glabela
-    le, re = _eye_centers(lm)
+    # Linha média = média entre eye_midpoint e glabela (le/re já computados pelo pose-gate)
     midline_x = float(((le[0] + re[0]) / 2.0 + _glabella(lm)[0]) / 2.0)
 
     sq = []

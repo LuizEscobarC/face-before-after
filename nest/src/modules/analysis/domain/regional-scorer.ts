@@ -5,9 +5,15 @@
  *
  * Algorithm:
  *   - For each contributing metric:
- *       quality_i = clip(1 - |deviation_normalized|, 0, 1)
+ *       quality_i = clip(1 - |deviation_normalized| / DN_SATURATION, 0, 1)
  *       contribution_i = quality_i * weight_i * confidence_final_i
  *       confidence_contrib_i = weight_i * confidence_final_i
+ *
+ *   DN_SATURATION = 5.0 — aligns with SeverityClassifier.STRONG_MAX so the
+ *   quality curve degrades linearly from `ideal` (q=1) → `extreme` (q=0).
+ *   Previously the formula `1 - |dn|` saturated at `|dn|=1`, collapsing every
+ *   non-ideal severity (mild/moderate/strong/extreme) into the same q=0,
+ *   discarding the classifier's gradation.
  *   - score_0_100 = (Σ contribution_i / Σ confidence_contrib_i) * 100
  *   - confidence_aggregate = Σ confidence_contrib_i / Σ weight_i
  *
@@ -45,6 +51,13 @@ export interface RegionalScoreResult {
 }
 
 const MIN_CONFIDENCE_TO_DISPLAY_DEFAULT = 0.4;
+
+/**
+ * Deviation-normalized value at which quality reaches 0. Mirrors
+ * SeverityClassifier.STRONG_MAX (extreme threshold). Any |dn| >= 5.0 is
+ * considered fully outside any reference band and contributes nothing.
+ */
+const DN_SATURATION = 5.0;
 
 @Injectable()
 export class RegionalScorer {
@@ -84,7 +97,7 @@ export class RegionalScorer {
       const weight = weightByMetric.get(m.metricId) ?? 1.0;
       if (weight <= 0) continue;
 
-      const quality = clip(1 - Math.abs(m.deviationNormalized), 0, 1);
+      const quality = clip(1 - Math.abs(m.deviationNormalized) / DN_SATURATION, 0, 1);
       const wConf = weight * m.confidenceFinal;
 
       sumWeightedQuality += quality * wConf;

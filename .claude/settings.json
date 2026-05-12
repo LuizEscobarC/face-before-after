@@ -7,7 +7,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash .claude/local/hooks/scripts/inject-context.sh",
+            "command": "bash .claude/hooks/scripts/inject-context.sh",
             "timeout": 5
           }
         ]
@@ -19,7 +19,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash .claude/local/hooks/scripts/block-dangerous-bash.sh",
+            "command": "bash .claude/hooks/scripts/block-dangerous-bash.sh",
             "timeout": 5
           }
         ]
@@ -30,7 +30,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash .claude/local/hooks/scripts/save-context-before-compact.sh",
+            "command": "bash .claude/hooks/scripts/save-context-before-compact.sh",
             "timeout": 5
           }
         ]
@@ -41,7 +41,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash .claude/local/hooks/scripts/save-session-summary.sh",
+            "command": "bash .claude/hooks/scripts/save-session-summary.sh",
             "timeout": 15
           }
         ]

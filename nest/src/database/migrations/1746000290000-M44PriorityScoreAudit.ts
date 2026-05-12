@@ -23,7 +23,7 @@ import { MigrationInterface, QueryRunner } from 'typeorm';
  *   - PLAN_M4_NARRATIVE.md §2.4 (PR-58 backlog row)
  *   - PLAN_DDL_REVIEW.md §5.7 (priority_score_audit + 5 source FKs)
  *   - .claude/database/ddl.sql lines 597–630 (legacy DDL of the table)
- *   - .claude/local/plans/marcos/M4_PR58_DiagnosticPriorityService.md §2 (PR-58.1)
+ *   - .claude/plans/marcos/M4_PR58_DiagnosticPriorityService.md §2 (PR-58.1)
  */
 export class M44PriorityScoreAudit1746000290000 implements MigrationInterface {
   name = 'M44PriorityScoreAudit1746000290000';

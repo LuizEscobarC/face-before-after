@@ -38,7 +38,7 @@
  * service re-runs UPSERT.
  *
  * References:
- *   - .claude/local/plans/marcos/M4_PR58_DiagnosticPriorityService.md (full plan)
+ *   - .claude/plans/marcos/M4_PR58_DiagnosticPriorityService.md (full plan)
  *   - PLAN_M4_NARRATIVE.md §2.4, §3 DEC-34/35/37/38, §6 armadilhas
  *   - PLAN_DDL_REVIEW.md §5.7
  */

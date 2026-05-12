@@ -29,7 +29,7 @@ import { MigrationInterface, QueryRunner } from 'typeorm';
  * ----------
  *   - PLAN_M4_NARRATIVE.md §1.1 (linha vermelha) + §3 DEC-32
  *   - PR-50 (M41) — schema + v0.1 seed
- *   - .claude/local/plans/marcos/M4_PR54_TONE_REVIEW.md — full audit report
+ *   - .claude/plans/marcos/M4_PR54_TONE_REVIEW.md — full audit report
  */
 export class M42cTemplateBlacklistExtensionV021746000260000
   implements MigrationInterface

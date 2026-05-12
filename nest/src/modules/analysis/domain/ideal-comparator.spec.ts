@@ -184,6 +184,69 @@ describe('IdealComparator — directionLabel', () => {
 // Eye-metric spot checks (regression)
 // ---------------------------------------------------------------------------
 
+// ---------------------------------------------------------------------------
+// Sided half-width — regression for BUG-1 (unilateral metrics) and BUG-2
+// (asymmetric green range using the wrong side).
+// ---------------------------------------------------------------------------
+
+describe('IdealComparator — sided half-width', () => {
+  /** Unilateral asymmetry metric: value is always ≥ 0 (abs-valued). */
+  const unilateralIdeal: IdealSpec = {
+    idealCentralValue: 0.0,
+    greenRangeMin: 0.0,
+    greenRangeMax: 0.05,
+    directionLabelAbove: { 'pt-BR': 'assimetria' },
+    directionLabelBelow: {},
+  };
+
+  it('unilateral metric at central (value=0) → dn=0, not null', () => {
+    const r = cmp.compare(0.0, unilateralIdeal);
+    expect(r.deviationNormalized).toBe(0);
+  });
+
+  it('unilateral metric at green edge (value=0.05) → dn=1.0', () => {
+    const r = cmp.compare(0.05, unilateralIdeal);
+    expect(r.deviationNormalized).toBeCloseTo(1.0, 5);
+  });
+
+  it('unilateral metric well outside (value=0.20) → dn=4.0 (extreme range)', () => {
+    const r = cmp.compare(0.20, unilateralIdeal);
+    expect(r.deviationNormalized).toBeCloseTo(4.0, 5);
+  });
+
+  /** Asymmetric green range: half_below=0.15, half_above=0.20. */
+  const asymmetricIdeal: IdealSpec = {
+    idealCentralValue: 1.00,
+    greenRangeMin: 0.85,
+    greenRangeMax: 1.20,
+    directionLabelAbove: { 'pt-BR': 'longo' },
+    directionLabelBelow: { 'pt-BR': 'curto' },
+  };
+
+  it('asymmetric range — value above central uses upper half-width', () => {
+    // value 1.18 is inside green [0.85, 1.20] → dn should be < 1
+    // legacy code used min(0.15, 0.20)=0.15 → dn = 0.18/0.15 = 1.20 (false mild)
+    const r = cmp.compare(1.18, asymmetricIdeal);
+    expect(Math.abs(r.deviationNormalized!)).toBeLessThan(1);
+    expect(r.deviationNormalized).toBeCloseTo(0.9, 1);
+  });
+
+  it('asymmetric range — value below central uses lower half-width', () => {
+    // value 0.88 is inside green [0.85, 1.20] → dn should be < 1
+    const r = cmp.compare(0.88, asymmetricIdeal);
+    expect(Math.abs(r.deviationNormalized!)).toBeLessThan(1);
+    expect(r.deviationNormalized).toBeCloseTo(-0.8, 1);
+  });
+
+  it('asymmetric range — value at green edge above → dn=1.0', () => {
+    expect(cmp.compare(1.20, asymmetricIdeal).deviationNormalized).toBeCloseTo(1.0, 5);
+  });
+
+  it('asymmetric range — value at green edge below → dn=-1.0', () => {
+    expect(cmp.compare(0.85, asymmetricIdeal).deviationNormalized).toBeCloseTo(-1.0, 5);
+  });
+});
+
 describe('IdealComparator — eye metrics spot checks', () => {
   const eyeApertureIdeal: IdealSpec = {
     idealCentralValue: 0.30,

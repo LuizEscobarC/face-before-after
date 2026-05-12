@@ -25,6 +25,22 @@ def _clamp(value: float, lo: float = 0.0, hi: float = 10.0) -> float:
     return max(lo, min(hi, value))
 
 
+def _bell(value: float, ideal: float, sigma: float) -> float:
+    """Score 0–10 em curva gaussiana centrada no ideal.
+
+    Substitui rampas lineares (que saturam em 10 fora da faixa ideal). Com
+    σ representando a tolerância "1σ ≈ 60% do score", valores irreais
+    decaem em vez de continuar pontuando alto.
+
+        score = exp(-((value - ideal) / sigma)²) * 10
+    """
+    import math as _m
+    if sigma <= 0:
+        return 0.0
+    z = (value - ideal) / sigma
+    return 10.0 * _m.exp(-(z * z))
+
+
 def _num(metrics: Dict[str, Any], key: str) -> Optional[float]:
     """Lê uma métrica como float; devolve None se ausente ou inválida."""
     v = metrics.get(key)
@@ -65,17 +81,22 @@ def _weighted(parts: Iterable[Tuple[Optional[float], float]]) -> float:
 def compute_dominance_score(metrics: Dict[str, Any]) -> float:
     """Dominância/força percebida (0–10).
 
-    fWHR ideal ~1.85 dentro de [1.4, 2.2]; jawline_definition_score em [0, 1];
-    bizygomatic_to_bigonial_ratio centrado em 1.3.
+    Curvas gaussianas centradas no ideal — pontua **menos** quanto mais o
+    valor se afasta do ideal em qualquer direção. Substitui as rampas
+    lineares monótonas que saturavam em 10.0 mesmo para valores irreais.
     """
     fwhr = _num(metrics, "fwhr")
-    fwhr_score = (fwhr - 1.4) / 0.8 * 10.0 if fwhr is not None else None
+    # fWHR canônico (brow_top → upper_lip): pico de dominância em 1.85,
+    # σ=0.25 cobre a faixa anatomicamente plausível [1.4, 2.3].
+    fwhr_score = _bell(fwhr, ideal=1.85, sigma=0.25) if fwhr is not None else None
 
     jaw = _num(metrics, "jawline_definition_score")
-    jaw_score = jaw * 10.0 if jaw is not None else None
+    # jawline_definition_score já em [0, 1], MAIOR=melhor.
+    # Ideal=1.0, σ=0.35 → score=10 em jaw=1.0, score≈4 em jaw=0.5, score≈0.7 em jaw=0.
+    jaw_score = _bell(jaw, ideal=1.0, sigma=0.35) if jaw is not None else None
 
     bzg = _num(metrics, "bizygomatic_to_bigonial_ratio")
-    bzg_score = (10.0 - abs(bzg - 1.3) * 20.0) if bzg is not None else None
+    bzg_score = _bell(bzg, ideal=1.30, sigma=0.18) if bzg is not None else None
 
     return round(_weighted([
         (fwhr_score, 0.50),
@@ -85,18 +106,18 @@ def compute_dominance_score(metrics: Dict[str, Any]) -> float:
 
 
 def compute_attractiveness_score(metrics: Dict[str, Any]) -> float:
-    """Atratividade percebida (0–10)."""
+    """Atratividade percebida (0–10) — gaussianas centradas no ideal."""
     tilt = _num(metrics, "canthal_tilt_mean_deg")
-    tilt_score = (
-        (tilt - TILT_MIN_DEG) / (TILT_MAX_DEG - TILT_MIN_DEG) * 10.0
-        if tilt is not None else None
-    )
+    # Pico em +5° (juvenil), σ=6° cobre [-3°, +13°].
+    tilt_score = _bell(tilt, ideal=5.0, sigma=6.0) if tilt is not None else None
 
     asym = _num(metrics, "overall_asymmetry_score_pct_ipd")
-    sym_score = (5.0 - asym) / 5.0 * 10.0 if asym is not None else None
+    # Ideal=0 (perfeitamente simétrico), σ=3.0 → score≈37% em asym=3% IPD.
+    sym_score = _bell(asym, ideal=0.0, sigma=3.0) if asym is not None else None
 
     thirds = _num(metrics, "thirds_std_dev")
-    thirds_score = (10.0 - thirds * 50.0) if thirds is not None else None
+    # Ideal=0 (terços iguais), σ=0.04 cobre desvios modernos.
+    thirds_score = _bell(thirds, ideal=0.0, sigma=0.04) if thirds is not None else None
 
     return round(_weighted([
         (tilt_score, 0.45),
@@ -106,12 +127,13 @@ def compute_attractiveness_score(metrics: Dict[str, Any]) -> float:
 
 
 def compute_freshness_score(metrics: Dict[str, Any]) -> float:
-    """Frescor/cuidado percebido (0–10)."""
+    """Frescor/cuidado percebido (0–10) — gaussianas com σ realistas."""
     skin_l = _num(metrics, "skin_uniformity_std_lab_left")
     skin_r = _num(metrics, "skin_uniformity_std_lab_right")
     if skin_l is not None and skin_r is not None:
         skin_std = (skin_l + skin_r) / 2.0
-        skin_score = (25.0 - skin_std) / 15.0 * 10.0
+        # Ideal=8 (pele muito uniforme), σ=10 → std=18 dá ~36%, std=25 dá ~7%.
+        skin_score = _bell(skin_std, ideal=8.0, sigma=10.0)
     else:
         skin_score = None
 
@@ -119,12 +141,14 @@ def compute_freshness_score(metrics: Dict[str, Any]) -> float:
     dark_r = _num(metrics, "under_eye_darkness_right")
     if dark_l is not None and dark_r is not None:
         eye_dark = (dark_l + dark_r) / 2.0
-        dark_score = (0.25 - eye_dark) / 0.20 * 10.0
+        # Ideal=0 (sem olheira), σ=0.12 → 0.10=49%, 0.20=11%, 0.30=2%.
+        dark_score = _bell(eye_dark, ideal=0.0, sigma=0.12)
     else:
         dark_score = None
 
     ear = _num(metrics, "eye_aspect_ratio_mean")
-    ear_score = (ear - 0.18) / 0.17 * 10.0 if ear is not None else None
+    # Pico em 0.30 (abertura ideal), σ=0.08.
+    ear_score = _bell(ear, ideal=0.30, sigma=0.08) if ear is not None else None
 
     return round(_weighted([
         (skin_score, 0.45),

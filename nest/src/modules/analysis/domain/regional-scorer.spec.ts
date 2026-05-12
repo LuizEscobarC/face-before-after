@@ -86,41 +86,73 @@ describe('RegionalScorer — perfect ideal', () => {
   });
 });
 
-describe('RegionalScorer — at green-edge / yellow', () => {
-  it('deviation=1.0 → quality=0 → score=0', () => {
+describe('RegionalScorer — graded quality curve (dn saturation = 5.0)', () => {
+  // Quality formula: q = clip(1 − |dn|/5, 0, 1). Aligned with SeverityClassifier.
+  //   |dn|=1 → green edge (mild starts) → q=0.8
+  //   |dn|=2 → moderate starts         → q=0.6
+  //   |dn|=3.5 → strong starts         → q=0.3
+  //   |dn|=5 → extreme threshold       → q=0
+  it('deviation=1.0 (green edge) → quality=0.8 → score=80', () => {
     const r = scorer.score(
       'symmetry',
       [baseMetric({ deviationNormalized: 1.0 })],
       [w('m1', 1)],
     );
-    expect(r.score0to100).toBe(0);
+    expect(r.score0to100).toBeCloseTo(80, 5);
   });
 
-  it('deviation=0.5 → quality=0.5 → score=50', () => {
+  it('deviation=0.5 → quality=0.9 → score=90', () => {
     const r = scorer.score(
       'symmetry',
       [baseMetric({ deviationNormalized: 0.5 })],
       [w('m1', 1)],
     );
-    expect(r.score0to100).toBe(50);
+    expect(r.score0to100).toBeCloseTo(90, 5);
   });
 
-  it('deviation=2.0 (clipped) → score=0', () => {
+  it('deviation=2.0 (moderate) → quality=0.6 → score=60', () => {
     const r = scorer.score(
       'symmetry',
       [baseMetric({ deviationNormalized: 2.0 })],
       [w('m1', 1)],
     );
+    expect(r.score0to100).toBeCloseTo(60, 5);
+  });
+
+  it('deviation=3.5 (strong) → quality=0.3 → score=30', () => {
+    const r = scorer.score(
+      'symmetry',
+      [baseMetric({ deviationNormalized: 3.5 })],
+      [w('m1', 1)],
+    );
+    expect(r.score0to100).toBeCloseTo(30, 5);
+  });
+
+  it('deviation=5.0 (extreme threshold) → quality=0 → score=0', () => {
+    const r = scorer.score(
+      'symmetry',
+      [baseMetric({ deviationNormalized: 5.0 })],
+      [w('m1', 1)],
+    );
     expect(r.score0to100).toBe(0);
   });
 
-  it('deviation=-0.3 (sign-agnostic) → quality=0.7 → 70', () => {
+  it('deviation=8.0 (beyond saturation, clipped) → score=0', () => {
+    const r = scorer.score(
+      'symmetry',
+      [baseMetric({ deviationNormalized: 8.0 })],
+      [w('m1', 1)],
+    );
+    expect(r.score0to100).toBe(0);
+  });
+
+  it('deviation=-0.3 (sign-agnostic) → quality=0.94 → 94', () => {
     const r = scorer.score(
       'symmetry',
       [baseMetric({ deviationNormalized: -0.3 })],
       [w('m1', 1)],
     );
-    expect(r.score0to100).toBe(70);
+    expect(r.score0to100).toBeCloseTo(94, 5);
   });
 });
 
@@ -130,12 +162,12 @@ describe('RegionalScorer — weighted aggregation', () => {
       'symmetry',
       [
         baseMetric({ metricId: 'good', deviationNormalized: 0.0 }), // q=1.0
-        baseMetric({ metricId: 'bad', deviationNormalized: 1.0 }),  // q=0.0
+        baseMetric({ metricId: 'bad', deviationNormalized: 1.0 }),  // q=0.8 (green edge)
       ],
       [w('good', 3), w('bad', 1)],
     );
-    // (1*3*1 + 0*1*1) / (3*1 + 1*1) * 100 = 75
-    expect(r.score0to100).toBe(75);
+    // (1*3*1 + 0.8*1*1) / (3*1 + 1*1) * 100 = 3.8/4 * 100 = 95
+    expect(r.score0to100).toBeCloseTo(95, 5);
     expect(r.contributingMetricIds.sort()).toEqual(['bad', 'good']);
   });
 
@@ -168,12 +200,12 @@ describe('RegionalScorer — confidence weighting', () => {
       'symmetry',
       [
         baseMetric({ metricId: 'high', deviationNormalized: 0.0, confidenceFinal: 1.0 }), // q=1
-        baseMetric({ metricId: 'low', deviationNormalized: 1.0, confidenceFinal: 0.5 }),  // q=0
+        baseMetric({ metricId: 'low', deviationNormalized: 1.0, confidenceFinal: 0.5 }),  // q=0.8
       ],
       [w('high', 1), w('low', 1)],
     );
-    // (1*1*1 + 0*1*0.5) / (1*1 + 1*0.5) * 100 = 1/1.5*100 ≈ 66.667
-    expect(r.score0to100).toBeCloseTo(66.667, 2);
+    // (1*1*1 + 0.8*1*0.5) / (1*1 + 1*0.5) * 100 = 1.4/1.5*100 ≈ 93.333
+    expect(r.score0to100).toBeCloseTo(93.333, 2);
   });
 
   it('confidence_aggregate is weighted-mean of confidence_final', () => {

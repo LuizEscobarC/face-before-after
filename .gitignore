@@ -12,7 +12,7 @@ python3.10-bin/
 resultado_api/
 resultado_mvp/
 
-.claude/local/hooks/logs/
-.claude/local/window-context/
+.claude/hooks/logs/
+.claude/window-context/
 
-.claude/local/hooks/logs/
+.claude/hooks/logs/

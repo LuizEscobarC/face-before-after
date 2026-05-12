@@ -1132,7 +1132,7 @@ export function PremiumResultPage() {
                   ["Olheiras (dir)", "under_eye_darkness_right", ""],
                   ["Uniformidade da pele (esq)", "skin_uniformity_std_lab_left", ""],
                   ["Uniformidade da pele (dir)", "skin_uniformity_std_lab_right", ""],
-                  ["Desvio Máscara Áurea", "marquardt_deviation_pct_ipd", "%"],
+                  ["Assimetria Bilateral", "marquardt_deviation_pct_ipd", "%"],
                   ["Inclinação Canthal", "canthal_tilt_mean_deg", "°"],
                   ["Razão facial (fWHR)", "fwhr", ""],
                   ["Terço inferior", "lower_third_ratio", ""],
