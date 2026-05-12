@@ -30,15 +30,19 @@ const P_BROW_LEFT_INNER  = 107;
 const P_BROW_RIGHT_INNER = 336;
 const P_SUBNASALE = 2;
 const P_FOREHEAD_CROWN  = 10;  // hairline proxy
-// Widest face landmarks in IMAGE coordinate space (x-axis).
-// MediaPipe numbers landmarks from the PERSON's perspective, so "left" landmarks
-// appear on the image-RIGHT side (higher x). The actual widest points are:
-//   454 = LM_JAWLINE[8]  — person's LEFT cheek = image-RIGHT (higher x)
-//   234 = LM_JAWLINE[28] — person's RIGHT cheek = image-LEFT  (lower  x)
-// (338 and 379 that were here before are both on the PERSON's left side —
-//  same image-right half — so faceW was always near-zero or negative.)
-const P_ZYGO_IMG_RIGHT = 454; // image-right zygomatic arch (person's left cheek)
-const P_ZYGO_IMG_LEFT  = 234; // image-left  zygomatic arch (person's right cheek)
+// Bizygomatic anchors — outermost cheek/contour points for FaceExtents bounding box.
+// 234 = image-left (person's right cheek), 454 = image-right (person's left cheek).
+const P_ZYGO_IMG_RIGHT = 454;
+const P_ZYGO_IMG_LEFT  = 234;
+// Eye outer corners — used for the Rule of Fifths (Naini 2011 §6).
+// The five fifths are: [face edge | outer eye L | inner eye L–inner eye R | outer eye R | face edge].
+// We use eye-outer as the 1/5 and 4/5 dividers; face edges are ZYGO anchors above.
+// P_LEFT_EYE_OUTER = 33 (person's right eye outer = image-left outer corner)
+// P_RIGHT_EYE_OUTER = 263 (person's left eye outer = image-right outer corner)
+const P_EYE_OUTER_IMG_LEFT  = 33;   // image-left  eye outer corner
+const P_EYE_OUTER_IMG_RIGHT = 263;  // image-right eye outer corner
+// Facial outline — 17 mandible points (backend landmark_mesh.py LM_JAWLINE).
+// Front-end closes the polygon with the 37-point full-contour from cheek to cheek.
 const LM_JAWLINE  = [10, 338, 297, 332, 284, 251, 389, 356, 454, 323, 361, 288, 397, 365, 379, 378, 400, 377, 152, 148, 176, 149, 150, 136, 172, 58, 132, 93, 234, 127, 162, 21, 54, 103, 67, 109, 10];
 
 // Anchor landmark indices for improvement-vector arrows used to come from
@@ -183,41 +187,51 @@ function lm(landmarks: Array<[number, number]>, idx: number): [number, number] {
   return landmarks[idx] ?? [0, 0];
 }
 
-function AxisVertical({ landmarks, h }: { landmarks: Array<[number, number]>; w: number; h: number }) {
-  const xMid = (lm(landmarks, P_LEFT_EYE_INNER)[0] + lm(landmarks, P_RIGHT_EYE_INNER)[0]) / 2;
+function AxisVertical({ landmarks, vbH }: { landmarks: Array<[number, number]>; vbW: number; vbH: number }) {
+  // Midline passes through the midpoint between the two inner canthi.
+  // For a more anatomically correct midline, average with nose tip x as well.
+  const xEyes = (lm(landmarks, P_LEFT_EYE_INNER)[0] + lm(landmarks, P_RIGHT_EYE_INNER)[0]) / 2;
+  const xNose = lm(landmarks, P_NOSE_TIP)[0];
+  const xMid = (xEyes + xNose) / 2;
   const s = OVERLAY_STYLES.axis_vertical;
   return (
     <line
-      x1={xMid} y1={0} x2={xMid} y2={h}
+      x1={xMid} y1={0} x2={xMid} y2={vbH}
       stroke={s.stroke} strokeWidth={s.strokeWidth}
       strokeDasharray={s.strokeDasharray}
     />
   );
 }
 
-function AxisIntercanthal({ landmarks, w }: { landmarks: Array<[number, number]>; w: number; h: number }) {
+function AxisIntercanthal({ landmarks, vbW }: { landmarks: Array<[number, number]>; vbW: number; vbH: number }) {
   const yMid = (lm(landmarks, P_LEFT_EYE_INNER)[1] + lm(landmarks, P_RIGHT_EYE_INNER)[1]) / 2;
   const s = OVERLAY_STYLES.axis_intercanthal;
   return (
     <line
-      x1={0} y1={yMid} x2={w} y2={yMid}
+      x1={0} y1={yMid} x2={vbW} y2={yMid}
       stroke={s.stroke} strokeWidth={s.strokeWidth}
     />
   );
 }
 
-function _devColor(deviationPct: number): string {
-  const a = Math.abs(deviationPct);
-  if (a <= 2) return "#22c55e";   // verde
-  if (a <= 5) return "#f97316";   // laranja
-  return "#ef4444";                // vermelho
+// Maps severity_5 (backend SeverityClassifier) to a color — aligns with
+// SEVERITY_ARROW_COLORS and replaces the old hardcoded deviation% thresholds.
+function _severityColor(severity5: string | null | undefined): string {
+  switch (severity5) {
+    case "ideal":    return "#22c55e";
+    case "mild":     return "#22c55e";
+    case "moderate": return "#eab308";
+    case "strong":   return "#f97316";
+    case "extreme":  return "#ef4444";
+    default:         return "#94a3b8"; // unknown / null
+  }
 }
 
 /**
  * FaceExtents — desenha linhas sólidas brancas nas extremidades da face
  * (hairline, queixo, têmpora L, têmpora R) com labels.
  */
-function FaceExtents({ landmarks }: { landmarks: Array<[number, number]>; w: number; h: number }) {
+function FaceExtents({ landmarks }: { landmarks: Array<[number, number]> }) {
   const yTop = lm(landmarks, P_FOREHEAD_CROWN)[1];
   const yMenton = lm(landmarks, P_MENTON)[1];
   // 234 = image-left zygomatic arch (lower x), 454 = image-right (higher x).
@@ -238,38 +252,57 @@ function FaceExtents({ landmarks }: { landmarks: Array<[number, number]>; w: num
   );
 }
 
-function GridThirds({ landmarks, w }: { landmarks: Array<[number, number]>; w: number; h: number }) {
+function GridThirds({
+  landmarks,
+  vbW,
+  metricEvaluations,
+}: {
+  landmarks: Array<[number, number]>;
+  vbW: number;
+  vbH: number;
+  metricEvaluations?: MetricEvaluationResult[];
+}) {
   const yTop  = lm(landmarks, P_FOREHEAD_CROWN)[1];
   const yBrow = (lm(landmarks, P_BROW_LEFT_INNER)[1] + lm(landmarks, P_BROW_RIGHT_INNER)[1]) / 2;
   const ySub  = lm(landmarks, P_SUBNASALE)[1];
   const yMen  = lm(landmarks, P_MENTON)[1];
-  // Use the actual widest face landmarks (zygomatic arches) for label placement.
   const xR = lm(landmarks, P_ZYGO_IMG_RIGHT)[0];
 
+  const metricsMap = new Map(
+    (metricEvaluations ?? []).map((m) => [m.metric_id, m])
+  );
+  const mUpper  = metricsMap.get("upper_third_ratio");
+  const mMiddle = metricsMap.get("middle_third_ratio");
+  const mLower  = metricsMap.get("lower_third_ratio");
+
   const faceH = Math.max(1, yMen - yTop);
-  const upperPct  = ((yBrow - yTop) / faceH) * 100;
-  const middlePct = ((ySub  - yBrow) / faceH) * 100;
-  const lowerPct  = ((yMen  - ySub) / faceH) * 100;
+  const upperPct  = mUpper?.value  != null ? (mUpper.value as number)  * 100 : ((yBrow - yTop) / faceH) * 100;
+  const middlePct = mMiddle?.value != null ? (mMiddle.value as number) * 100 : ((ySub  - yBrow) / faceH) * 100;
+  const lowerPct  = mLower?.value  != null ? (mLower.value as number)  * 100 : ((yMen  - ySub) / faceH) * 100;
+
+  const upperColor  = _severityColor(mUpper?.severity_5);
+  const middleColor = _severityColor(mMiddle?.severity_5);
+  const lowerColor  = _severityColor(mLower?.severity_5);
 
   const yT1 = yTop + faceH / 3;
   const yT2 = yTop + (2 * faceH) / 3;
 
   const s = OVERLAY_STYLES.grid_thirds;
-  // Linhas tracejadas verdes nas posições ideais (33% e 66%)
-  // Linhas sólidas laranjas nas posições reais (sobrancelhas + subnasal)
   const labelX = xR + 8;
   return (
     <g>
-      <line x1={0} y1={yT1} x2={w} y2={yT1} stroke={s.stroke} strokeWidth={s.strokeWidth} strokeDasharray={s.strokeDasharray} />
-      <line x1={0} y1={yT2} x2={w} y2={yT2} stroke={s.stroke} strokeWidth={s.strokeWidth} strokeDasharray={s.strokeDasharray} />
-      <line x1={0} y1={yBrow} x2={w} y2={yBrow} stroke="#f97316" strokeWidth={1} opacity={0.8} />
-      <line x1={0} y1={ySub}  x2={w} y2={ySub}  stroke="#f97316" strokeWidth={1} opacity={0.8} />
+      {/* Ideal thirds positions (dashed) — span full viewBox width */}
+      <line x1={0} y1={yT1} x2={vbW} y2={yT1} stroke={s.stroke} strokeWidth={s.strokeWidth} strokeDasharray={s.strokeDasharray} />
+      <line x1={0} y1={yT2} x2={vbW} y2={yT2} stroke={s.stroke} strokeWidth={s.strokeWidth} strokeDasharray={s.strokeDasharray} />
+      {/* Actual landmark positions (solid) */}
+      <line x1={0} y1={yBrow} x2={vbW} y2={yBrow} stroke="#f97316" strokeWidth={1} opacity={0.8} />
+      <line x1={0} y1={ySub}  x2={vbW} y2={ySub}  stroke="#f97316" strokeWidth={1} opacity={0.8} />
       {[
-        { y: yTop  + (yBrow - yTop) / 2,  pct: upperPct,  label: "T1" },
-        { y: yBrow + (ySub  - yBrow) / 2, pct: middlePct, label: "T2" },
-        { y: ySub  + (yMen  - ySub) / 2,  pct: lowerPct,  label: "T3" },
-      ].map(({ y, pct, label }) => (
-        <text key={label} x={labelX} y={y + 4} fill={_devColor(pct - 33)} fontSize={11} fontWeight={700}
+        { y: yTop  + (yBrow - yTop) / 2,  pct: upperPct,  label: "T1", color: upperColor },
+        { y: yBrow + (ySub  - yBrow) / 2, pct: middlePct, label: "T2", color: middleColor },
+        { y: ySub  + (yMen  - ySub) / 2,  pct: lowerPct,  label: "T3", color: lowerColor },
+      ].map(({ y, pct, label, color }) => (
+        <text key={label} x={labelX} y={y + 4} fill={color} fontSize={11} fontWeight={700}
           style={{ paintOrder: "stroke", stroke: "#000", strokeWidth: 2 }}>
           {label} {pct.toFixed(0)}% (33%)
         </text>
@@ -278,28 +311,44 @@ function GridThirds({ landmarks, w }: { landmarks: Array<[number, number]>; w: n
   );
 }
 
-function GridFifths({ landmarks }: { landmarks: Array<[number, number]>; w: number; h: number }) {
+function GridFifths({ landmarks }: { landmarks: Array<[number, number]> }) {
   const yTop = lm(landmarks, P_FOREHEAD_CROWN)[1];
   const yMen = lm(landmarks, P_MENTON)[1];
-  // 234 = image-left zygomatic arch (lower x), 454 = image-right (higher x).
-  // These are the true widest face points for the rule-of-fifths horizontal span.
-  const xL = lm(landmarks, P_ZYGO_IMG_LEFT)[0];
-  const xR = lm(landmarks, P_ZYGO_IMG_RIGHT)[0];
-  const faceW = Math.max(1, xR - xL);
+  // Rule of Fifths (Naini 2011 §6): the face is divided into 5 equal vertical fifths.
+  // The outer boundaries are the bizygomatic edges (234 / 454).
+  // The 1/5 and 4/5 dividers should align with the outer eye corners (33 / 263).
+  // The 2/5 and 3/5 dividers should align with the inner eye corners (133 / 362).
+  // We draw the dividers at the actual landmark x-positions (not equally spaced)
+  // so the user can see how closely each fifth matches the ideal.
+  const xFaceL  = lm(landmarks, P_ZYGO_IMG_LEFT)[0];
+  const xFaceR  = lm(landmarks, P_ZYGO_IMG_RIGHT)[0];
+  const xEyeOL  = lm(landmarks, P_EYE_OUTER_IMG_LEFT)[0];   // ideal 1/5 mark
+  const xEyeIL  = lm(landmarks, P_LEFT_EYE_INNER)[0];        // ideal 2/5 mark
+  const xEyeIR  = lm(landmarks, P_RIGHT_EYE_INNER)[0];       // ideal 3/5 mark
+  const xEyeOR  = lm(landmarks, P_EYE_OUTER_IMG_RIGHT)[0];   // ideal 4/5 mark
+
+  // Ideal equally-spaced dividers (dashed) for comparison
+  const faceW = Math.max(1, xFaceR - xFaceL);
   const fifth = faceW / 5;
   const s = OVERLAY_STYLES.grid_fifths;
   return (
     <g>
-      {[1, 2, 3, 4].map((i) => {
-        const x = xL + i * fifth;
-        return (
-          <line key={i} x1={x} y1={yTop} x2={x} y2={yMen}
-            stroke={s.stroke} strokeWidth={s.strokeWidth} strokeDasharray={s.strokeDasharray} />
-        );
-      })}
-      <text x={xL + 2} y={yTop - 14} fill={s.stroke} fontSize={11} fontWeight={600}
+      {/* Ideal equal fifths (dashed) */}
+      {[1, 2, 3, 4].map((i) => (
+        <line key={`ideal-${i}`}
+          x1={xFaceL + i * fifth} y1={yTop}
+          x2={xFaceL + i * fifth} y2={yMen}
+          stroke={s.stroke} strokeWidth={s.strokeWidth} strokeDasharray={s.strokeDasharray} />
+      ))}
+      {/* Actual eye-corner positions (solid) */}
+      {[xEyeOL, xEyeIL, xEyeIR, xEyeOR].map((x, i) => (
+        <line key={`actual-${i}`}
+          x1={x} y1={yTop} x2={x} y2={yMen}
+          stroke="#f97316" strokeWidth={1} opacity={0.8} />
+      ))}
+      <text x={xFaceL + 2} y={yTop - 14} fill={s.stroke} fontSize={11} fontWeight={600}
         style={{ paintOrder: "stroke", stroke: "#000", strokeWidth: 2 }}>
-        Quintos ideais (cada = 20%)
+        Quintos (tracejado = ideal, laranja = real)
       </text>
     </g>
   );
@@ -419,14 +468,14 @@ export function OverlayLayer({ landmarks, imageWidth, imageHeight, viewBoxWidth,
       aria-hidden="true"
     >
       {/* z=10: axes */}
-      {active.has("axis_vertical")     && <AxisVertical     landmarks={landmarks} w={w} h={h} />}
-      {active.has("axis_intercanthal") && <AxisIntercanthal landmarks={landmarks} w={w} h={h} />}
+      {active.has("axis_vertical")     && <AxisVertical     landmarks={landmarks} vbW={vbW} vbH={vbH} />}
+      {active.has("axis_intercanthal") && <AxisIntercanthal landmarks={landmarks} vbW={vbW} vbH={vbH} />}
       {/* z=10: grids */}
-      {active.has("grid_thirds")       && <GridThirds       landmarks={landmarks} w={w} h={h} />}
-      {active.has("grid_fifths")       && <GridFifths       landmarks={landmarks} w={w} h={h} />}
+      {active.has("grid_thirds")       && <GridThirds       landmarks={landmarks} vbW={vbW} vbH={vbH} metricEvaluations={metricEvaluations} />}
+      {active.has("grid_fifths")       && <GridFifths       landmarks={landmarks} />}
       {/* z=20: contour */}
       {active.has("outline_face")      && <OutlineFace      landmarks={landmarks} />}
-      {active.has("face_extents")      && <FaceExtents      landmarks={landmarks} w={w} h={h} />}
+      {active.has("face_extents")      && <FaceExtents      landmarks={landmarks} />}
       {/* z=40: improvement vectors (rendered last = topmost) */}
       {active.has("improvement_vectors") && metricEvaluations && metricEvaluations.length > 0 && (
         <ImprovementVectors landmarks={landmarks} metricEvaluations={metricEvaluations} />
