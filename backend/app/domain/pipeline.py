@@ -1296,6 +1296,36 @@ def run(image_path: str, output_dir: str, mode: str = "premium") -> dict:
             _v2_exc, _tb.format_exc(),
         )
 
+    # PR-66 follow-up — per-region adherence payload for ideal-adherence heatmap.
+    # adherence = 1 - clip(|deviation_normalized|, 0, 1), weighted by confidence_final.
+    _region_adherence: list[dict[str, float | str]] = []
+    try:
+        _by_region: dict[str, list[tuple[float, float]]] = {}
+        for _metric in _metric_evaluations_v2:
+            _region = _metric.get("region")
+            _dev = _metric.get("deviation_normalized")
+            _conf = _metric.get("confidence_final")
+            if not isinstance(_region, str):
+                continue
+            if not isinstance(_dev, (int, float)) or not isinstance(_conf, (int, float)):
+                continue
+            _adherence = 1.0 - min(1.0, abs(float(_dev)))
+            _by_region.setdefault(_region, []).append((_adherence, float(_conf)))
+
+        for _region, _samples in _by_region.items():
+            _weight_sum = sum(_confidence for _, _confidence in _samples)
+            if _weight_sum <= 0:
+                continue
+            _adherence_mean = sum(_adherence * _confidence for _adherence, _confidence in _samples) / _weight_sum
+            _conf_mean = _weight_sum / len(_samples)
+            _region_adherence.append({
+                "region": _region,
+                "adherence": float(max(0.0, min(1.0, _adherence_mean))),
+                "confidence": float(max(0.0, min(1.0, _conf_mean))),
+            })
+    except Exception:  # pylint: disable=broad-except
+        _region_adherence = []
+
     # 4. Gerar relatório texto
     report_txt = build_shareable_report(
         image_path=resolved_image_path,
@@ -1375,6 +1405,8 @@ def run(image_path: str, output_dir: str, mode: str = "premium") -> dict:
         'landmarks': [[float(canonical.landmarks[i, 0]), float(canonical.landmarks[i, 1])] for i in range(len(canonical.landmarks))],
         # Flat metric evaluations with improvement vectors for "Vetores ideais" view.
         'metric_evaluations': _metric_evaluations_v2,
+        # Per-region adherence scalar used by heatmap_ideal_adherence.
+        'region_adherence': _region_adherence,
         # BiSeNet hairline virtual landmarks (Phase 5 — 2026-05-12)
         'virtual_landmarks': _fused.virtual_landmarks if _fused is not None else {},
         'trichion_source': _fused.trichion_source if _fused is not None else "mesh",

@@ -29,8 +29,13 @@ from app.services.metrics.base import QualityContext
 # Threshold — must stay in sync with:
 #   app.services.landmarks.fusion_layer.TRICHION_CONFIDENCE_THRESHOLD
 # DO NOT change this value independently.
+#
+# Reduzido de 0.5 para 0.40 (2026-05-12 follow-up):
+# Rostos reais com cabelo natural (curto, irregular) produzem confidence ~0.42–0.48.
+# Threshold 0.5 rejeitava desnecessariamente. 0.40 aceita mais casos válidos enquanto
+# rejeita detecções degeneradas (background, oclusão extrema, noise).
 # ---------------------------------------------------------------------------
-TRICHION_CONFIDENCE_THRESHOLD: float = 0.5
+TRICHION_CONFIDENCE_THRESHOLD: float = 0.40
 
 
 def effective_trichion_y(lm: NormalizedLandmarks, ctx: QualityContext) -> float:

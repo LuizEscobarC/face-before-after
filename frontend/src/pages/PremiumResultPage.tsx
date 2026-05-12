@@ -37,6 +37,39 @@ function buildComposeOffsets(
     }));
 }
 
+function buildRegionAdherence(
+  result?: AnalysisResult,
+): Array<{ region: string; adherence: number; confidence: number }> {
+  if (!result) return [];
+  if (result.region_adherence && result.region_adherence.length > 0) {
+    return result.region_adherence;
+  }
+
+  const byRegion = new Map<string, Array<{ adherence: number; confidence: number }>>();
+  for (const metric of result.metric_evaluations ?? []) {
+    if (!metric.region) continue;
+    if (metric.deviation_normalized == null || metric.confidence_final == null) continue;
+    const adherence = 1 - Math.min(1, Math.abs(metric.deviation_normalized));
+    const confidence = Math.max(0, Math.min(1, metric.confidence_final));
+    const samples = byRegion.get(metric.region) ?? [];
+    samples.push({ adherence, confidence });
+    byRegion.set(metric.region, samples);
+  }
+
+  const out: Array<{ region: string; adherence: number; confidence: number }> = [];
+  for (const [region, samples] of byRegion.entries()) {
+    const weight = samples.reduce((acc, item) => acc + item.confidence, 0);
+    if (weight <= 0) continue;
+    const adherence = samples.reduce((acc, item) => acc + (item.adherence * item.confidence), 0) / weight;
+    out.push({
+      region,
+      adherence,
+      confidence: Math.min(1, weight / samples.length),
+    });
+  }
+  return out;
+}
+
 const RANK_EMOJI = ["🥇", "🥈", "🥉"];
 const PHASE_ICON = ["⚡", "🎯", "🏅"];
 const TIER_LABEL: Record<number, string> = { 0: "Grátis", 1: "Essential", 2: "Premium" };
@@ -522,14 +555,15 @@ export function PremiumResultPage() {
     const missing = activeHeatmaps.filter((id) => !heatmapAssetUrls[id]);
     if (missing.length === 0) return;
 
+    const regionAdherence = buildRegionAdherence(result);
+
     setHeatmapLoading(true);
     void (async () => {
       try {
         const newUrls: Record<string, string> = {};
         await Promise.all(
           missing.map(async (overlayId) => {
-            // heatmap_ideal_adherence requires region_adherence_json; skip if unavailable.
-            if (overlayId === "heatmap_ideal_adherence") return;
+            if (overlayId === "heatmap_ideal_adherence" && regionAdherence.length === 0) return;
             try {
               const res = await fetch("/v1/vision/render-overlay", {
                 method: "POST",
@@ -538,6 +572,7 @@ export function PremiumResultPage() {
                   runId: result.run_id,
                   landmarks: result.landmarks,
                   overlayIds: [overlayId],
+                  regionAdherence: overlayId === "heatmap_ideal_adherence" ? regionAdherence : undefined,
                 }),
               });
               if (res.ok) {
@@ -898,7 +933,12 @@ export function PremiumResultPage() {
 
               {view === "overlays" && originalUrl && result.landmarks && (
                 <div className="overlay-stage">
-                  <div className="overlay-media">
+                  <div
+                    className="overlay-media"
+                    style={imgDims
+                      ? { width: `${imgDims.w}px`, height: `${imgDims.h}px`, flex: "0 0 auto" }
+                      : undefined}
+                  >
                     <img
                       ref={overlayImgRef}
                       src={originalUrl}

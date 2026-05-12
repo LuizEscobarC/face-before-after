@@ -176,8 +176,8 @@ export function HeatmapImageLayer({
         position: "absolute",
         top: 0,
         left: 0,
-        width: "100%",
-        height: "100%",
+        width: imageWidth,
+        height: imageHeight,
         pointerEvents: "none",
         // alpha is already baked into the PNG by the renderer (alpha=0.55 default)
       }}
@@ -466,8 +466,8 @@ export function OverlayLayer({ landmarks, imageWidth, imageHeight, viewBoxWidth,
 
   return (
     <svg
-      width="100%"
-      height="100%"
+      width={w}
+      height={h}
       viewBox={`0 0 ${vbW} ${vbH}`}
       style={{
         position: "absolute",

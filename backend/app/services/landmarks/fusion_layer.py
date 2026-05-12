@@ -45,7 +45,11 @@ logger = logging.getLogger(__name__)
 # --------------------------------------------------------------------------- #
 # Threshold
 # --------------------------------------------------------------------------- #
-TRICHION_CONFIDENCE_THRESHOLD: float = 0.5
+# Reduzido de 0.5 para 0.40 (2026-05-12 follow-up):
+# Rostos reais com cabelo natural (curto, irregular) produzem confidence ~0.42–0.48.
+# Threshold 0.5 rejeitava desnecessariamente. 0.40 aceita mais casos válidos enquanto
+# rejeita detecções degeneradas (background, oclusão extrema, noise).
+TRICHION_CONFIDENCE_THRESHOLD: float = 0.40
 
 
 # --------------------------------------------------------------------------- #

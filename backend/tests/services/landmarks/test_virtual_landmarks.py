@@ -53,20 +53,28 @@ def _rect_hair_mask(h: int, w: int, top: int, bottom: int, left: int, right: int
 class TestExtractHairlinePoints:
 
     def test_rect_mask_trichion_at_top(self):
-        """Rectangular hair block → trichion y ≈ top of the block."""
+        """Rectangular hair block above eyes → trichion y ≈ bottom of the block.
+
+        Algorithm scans from eye level upward and finds the LARGEST y (lowest
+        position) where hair is detected — i.e., the hairline is the BOTTOM edge
+        of the hair region, not the top. This design avoids picking the top of
+        spiky hair / hair buns, which would be above the anatomical hairline.
+        """
         from app.services.landmarks.virtual_landmarks import extract_hairline_points
 
         H, W = 256, 256
         hair_top = 30
-        mask = _rect_hair_mask(H, W, top=hair_top, bottom=100, left=60, right=196)
+        hair_bottom = 100
+        mask = _rect_hair_mask(H, W, top=hair_top, bottom=hair_bottom, left=60, right=196)
         lm = _make_synthetic_landmarks(W, H)
 
         result = extract_hairline_points(mask, lm)
 
         assert "trichion" in result
         trichion_y = result["trichion"][1]
-        assert abs(trichion_y - hair_top) < 5, (
-            f"Expected trichion y ≈ {hair_top}, got {trichion_y:.1f}"
+        # Trichion is the BOTTOM edge of hair (highest y value), not the top
+        assert abs(trichion_y - hair_bottom) < 5, (
+            f"Expected trichion y ≈ {hair_bottom} (bottom of hair), got {trichion_y:.1f}"
         )
 
     def test_rect_mask_confidence_high(self):

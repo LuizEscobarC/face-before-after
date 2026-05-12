@@ -42,7 +42,10 @@ A integração BiSeNet:
 
 ### `backend/app/services/landmarks/fusion_layer.py`
 
-- `TRICHION_CONFIDENCE_THRESHOLD = 0.5` ← **Atualizado de 0.8 para 0.5** (2026-05-12 follow-up)
+- `TRICHION_CONFIDENCE_THRESHOLD = 0.40` ← **Reduzido de 0.5 para 0.40** (2026-05-12 follow-up #2)
+  - Rostos com cabelo natural (curto, fino, irregular) produzem confidence ~0.42–0.48
+  - Threshold 0.5 rejeitava válidos casos desnecessariamente
+  - 0.40 aceita mais captura reais e ainda rejeita detecções degeneradas (background, oclusão, noise)
 - `@dataclass FusedLandmarks`: `face_landmarks, virtual_landmarks, trichion_source, trichion_confidence, trichion_y_icu, segmentation`.
 - `_pixel_to_icu(point_px, mp_landmarks_px) -> (float, float)`: center no midpoint inner-canthi, divide por ICD, aplica roll correction.
 - `fuse(image_bgr, mp_landmarks_px) -> FusedLandmarks`: sempre retorna (nunca propaga exceção).
@@ -84,7 +87,7 @@ def effective_trichion_y(lm, ctx) -> float:
     return lm.xy(P_FOREHEAD_CROWN)[1]
 
 def trichion_confidence_multiplier(ctx) -> float:
-    """Returns trichion_confidence ∈ [0.5, 1] when BiSeNet is active, else 1.0.
+    """Returns trichion_confidence ∈ [0.40, 1] when BiSeNet is active, else 1.0.
     Applied multiplicatively to confidence_final in hairline-dependent calculators."""
     vl = ctx.virtual_landmarks
     if vl and vl.get("trichion_source") == "bisenet" and vl.get("trichion_confidence", 0.0) >= TRICHION_CONFIDENCE_THRESHOLD:
@@ -94,7 +97,12 @@ def trichion_confidence_multiplier(ctx) -> float:
 
 Previously, `thirds.py` had local `_get_trichion_y` and `_trichion_confidence_factor` with hardcoded literal `0.8`. These were deleted; `thirds.py` now imports from `_trichion.py`.
 
-**Raciocínio para threshold 0.5:** O modelo BiSeNet produz confiança tipicamente entre 0.6 e 0.95 em fotos frontais limpas. O threshold original de 0.8 forçava fallback desnecessário para rostos com cabelo curto ou linha irregular — casos onde o BiSeNet ainda tem precisão aceitável. Com 0.5, aceita mais detecções válidas e ainda rejeita inferências degeneradas (cabelo fora de campo, oclusão extrema).
+**Raciocínio para threshold 0.40:** O modelo BiSeNet produz confiança em uma distribuição que depende da qualidade do cabelo e variabilidade na imagem. Em fotos reais com cabelo natural:
+- Cabelo curto/fino: confidence ≈ 0.42–0.48 (típico)
+- Cabelo cheio/comprido: confidence ≈ 0.65–0.95 (robusto)
+- Cabelo com oclusão parcial: confidence ≈ 0.35–0.50 (marginal)
+
+Threshold 0.5 rejeitava a primeira categoria (válida) e parte da terceira (marginal mas aceitável). Threshold 0.40 aceita mais rostos reais enquanto rejeita detecções claramente fora de padrão (background, noise, cabelo fora de campo).
 
 ---
 

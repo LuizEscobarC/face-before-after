@@ -62,7 +62,7 @@ def _low_confidence_vl(trichion_y_icu: float) -> dict:
     """Build a virtual_landmarks dict with below-threshold confidence."""
     return {
         "trichion_y_icu":      trichion_y_icu,
-        "trichion_confidence": 0.5,  # below 0.8 threshold
+        "trichion_confidence": 0.3,  # below 0.40 threshold
         "trichion_source":     "bisenet",
     }
 

@@ -184,6 +184,12 @@ export type AnalysisResult = {
   landmarks?: Array<[number, number]>;
   /** Metric evaluations from POST /v1/analysis/evaluate (M1 pipeline, PR-34 M3.2). */
   metric_evaluations?: MetricEvaluationResult[];
+  /** Per-region adherence scalars used by heatmap_ideal_adherence rendering. */
+  region_adherence?: Array<{
+    region: string;
+    adherence: number;
+    confidence: number;
+  }>;
   /** Canonical (cropped + Frankfort-aligned) image URL — base of every overlay.
    * Always prefer this over photo_url; the latter is a legacy alias. */
   canonical_url?: string;
