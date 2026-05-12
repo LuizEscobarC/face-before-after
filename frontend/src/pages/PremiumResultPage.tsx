@@ -6,6 +6,7 @@ import { DEFAULT_OVERLAYS, HeatmapImageLayer, OverlayLayer, OverlayToggleBar } f
 import { OverlaySidebar } from "../components/OverlaySidebar";
 import { BeforeIdealOverlay } from "../components/BeforeIdealOverlay";
 import { MetricsMapLayer } from "../components/MetricsMapLayer";
+import { IdealProportionsLayer } from "../components/IdealProportionsLayer";
 import type { AnalysisResult, GlossaryTerm, MetricEvaluationResult, NarrativeResponseDto, PremiumMetricCategory } from "../types";
 
 type LocationState = { result?: AnalysisResult };
@@ -368,6 +369,8 @@ export function PremiumResultPage() {
 
   // Task 5 (M3.6) — Metrics map layer interactive state
   const [selectedRegion, setSelectedRegion] = useState<string | null>(null);
+  const [selectedIdealMetric, setSelectedIdealMetric] = useState<string | null>(null);
+  const [idealDims, setIdealDims] = useState<{ naturalW: number; naturalH: number } | null>(null);
 
   // PR-62 (M4.5) — PDF download state
   const [pdfLoading, setPdfLoading] = useState(false);
@@ -919,11 +922,32 @@ export function PremiumResultPage() {
                       src={`${simBase}/ideal_proportions`}
                       alt="Proporções ideais"
                       className="panel-img overlay-stage-image"
+                      onLoad={(e) => {
+                        const img = e.currentTarget;
+                        setIdealDims({ naturalW: img.naturalWidth, naturalH: img.naturalHeight });
+                      }}
                     />
+                    {result.overlay_annotations?.ideal_proportions && (
+                      <IdealProportionsLayer
+                        viewBoxWidth={idealDims?.naturalW || 1200}
+                        viewBoxHeight={idealDims?.naturalH || 800}
+                        landmarks={result.landmarks ?? []}
+                        rows={result.overlay_annotations.ideal_proportions}
+                        selectedMetricId={selectedIdealMetric}
+                        onSelectMetric={(metricId) => {
+                          setSelectedIdealMetric((prev) => (prev === metricId ? null : metricId));
+                        }}
+                      />
+                    )}
                   </div>
                   {result.overlay_annotations && (
                     <div className="overlay-sidebars overlay-sidebars-ideal">
-                      <OverlaySidebar variant="ideal_proportions" data={result.overlay_annotations} />
+                      <OverlaySidebar
+                        variant="ideal_proportions"
+                        data={result.overlay_annotations}
+                        selectedKey={selectedIdealMetric}
+                        onSelectKey={(key) => setSelectedIdealMetric((prev) => (prev === key ? null : key))}
+                      />
                     </div>
                   )}
                 </div>
@@ -991,7 +1015,7 @@ export function PremiumResultPage() {
                         metric_evaluations={result.metric_evaluations}
                         region_adherence={result.region_adherence || {}}
                         onRegionClick={(region) => {
-                          setSelectedRegion(region);
+                          setSelectedRegion((prev) => (prev === region ? null : region));
                         }}
                         selectedRegion={selectedRegion}
                       />
@@ -1005,6 +1029,15 @@ export function PremiumResultPage() {
                         <OverlaySidebar variant="grid_fifths" data={result.overlay_annotations} />}
                       {activeOverlays.includes("face_extents") &&
                         <OverlaySidebar variant="face_extents" data={result.overlay_annotations} />}
+                      {activeOverlays.includes("heatmap_ideal_adherence") && !!buildRegionAdherence(result).length && (
+                        <OverlaySidebar
+                          variant="metrics_map"
+                          data={result.overlay_annotations}
+                          regionAdherence={buildRegionAdherence(result)}
+                          selectedKey={selectedRegion}
+                          onSelectKey={(key) => setSelectedRegion((prev) => (prev === key ? null : key))}
+                        />
+                      )}
                     </div>
                   )}
                 </div>

@@ -16,11 +16,15 @@ type Variant =
   | "grid_thirds"
   | "grid_fifths"
   | "face_extents"
-  | "ideal_proportions";
+  | "ideal_proportions"
+  | "metrics_map";
 
 interface Props {
   variant: Variant;
   data: Annotations;
+  selectedKey?: string | null;
+  onSelectKey?: (key: string) => void;
+  regionAdherence?: Array<{ region: string; adherence: number; confidence: number }>;
 }
 
 const SEVERITY_BG: Record<string, string> = {
@@ -87,7 +91,7 @@ function idealProportionLabel(metricId?: string): string {
   return IDEAL_PROPORTION_LABELS[metricId] ?? metricId.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
-export function OverlaySidebar({ variant, data }: Props) {
+export function OverlaySidebar({ variant, data, selectedKey, onSelectKey, regionAdherence }: Props) {
   switch (variant) {
     case "grid_thirds":
       return renderGridThirds(data.grid_thirds);
@@ -96,7 +100,9 @@ export function OverlaySidebar({ variant, data }: Props) {
     case "face_extents":
       return renderFaceExtents(data.face_extents);
     case "ideal_proportions":
-      return renderIdealProportions(data.ideal_proportions);
+      return renderIdealProportions(data.ideal_proportions, selectedKey, onSelectKey);
+    case "metrics_map":
+      return renderMetricsMap(regionAdherence ?? [], selectedKey, onSelectKey);
   }
 }
 
@@ -185,7 +191,11 @@ function renderFaceExtents(f: Annotations["face_extents"]) {
   );
 }
 
-function renderIdealProportions(rows: Annotations["ideal_proportions"]) {
+function renderIdealProportions(
+  rows: Annotations["ideal_proportions"],
+  selectedKey?: string | null,
+  onSelectKey?: (key: string) => void,
+) {
   if (!rows || rows.length === 0) return null;
   return (
     <aside style={cardStyle}>
@@ -197,8 +207,19 @@ function renderIdealProportions(rows: Annotations["ideal_proportions"]) {
         const sev = r.severity_5 ?? undefined;
         const bg = (sev && SEVERITY_BG[sev]) || "rgba(255,255,255,0.04)";
         const fg = (sev && SEVERITY_FG[sev]) || "var(--text)";
+        const key = r.metric_id ?? `${i}`;
+        const isSelected = selectedKey === key;
         return (
-          <div key={r.metric_id ?? i} style={{ ...rowStyle, background: bg }}>
+          <div
+            key={key}
+            style={{
+              ...rowStyle,
+              background: bg,
+              cursor: "pointer",
+              border: isSelected ? `1px solid ${fg}` : "1px solid transparent",
+            }}
+            onClick={() => onSelectKey?.(key)}
+          >
             <div>
               <div style={{ color: fg, fontWeight: 600 }}>{idealProportionLabel(r.metric_id)}</div>
               <div style={{ color: "var(--muted)", fontSize: 11, marginTop: 2 }}>
@@ -211,6 +232,57 @@ function renderIdealProportions(rows: Annotations["ideal_proportions"]) {
           </div>
         );
       })}
+    </aside>
+  );
+}
+
+function regionLabel(region: string): string {
+  const MAP: Record<string, string> = {
+    FOREHEAD: "Testa",
+    EYES: "Olhos",
+    NOSE: "Nariz",
+    MOUTH: "Boca",
+    JAW: "Mandibula",
+  };
+  return MAP[region] ?? region;
+}
+
+function renderMetricsMap(
+  rows: Array<{ region: string; adherence: number; confidence: number }>,
+  selectedKey?: string | null,
+  onSelectKey?: (key: string) => void,
+) {
+  if (!rows || rows.length === 0) return null;
+  const sorted = [...rows].sort((a, b) => a.region.localeCompare(b.region));
+
+  return (
+    <aside style={cardStyle}>
+      <div style={titleStyle}>Mapa de metricas</div>
+      {sorted.map((r) => {
+        const pct = Math.round(r.adherence * 100);
+        const isSelected = selectedKey === r.region;
+        return (
+          <div
+            key={r.region}
+            style={{
+              ...rowStyle,
+              background: "rgba(255,255,255,0.04)",
+              cursor: "pointer",
+              border: isSelected ? "1px solid rgba(34,211,238,0.7)" : "1px solid transparent",
+            }}
+            onClick={() => onSelectKey?.(r.region)}
+          >
+            <div>
+              <strong>{regionLabel(r.region)}</strong>
+              <div style={{ color: "var(--muted)", fontSize: 11 }}>
+                Confianca {Math.round(r.confidence * 100)}%
+              </div>
+            </div>
+            <div style={{ fontVariantNumeric: "tabular-nums" }}>{pct}%</div>
+          </div>
+        );
+      })}
+      <div style={legendStyle}>Clique em uma regiao para sincronizar destaque no SVG.</div>
     </aside>
   );
 }
