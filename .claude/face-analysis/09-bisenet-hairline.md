@@ -64,10 +64,50 @@ virtual_landmarks: dict[str, Any] | None = None
 
 ### `backend/app/services/metrics/thirds.py`
 
-- `_get_trichion_y(lm, ctx) -> float`: usa `ctx.virtual_landmarks` se `trichion_confidence >= 0.8`, senão `lm[P_FOREHEAD_CROWN]`.
-- `_trichion_confidence_factor(ctx) -> float`: retorna `trichion_confidence` quando `source=bisenet`, senão 1.0.
-- Todos os 4 calculadores (`upper`, `middle`, `lower`, `dominant`) agora passam `trichion_y_override` para `_thirds_geometry()` para manter invariante `upper + middle + lower = 1.0`.
-- `UpperThirdRatioCalculator.compute()`: aplica `conf_final *= _trichion_confidence_factor(ctx)`.
+- Imports `effective_trichion_y`, `trichion_confidence_multiplier`, `TRICHION_CONFIDENCE_THRESHOLD` from `_trichion.py` (see below).
+- All 4 calculators (`upper`, `middle`, `lower`, `dominant`) pass `trichion_y_override` to `_thirds_geometry()` to maintain invariant `upper + middle + lower = 1.0`.
+- `UpperThirdRatioCalculator.compute()`: applies `conf_final *= trichion_confidence_multiplier(ctx)`.
+
+### `backend/app/services/metrics/_trichion.py` ← NEW (2026-05-12 follow-up)
+
+Single source of truth for trichion override logic, used by **all 9** hairline-dependent calculators:
+
+```python
+TRICHION_CONFIDENCE_THRESHOLD: float = 0.8  # matches fusion_layer constant
+
+def effective_trichion_y(lm, ctx) -> float: ...
+    # Returns BiSeNet y_icu if confidence >= threshold, else lm[P_FOREHEAD_CROWN][1]
+
+def trichion_confidence_multiplier(ctx) -> float: ...
+    # Returns trichion_confidence when source=bisenet+active, else 1.0
+```
+
+Previously, `thirds.py` had local `_get_trichion_y` and `_trichion_confidence_factor` with hardcoded literal `0.8`. These were deleted; `thirds.py` now imports from `_trichion.py`.
+
+---
+
+## Affected Metrics — Full List
+
+The following 9 metrics depend on the hairline y-coordinate. All use `effective_trichion_y(lm, ctx)` from `_trichion.py` and apply `trichion_confidence_multiplier(ctx)` to their `confidence_final`.
+
+**Justification:** Farkas (1994), Martin–Saller, and Phi/Marquardt ideal constants were all calibrated against the **anatomical trichion** (dermatological hairline). MediaPipe `lm[10]` (P_FOREHEAD_CROWN) is the topmost mesh vertex, not the anatomical hairline — it sits above the actual hairline in subjects with visible foreheads, causing systematic overestimation of forehead-related measurements. Patching to BiSeNet trichion is a **correction** toward the original anthropometric reference, NOT a recalibration of the ideals.
+
+| Metric ID | File | Family | Effect of higher trichion |
+|-----------|------|--------|--------------------------|
+| `upper_third_ratio` | `thirds.py` | thirds | increases |
+| `middle_third_ratio` | `thirds.py` | thirds | decreases (denominator grows) |
+| `lower_third_ratio` | `thirds.py` | thirds | decreases (denominator grows) |
+| `dominant_third` | `thirds.py` | thirds | shifts toward upper dominance |
+| `forehead_height_ratio` | `forehead.py` | forehead | increases (closer to ideal 1.90 ICU) |
+| `hairline_curvature_index` | `forehead.py` | forehead | increases (larger sagitta) |
+| `chin_projection_proxy` | `wave_c2.py` | jaw | decreases (total_h grows) |
+| `face_height_to_width_ratio` | `global_shape.py` | global_shape | increases |
+| `face_shape_classification` | `global_shape.py` | global_shape | aspect increases |
+| `total_facial_convexity` | `global_shape.py` | global_shape | crown vertex shifts up (minor effect) |
+| `facial_index_anthropometric` | `wave_c3.py` | global_shape | increases (face_h grows) |
+| `phi_face_height_to_width` | `phi_golden.py` | phi | increases |
+
+**Ideals and severity thresholds: unchanged.** The constants (`_IDEAL_HEIGHT=1.90 ICU`, `_IDEAL_CHIN_PROJ=0.33`, `_IDEAL_FACE_INDEX=87.5`, `_IDEAL_ASPECT=1.35`, `_IDEAL_CURVATURE=0.48`, etc.) remain exactly as calibrated against the anatomical trichion.
 
 ### `backend/app/domain/pipeline.py`
 
@@ -103,8 +143,9 @@ Se URL 404r: substituir pela URL do mirror e rebuildar. Fallback automático em 
 | `tests/services/landmarks/test_virtual_landmarks.py` | 6 | Trichion position, confidence alta/baixa/zero, keys, trichion [x,y] |
 | `tests/services/landmarks/test_fusion_layer.py` | 7 | Fallback RuntimeError/ImportError, FusedLandmarks schema, _mesh_fallback, _pixel_to_icu |
 | `tests/services/metrics/test_thirds_with_bisenet.py` | 7 | Fallback idêntico ao baseline, upper aumenta com trichion mais alto, ratios somam 1.0, conf *= trichion_confidence, não-thirds inalterados |
+| `tests/services/metrics/test_hairline_metrics_with_bisenet.py` | 39 | Os 8 metrics adicionais: fallback=baseline, shift de direção correto, conf *= trichion_confidence |
 
-Total: **26 novos testes** — todos passando. 1 falha pré-existente (`test_marquardt_zero_for_symmetric_face`) não relacionada.
+Total: **65 testes de hairline** — todos passando. 1 falha pré-existente (`test_marquardt_zero_for_symmetric_face`) não relacionada.
 
 ---
 

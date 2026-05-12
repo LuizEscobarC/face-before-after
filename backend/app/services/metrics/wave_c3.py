@@ -61,6 +61,10 @@ from app.services.metrics.confidence_propagation import (
     propagate,
 )
 from app.services.metrics.registry import register
+from app.services.metrics._trichion import (
+    effective_trichion_y,
+    trichion_confidence_multiplier,
+)
 
 # ---------------------------------------------------------------------------
 # Dependency landmark tuples
@@ -459,12 +463,15 @@ class FacialIndexAnthropometricCalculator(MetricCalculator):
     unit      = "ratio"
 
     def compute(self, lm: NormalizedLandmarks, ctx: QualityContext) -> MetricValue:
-        face_h = _vdist(lm, P_FOREHEAD_CROWN, P_MENTON)
+        menton_y  = float(lm.xy(P_MENTON)[1])
+        trichion_y = effective_trichion_y(lm, ctx)
+        face_h = abs(menton_y - trichion_y)
         face_w = _hdist(lm, P_LEFT_ZYGOMATIC, P_RIGHT_ZYGOMATIC)
         v = (face_h / face_w) * 100.0 if face_w > 1e-9 else _IDEAL_FACE_INDEX
         cr = _conf_raw(v, _IDEAL_FACE_INDEX, _MAX_DEV_FACE_INDEX)
         cf = propagate(cr, ctx.quality_score, self.region, ctx.regional_penalties,
                        ctx.get_yaw(), ctx.get_pitch(), GLOBAL_SHAPE_POSE_PARAMS)
+        cf = cf * trichion_confidence_multiplier(ctx)
         return MetricValue(
             metric_id=self.metric_id, region=self.region, family=self.family,
             unit=self.unit, value=v, error=2.0,

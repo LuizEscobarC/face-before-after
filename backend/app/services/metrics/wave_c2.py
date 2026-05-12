@@ -56,6 +56,10 @@ from app.services.metrics.confidence_propagation import (
     propagate,
 )
 from app.services.metrics.registry import register
+from app.services.metrics._trichion import (
+    effective_trichion_y,
+    trichion_confidence_multiplier,
+)
 
 # ---------------------------------------------------------------------------
 # Dependency landmark tuples
@@ -379,13 +383,14 @@ class ChinProjectionProxyCalculator(MetricCalculator):
     def compute(self, lm: NormalizedLandmarks, ctx: QualityContext) -> MetricValue:
         sub_y    = float(lm.xy(P_SUBNASALE)[1])
         ment_y   = float(lm.xy(P_MENTON)[1])
-        crown_y  = float(lm.xy(P_FOREHEAD_CROWN)[1])
+        crown_y  = effective_trichion_y(lm, ctx)
         total_h  = abs(ment_y - crown_y)
         lower_h  = abs(ment_y - sub_y)
         v = lower_h / total_h if total_h > 1e-9 else _IDEAL_CHIN_PROJ
         cr = _conf_raw(v, _IDEAL_CHIN_PROJ, _MAX_DEV_CHIN_PROJ)
         cf = propagate(cr, ctx.quality_score, self.region, ctx.regional_penalties,
                        ctx.get_yaw(), ctx.get_pitch(), JAW_POSE_PARAMS)
+        cf = cf * trichion_confidence_multiplier(ctx)
         return MetricValue(
             metric_id=self.metric_id, region=self.region, family=self.family,
             unit=self.unit, value=v, error=0.03,

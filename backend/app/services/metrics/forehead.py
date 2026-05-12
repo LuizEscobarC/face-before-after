@@ -66,6 +66,10 @@ from app.services.metrics.confidence_propagation import (
     propagate,
 )
 from app.services.metrics.registry import register
+from app.services.metrics._trichion import (
+    effective_trichion_y,
+    trichion_confidence_multiplier,
+)
 
 # ---------------------------------------------------------------------------
 # Dependency landmark tuples
@@ -128,7 +132,7 @@ def _curvature_direction(v: float) -> str:
     return "prominent_arch" if v > _IDEAL_CURVATURE else "flat_arch"
 
 
-def _hairline_curvature(lm: NormalizedLandmarks) -> float:
+def _hairline_curvature(lm: NormalizedLandmarks, crown_y: float | None = None) -> float:
     """Sagitta-based curvature index of the brow-crown-brow arc.
 
     Computes the ratio of the arc sagitta (crown height above the outer-brow
@@ -141,17 +145,21 @@ def _hairline_curvature(lm: NormalizedLandmarks) -> float:
         chord_length     = |brow_r.x − brow_l.x|
         curvature_index  = sagitta / chord_length
 
+    crown_y : float | None
+        When provided (from effective_trichion_y), overrides lm[P_FOREHEAD_CROWN].y
+        while keeping crown_x from lm[P_FOREHEAD_CROWN].x (BiSeNet gives y only).
+
     High value (> 0.58) → prominent / round hairline arch.
     Low value  (< 0.38) → flat or pointed forehead top.
     """
     crown_x  = float(lm.xy(P_FOREHEAD_CROWN)[0])  # noqa: F841 (kept for symmetry)
-    crown_y  = float(lm.xy(P_FOREHEAD_CROWN)[1])
+    _crown_y = crown_y if crown_y is not None else float(lm.xy(P_FOREHEAD_CROWN)[1])
     brow_l_x = float(lm.xy(P_BROW_LEFT_OUTER)[0])
     brow_l_y = float(lm.xy(P_BROW_LEFT_OUTER)[1])
     brow_r_x = float(lm.xy(P_BROW_RIGHT_OUTER)[0])
     brow_r_y = float(lm.xy(P_BROW_RIGHT_OUTER)[1])
     chord_midpoint_y = (brow_l_y + brow_r_y) / 2.0
-    sagitta          = chord_midpoint_y - crown_y   # positive: crown is above chord
+    sagitta          = chord_midpoint_y - _crown_y   # positive: crown is above chord
     chord_length     = abs(brow_r_x - brow_l_x)
     if chord_length < 1e-9:
         return _IDEAL_CURVATURE  # degenerate
@@ -180,7 +188,7 @@ class ForeheadHeightRatioCalculator(MetricCalculator):
     unit      = "intercanthal_units"
 
     def compute(self, lm: NormalizedLandmarks, ctx: QualityContext) -> MetricValue:
-        crown_y = float(lm.xy(P_FOREHEAD_CROWN)[1])
+        crown_y = effective_trichion_y(lm, ctx)
         brow_y  = (float(lm.xy(P_BROW_LEFT_INNER)[1]) +
                    float(lm.xy(P_BROW_RIGHT_INNER)[1])) / 2.0
         # In normalized ICU: y↓ → crown_y < brow_y → height is brow_y - crown_y.
@@ -188,6 +196,7 @@ class ForeheadHeightRatioCalculator(MetricCalculator):
         cr = _conf_raw(v, _IDEAL_HEIGHT, _MAX_DEV_HEIGHT)
         cf = propagate(cr, ctx.quality_score, self.region, ctx.regional_penalties,
                        ctx.get_yaw(), ctx.get_pitch(), FOREHEAD_POSE_PARAMS)
+        cf = cf * trichion_confidence_multiplier(ctx)
         return MetricValue(
             metric_id=self.metric_id, region=self.region, family=self.family,
             unit=self.unit, value=v, error=0.08,
@@ -310,10 +319,12 @@ class HairlineCurvatureIndexCalculator(MetricCalculator):
     unit      = "index_0_1"
 
     def compute(self, lm: NormalizedLandmarks, ctx: QualityContext) -> MetricValue:
-        v  = _hairline_curvature(lm)
+        trichion_y = effective_trichion_y(lm, ctx)
+        v  = _hairline_curvature(lm, crown_y=trichion_y)
         cr = _conf_raw(v, _IDEAL_CURVATURE, _MAX_DEV_CURVATURE)
         cf = propagate(cr, ctx.quality_score, self.region, ctx.regional_penalties,
                        ctx.get_yaw(), ctx.get_pitch(), FOREHEAD_POSE_PARAMS)
+        cf = cf * trichion_confidence_multiplier(ctx)
         return MetricValue(
             metric_id=self.metric_id, region=self.region, family=self.family,
             unit=self.unit, value=v, error=0.03,

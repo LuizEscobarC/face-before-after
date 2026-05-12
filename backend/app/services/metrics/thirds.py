@@ -45,6 +45,11 @@ from app.services.metrics.confidence_propagation import (
     THIRDS_POSE_PARAMS,
     propagate,
 )
+from app.services.metrics._trichion import (
+    effective_trichion_y,
+    trichion_confidence_multiplier,
+    TRICHION_CONFIDENCE_THRESHOLD,  # noqa: F401 — re-exported for callers
+)
 
 # ---------------------------------------------------------------------------
 # Landmark dependency for all thirds metrics
@@ -65,36 +70,9 @@ _MAX_DEVIATION: float = 0.5
 
 
 # ---------------------------------------------------------------------------
-# BiSeNet trichion helper
+# BiSeNet trichion helpers — imported from central _trichion module
+# (effective_trichion_y, trichion_confidence_multiplier, TRICHION_CONFIDENCE_THRESHOLD)
 # ---------------------------------------------------------------------------
-
-def _get_trichion_y(lm: NormalizedLandmarks, ctx: QualityContext) -> float:
-    """Return the trichion y-coordinate in ICU.
-
-    Priority:
-      1. BiSeNet virtual trichion when confidence ≥ TRICHION_CONFIDENCE_THRESHOLD.
-      2. Geometric fallback: lm[P_FOREHEAD_CROWN] (mesh point, same as before).
-    """
-    vl = getattr(ctx, "virtual_landmarks", None)
-    if vl is not None:
-        conf = float(vl.get("trichion_confidence", 0.0))
-        if conf >= 0.8:  # TRICHION_CONFIDENCE_THRESHOLD from fusion_layer
-            y_icu = vl.get("trichion_y_icu")
-            if y_icu is not None:
-                return float(y_icu)
-    return float(lm.xy(P_FOREHEAD_CROWN)[1])
-
-
-def _trichion_confidence_factor(ctx: QualityContext) -> float:
-    """Return the trichion confidence multiplier for upper-third confidence.
-
-    Returns 1.0 when using mesh fallback (no impact on existing confidence).
-    Returns trichion_confidence when using BiSeNet (propagates uncertainty).
-    """
-    vl = getattr(ctx, "virtual_landmarks", None)
-    if vl is not None and vl.get("trichion_source") == "bisenet":
-        return float(vl.get("trichion_confidence", 1.0))
-    return 1.0
 
 
 # ---------------------------------------------------------------------------
@@ -168,7 +146,7 @@ class UpperThirdRatioCalculator(MetricCalculator):
     unit = "ratio"
 
     def compute(self, lm: NormalizedLandmarks, ctx: QualityContext) -> MetricValue:
-        trichion_y = _get_trichion_y(lm, ctx)
+        trichion_y = effective_trichion_y(lm, ctx)
         upper, _, _, _ = _thirds_geometry(lm, trichion_y_override=trichion_y)
         conf_raw = _ratio_confidence(upper)
         conf_final = propagate(
@@ -178,7 +156,7 @@ class UpperThirdRatioCalculator(MetricCalculator):
             pose_params=THIRDS_POSE_PARAMS,
         )
         # Propagate BiSeNet segmentation uncertainty into confidence
-        conf_final = conf_final * _trichion_confidence_factor(ctx)
+        conf_final = conf_final * trichion_confidence_multiplier(ctx)
         return MetricValue(
             metric_id=self.metric_id, region=self.region, family=self.family,
             unit=self.unit, value=upper, error=0.01,
@@ -202,7 +180,7 @@ class MiddleThirdRatioCalculator(MetricCalculator):
     unit = "ratio"
 
     def compute(self, lm: NormalizedLandmarks, ctx: QualityContext) -> MetricValue:
-        trichion_y = _get_trichion_y(lm, ctx)
+        trichion_y = effective_trichion_y(lm, ctx)
         _, middle, _, _ = _thirds_geometry(lm, trichion_y_override=trichion_y)
         conf_raw = _ratio_confidence(middle)
         conf_final = propagate(
@@ -234,7 +212,7 @@ class LowerThirdRatioCalculator(MetricCalculator):
     unit = "ratio"
 
     def compute(self, lm: NormalizedLandmarks, ctx: QualityContext) -> MetricValue:
-        trichion_y = _get_trichion_y(lm, ctx)
+        trichion_y = effective_trichion_y(lm, ctx)
         _, _, lower, _ = _thirds_geometry(lm, trichion_y_override=trichion_y)
         conf_raw = _ratio_confidence(lower)
         conf_final = propagate(
@@ -271,7 +249,7 @@ class DominantThirdCalculator(MetricCalculator):
     unit = "ratio"
 
     def compute(self, lm: NormalizedLandmarks, ctx: QualityContext) -> MetricValue:
-        trichion_y = _get_trichion_y(lm, ctx)
+        trichion_y = effective_trichion_y(lm, ctx)
         upper, middle, lower, _ = _thirds_geometry(lm, trichion_y_override=trichion_y)
         deviations = {
             "upper":  abs(upper  - _IDEAL),

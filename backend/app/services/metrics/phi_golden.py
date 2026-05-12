@@ -115,6 +115,10 @@ from app.services.metrics.confidence_propagation import (
     propagate,
 )
 from app.services.metrics.registry import register
+from app.services.metrics._trichion import (
+    effective_trichion_y,
+    trichion_confidence_multiplier,
+)
 
 # ---------------------------------------------------------------------------
 # Golden ratio constant
@@ -203,7 +207,7 @@ class PhiFaceHeightToWidthCalculator(MetricCalculator):
         lm: NormalizedLandmarks,
         quality: QualityContext,
     ) -> MetricValue:
-        crown_y  = float(lm.xy(P_FOREHEAD_CROWN)[1])
+        crown_y  = effective_trichion_y(lm, quality)
         menton_y = float(lm.xy(P_MENTON)[1])
         zyg_l_x  = float(lm.xy(P_LEFT_ZYGOMATIC)[0])
         zyg_r_x  = float(lm.xy(P_RIGHT_ZYGOMATIC)[0])
@@ -232,6 +236,7 @@ class PhiFaceHeightToWidthCalculator(MetricCalculator):
             quality.get_pitch(),
             PHI_POSE_PARAMS,
         )
+        cf = cf * trichion_confidence_multiplier(quality)
 
         return MetricValue(
             metric_id=self.metric_id,

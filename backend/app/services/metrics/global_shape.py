@@ -73,6 +73,10 @@ from app.services.metrics.confidence_propagation import (
     propagate,
 )
 from app.services.metrics.registry import register
+from app.services.metrics._trichion import (
+    effective_trichion_y,
+    trichion_confidence_multiplier,
+)
 
 # ---------------------------------------------------------------------------
 # Dependency landmark tuples
@@ -203,17 +207,23 @@ def _e_line_deviation_2d(lm: NormalizedLandmarks) -> tuple[float, str]:
     return abs_dev, direction
 
 
-def _polygon_convexity(lm: NormalizedLandmarks) -> float:
+def _polygon_convexity(lm: NormalizedLandmarks, crown_y: float | None = None) -> float:
     """Compute frontal boundary convexity for the 8-point face outline.
 
     Boundary polygon (counterclockwise from crown):
       [crown, brow_L_outer, zyg_L, gonion_L, menton, gonion_R, zyg_R, brow_R_outer]
 
+    crown_y : float | None
+        When provided (from effective_trichion_y), overrides the y-coordinate of
+        the first polygon vertex while keeping crown_x from lm[P_FOREHEAD_CROWN].
+        BiSeNet supplies a y-line only; x stays from the mesh.
+
     Returns polygon_area / convex_hull_area ∈ (0, 1].
     Returns 0.0 on degenerate input.
     """
+    _crown_y = crown_y if crown_y is not None else float(lm.xy(P_FOREHEAD_CROWN)[1])
     pts = np.array([
-        [float(lm.xy(P_FOREHEAD_CROWN)[0]),   float(lm.xy(P_FOREHEAD_CROWN)[1])],
+        [float(lm.xy(P_FOREHEAD_CROWN)[0]),   _crown_y],
         [float(lm.xy(P_BROW_LEFT_OUTER)[0]),  float(lm.xy(P_BROW_LEFT_OUTER)[1])],
         [float(lm.xy(P_LEFT_ZYGOMATIC)[0]),   float(lm.xy(P_LEFT_ZYGOMATIC)[1])],
         [float(lm.xy(P_LEFT_GONION)[0]),      float(lm.xy(P_LEFT_GONION)[1])],
@@ -267,7 +277,9 @@ class FaceHeightToWidthRatioCalculator(MetricCalculator):
     unit      = "ratio"
 
     def compute(self, lm: NormalizedLandmarks, ctx: QualityContext) -> MetricValue:
-        face_height   = _vdist(lm, P_FOREHEAD_CROWN, P_MENTON)
+        menton_y    = float(lm.xy(P_MENTON)[1])
+        trichion_y  = effective_trichion_y(lm, ctx)
+        face_height = abs(menton_y - trichion_y)
         bizygomatic   = _hdist(lm, P_LEFT_ZYGOMATIC, P_RIGHT_ZYGOMATIC)
         if bizygomatic <= 1e-9:
             return MetricValue(
@@ -281,6 +293,7 @@ class FaceHeightToWidthRatioCalculator(MetricCalculator):
         cr = _conf_raw(v, _IDEAL_ASPECT, _MAX_DEV_ASPECT)
         cf = propagate(cr, ctx.quality_score, self.region, ctx.regional_penalties,
                        ctx.get_yaw(), ctx.get_pitch(), GLOBAL_SHAPE_POSE_PARAMS)
+        cf = cf * trichion_confidence_multiplier(ctx)
         return MetricValue(
             metric_id=self.metric_id, region=self.region, family=self.family,
             unit=self.unit, value=v, error=0.05,
@@ -321,7 +334,9 @@ class FaceShapeClassificationCalculator(MetricCalculator):
     unit             = "ratio"
 
     def compute(self, lm: NormalizedLandmarks, ctx: QualityContext) -> MetricValue:
-        face_height  = _vdist(lm, P_FOREHEAD_CROWN, P_MENTON)
+        menton_y    = float(lm.xy(P_MENTON)[1])
+        trichion_y  = effective_trichion_y(lm, ctx)
+        face_height = abs(menton_y - trichion_y)
         bizygomatic  = _hdist(lm, P_LEFT_ZYGOMATIC, P_RIGHT_ZYGOMATIC)
         bigonial     = _hdist(lm, P_LEFT_GONION, P_RIGHT_GONION)
         aspect       = face_height / bizygomatic if bizygomatic > 1e-9 else 0.0
@@ -330,6 +345,7 @@ class FaceShapeClassificationCalculator(MetricCalculator):
         cr = _conf_raw(aspect, _IDEAL_ASPECT, _MAX_DEV_ASPECT)
         cf = propagate(cr, ctx.quality_score, self.region, ctx.regional_penalties,
                        ctx.get_yaw(), ctx.get_pitch(), GLOBAL_SHAPE_POSE_PARAMS)
+        cf = cf * trichion_confidence_multiplier(ctx)
         return MetricValue(
             metric_id=self.metric_id, region=self.region, family=self.family,
             unit=self.unit, value=aspect, error=0.05,
@@ -367,10 +383,12 @@ class TotalFacialConvexityCalculator(MetricCalculator):
     unit      = "index_0_1"
 
     def compute(self, lm: NormalizedLandmarks, ctx: QualityContext) -> MetricValue:
-        v  = _polygon_convexity(lm)
+        trichion_y = effective_trichion_y(lm, ctx)
+        v  = _polygon_convexity(lm, crown_y=trichion_y)
         cr = _conf_raw(v, _IDEAL_CONVEXITY, _MAX_DEV_CONVEXITY)
         cf = propagate(cr, ctx.quality_score, self.region, ctx.regional_penalties,
                        ctx.get_yaw(), ctx.get_pitch(), GLOBAL_SHAPE_POSE_PARAMS)
+        cf = cf * trichion_confidence_multiplier(ctx)
         return MetricValue(
             metric_id=self.metric_id, region=self.region, family=self.family,
             unit=self.unit, value=v, error=0.02,
