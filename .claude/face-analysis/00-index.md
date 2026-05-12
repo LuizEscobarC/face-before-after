@@ -1,7 +1,11 @@
 # Face Analysis Domain — Índice de Contexto
 
 > Documentação da arquitetura atual (MediaPipe-478 + NestJS + PostgreSQL + Python).
-> Última atualização: Maio 2026 — pós-implementação C1+C2+C3 (93 calculadores).
+> Última atualização: **2026-05-12** — auditoria do painel premium (fixes: fwhr canônico, jawline normalizado, marquardt com pose-gate, gaussianas em visual_status); + half-width sided + saturação dn=5 no `IdealComparator`/`RegionalScorer`.
+
+## Auditorias / changelog técnico
+
+- [CALIBRATION_AUDIT_2026-05-12.md](./CALIBRATION_AUDIT_2026-05-12.md) — bugs de landmark (P_NOSE_RIGHT 45→278, zygomatic, lips), recalibração de ideais v1.1, painel premium (D1-D4: jawline, marquardt, fwhr, gaussianas).
 
 ---
 

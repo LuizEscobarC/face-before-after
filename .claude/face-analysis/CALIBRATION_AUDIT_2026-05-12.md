@@ -62,3 +62,49 @@ Per user "Gere templates explicativos para tudo oq tem no banco":
 - 37 metrics still have **no** diagnostic_template
 - 56 metrics have only `low/normal/high` but no `extreme` severity
 - Total ~1300 templates needed for full coverage
+
+---
+
+## D. Display-panel audit — FIXED (2026-05-12, session 2)
+
+Auditoria das 17 métricas do painel `PremiumResultPage` ("Percepção Visual" +
+"Assimetria Regional" + "Perfil Facial Detalhado") encontrou 4 bugs estruturais
+que saturavam Dominância/Vitalidade em 10.0 e inflavam o "Desvio Máscara Áurea"
+para 120% IPD. Todos corrigidos em [face_metrics.py](../../backend/app/domain/face_metrics.py) e [visual_status.py](../../backend/app/domain/layers/visual_status.py).
+
+### D1. `jawline_definition_score` — unidade errada
+- **Antes:** retornava `std(angles)` em graus, capped em 30. Downstream
+  (`visual_status.compute_dominance_score`, glossary, `face_metrics ideals`)
+  tratavam como `[0,1]` "maior=melhor" → saturação artificial.
+- **Depois:** `1 − clip(std/15°, 0, 1)` → `[0,1]`, maior=mais definida.
+  Ideal=0.65 no banco continua coerente.
+
+### D2. `marquardt_deviation_pct_ipd` — label engano + sem pose-gate
+- **Antes:** label "Desvio Máscara Áurea" sugeria comparação contra máscara
+  de Marquardt, mas o cálculo é simetria bilateral própria (mirror sobre
+  midline x). Sem correção de pose → roll de 6° inflava o RMS para >100% IPD.
+- **Depois:** pose-gate (retorna `None` se `|roll_olhos| > 5°`); frontend
+  rotula como "Assimetria Bilateral". Chave persistida mantida para compat.
+
+### D3. `fwhr` — fórmula desviada do canônico
+- **Antes:** `bizygomatic / (glabella → upper_lip)`. Glabela é o ponto entre
+  as sobrancelhas — numerador subestimado → fWHR inflado e ideal=1.85 calibrado
+  contra fórmula errada.
+- **Depois:** canônico Carré & McCormick 2008 — `bizygomatic / (brow_top →
+  upper_lip)` onde `brow_top = min(y)` sobre `LM_LEFT_BROW ∪ LM_RIGHT_BROW`.
+  Ideal=1.85 agora está bem calibrado.
+
+### D4. Scores de percepção lineares → gaussianas centradas no ideal
+- **Antes:** rampas lineares monotônicas (`(value − μ_min) / range * 10`) em
+  `dominance/attractiveness/freshness`. Valores irreais (e.g.
+  `under_eye_darkness=0`, `fwhr=2.5`) ainda pontuavam 10 após clamp,
+  achatando a discriminação entre rostos.
+- **Depois:** helper `_bell(value, ideal, sigma)` = `exp(-((v−μ)/σ)²) * 10`.
+  Ideais e σ documentados em cada função. Valores fora da plausibilidade
+  decaem em vez de saturar.
+
+### Validação
+- `tests/test_visual_status.py`: 14/14 ✓
+- `tests/test_face_metrics.py`: 5/5 ✓
+- Suite Python completa: 74 passed, 46 skipped ✓
+- Frontend `tsc --noEmit`: clean ✓

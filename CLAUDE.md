@@ -1,5 +1,17 @@
 # Claude Development Rules & Guidelines
 
+## Context loading (MANDATÓRIO antes de qualquer task de face-analysis)
+
+Sempre que a sessão tocar qualquer parte do domínio de análise facial (métricas, scores, ideais, recomendações, landmarks, severidade, narrative, scorer):
+
+1. **Comece lendo [.claude/face-analysis/00-index.md](.claude/face-analysis/00-index.md).** Este é o índice canônico do domínio e aponta para o conteúdo certo.
+2. **Carregue SOMENTE os arquivos relevantes ao assunto da sessão.** A regra de mapeamento (assunto → arquivos) está em [AGENTS.md → Context-loading policy](./AGENTS.md). Nunca puxe todos os 8 arquivos do domínio — janela de contexto é finita e ruído derruba precisão.
+3. **Justifique antes de abrir.** Para cada arquivo do domínio que for ler, declare numa linha **por que ele importa para a sessão**. Se não der para justificar, não abra.
+4. **Poda quando o assunto mudar.** Se o foco da sessão pivotar (ex: começou em recomendações e virou bug de landmark), releia `00-index.md` e ajuste o conjunto — não acumule arquivos do escopo anterior.
+5. **Fonte canônica de bugs/fixes:** [`.claude/face-analysis/CALIBRATION_AUDIT_2026-05-12.md`](./.claude/face-analysis/CALIBRATION_AUDIT_2026-05-12.md). Referenciar; não duplicar.
+
+A mesma política vale para a documentação fora de `face-analysis/` (skills, hooks, plans): leia o índice/README do diretório primeiro e puxe só o que justifica o assunto.
+
 ## Color Palette — MVP Design System
 
 A paleta de cores foi extraída do `relatorio_mvp.html` e deve ser usada consistentemente em todos os componentes React e telas de interface.

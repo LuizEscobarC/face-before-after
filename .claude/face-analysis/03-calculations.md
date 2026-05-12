@@ -291,12 +291,16 @@ thirds_std_dev = std([r_upper, r_middle, r_lower])
 ## 5. fWHR (Facial Width-to-Height Ratio)
 
 ```python
-bizygomatic = ‖lm[1] − lm[15]‖            # largura zigomática
-upper_face_h = lm[P_UPPER_LIP][1] − glabella_y  # p51 → linha das sobrancelhas
+bizygomatic  = ‖lm[P_LEFT_ZYGOMATIC] − lm[P_RIGHT_ZYGOMATIC]‖
+# Canônico (Carré & McCormick 2008): topo = ponto mais alto das sobrancelhas,
+# NÃO a glabela. Y cresce para baixo → "mais alto" = min(y).
+brow_top_y   = min(lm[LM_LEFT_BROW][:,1] ∪ lm[LM_RIGHT_BROW][:,1])
+upper_face_h = lm[P_UPPER_LIP][1] − brow_top_y
 
 fwhr = bizygomatic / upper_face_h
-# Ideal masculino: ~1.85 (range: 1.7–2.0)
-# Associado a percepção de dominância (Lefevre 2012)
+# Ideal masculino: ~1.85 (range 1.7–2.0). Lefevre 2012, Carré 2008.
+# CORRIGIDO 2026-05-12: usava glabela (entre sobrancelhas) → numerador
+# subestimado → fwhr inflado e ideal mal calibrado contra fórmula errada.
 ```
 
 ---
@@ -334,7 +338,16 @@ def ear(eye_pts):  # eye_pts: 6 landmarks do olho
 
 ---
 
-## 8. Desvio Marquardt (bilateral RMSE)
+## 8. Assimetria Bilateral (RMSE) — chave histórica `marquardt_deviation_*`
+
+> ⚠️ O nome `marquardt_deviation_*` é **histórico** e mantido apenas por compat
+> de schema. A métrica NÃO compara contra a máscara áurea de Marquardt — mede
+> o RMSE do rosto contra a sua **própria** simetria bilateral (mirror sobre
+> midline x). UI rotula como **"Assimetria Bilateral"**.
+>
+> **Pose-gate (2026-05-12):** retorna `None` quando `|roll_olhos| > 5°` —
+> antes, qualquer roll mínimo inflava o RMSE para >100% IPD por somar
+> componente y² da pose.
 
 ```python
 # Pares espelhados dos 68 landmarks:
@@ -388,8 +401,12 @@ for i in range(1, len(jaw) − 1):
     a  = abs(degrees(atan2(v2[1], v2[0]) − atan2(v1[1], v1[0])))
     angles.append(a)
 
-jawline_definition_score = std(angles)
-# Maior desvio → curva mais acentuada (mandíbula mais definida)
+std_deg = std(angles)
+jawline_definition_score = clip(1 − std_deg / 15.0, 0, 1)  # [0, 1] — MAIOR = MAIS DEFINIDA
+# Linha mandibular regular (std baixo) → score próximo de 1.
+# CORRIGIDO 2026-05-12: antes retornava std em graus capped em 30, mas
+# downstream (visual_status, glossary, ideals) tratava como [0,1] e
+# "maior=melhor" → saturação artificial de Dominância em 10.
 ```
 
 ---

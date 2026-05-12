@@ -74,19 +74,21 @@ else:
 
 ---
 
+### Curva de score — gaussiana centrada no ideal (CORRIGIDO 2026-05-12)
+
+Os três sub-scores usam `_bell(value, ideal, sigma) = exp(-((v−μ)/σ)²) × 10`.
+Substitui rampas lineares monótonas anteriores, que saturavam em 10 mesmo
+para valores irreais (e.g. `under_eye_darkness=0` ainda dava score 12.5 →
+clamped 10, destruindo discriminação).
+
 ### Score de Dominância (0–10)
 
-Baseado em: Lefevre 2012, Hammond 2018
+Baseado em: Lefevre 2012, Hammond 2018, Carré 2008
 
 ```python
-fwhr_score = clamp((fwhr − 1.4) / (2.2 − 1.4) × 10)
-# fwhr=1.4 → 0 | fwhr=2.2 → 10
-
-jaw_score = clamp(jawline_definition_score × 10)
-# jawline=0 → 0 | jawline=1 → 10
-
-bzg_score = clamp(10 − |bizygomatic_to_bigonial_ratio − 1.3| × 20)
-# ideal 1.3 → 10 | desvio de 0.5 → 0
+fwhr_score = _bell(fwhr, ideal=1.85, sigma=0.25)            # pico em fwhr=1.85
+jaw_score  = _bell(jawline_definition_score, ideal=1.0, sigma=0.35)
+bzg_score  = _bell(bizygomatic_to_bigonial_ratio, ideal=1.30, sigma=0.18)
 
 dominance_score = fwhr_score × 0.50 + jaw_score × 0.35 + bzg_score × 0.15
 ```
@@ -100,14 +102,9 @@ dominance_score = fwhr_score × 0.50 + jaw_score × 0.35 + bzg_score × 0.15
 Baseado em: Rhee 2012, Rhodes 2006
 
 ```python
-tilt_score = clamp((canthal_tilt_mean_deg + 5.0) / 12.0 × 10)
-# tilt=−5 → 0 | tilt=+7 → 10
-
-sym_score = clamp((5.0 − asym_pct_ipd) / 5.0 × 10)
-# asym=0% → 10 | asym=5% → 0
-
-thirds_score = clamp(10 − thirds_std_dev × 50)
-# std=0 → 10 | std=0.2 → 0
+tilt_score   = _bell(canthal_tilt_mean_deg, ideal=5.0, sigma=6.0)
+sym_score    = _bell(overall_asymmetry_score_pct_ipd, ideal=0.0, sigma=3.0)
+thirds_score = _bell(thirds_std_dev, ideal=0.0, sigma=0.04)
 
 attractiveness_score = tilt_score × 0.45 + sym_score × 0.40 + thirds_score × 0.15
 ```
@@ -122,15 +119,12 @@ Baseado em: Axelsson 2010 (Stockholm Sleep)
 
 ```python
 skin_std_mean = (skin_uniformity_left + skin_uniformity_right) / 2
-skin_score = clamp((25.0 − skin_std_mean) / 15.0 × 10)
-# std=10 → 10 | std=25 → 0
+skin_score    = _bell(skin_std_mean, ideal=8.0, sigma=10.0)
 
 eye_dark_mean = (under_eye_darkness_left + under_eye_darkness_right) / 2
-dark_score = clamp((0.25 − eye_dark_mean) / 0.20 × 10)
-# dark=0 → 12.5 → clamped a 10 | dark=0.25 → 0
+dark_score    = _bell(eye_dark_mean, ideal=0.0, sigma=0.12)
 
-ear_score = clamp((eye_aspect_ratio_mean − 0.18) / 0.17 × 10)
-# ear=0.18 → 0 | ear=0.35 → 10
+ear_score     = _bell(eye_aspect_ratio_mean, ideal=0.30, sigma=0.08)
 
 freshness_score = skin_score × 0.45 + dark_score × 0.35 + ear_score × 0.20
 ```
