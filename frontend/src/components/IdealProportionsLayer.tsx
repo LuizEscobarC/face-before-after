@@ -7,11 +7,19 @@ type IdealRow = {
   direction?: string | null;
 };
 
+type BackendZone = {
+  metric_id: string;
+  rect: { x: number; y: number; w: number; h: number };
+  severity_5?: string | null;
+  direction?: string | null;
+};
+
 interface IdealProportionsLayerProps {
   viewBoxWidth: number;
   viewBoxHeight: number;
   landmarks: Array<[number, number]>;
   rows: IdealRow[];
+  overlay_zones?: { zones: BackendZone[] } | null;
   selectedMetricId?: string | null;
   onSelectMetric?: (metricId: string) => void;
 }
@@ -121,14 +129,34 @@ export function IdealProportionsLayer({
   viewBoxHeight,
   landmarks,
   rows,
+  overlay_zones,
   selectedMetricId,
   onSelectMetric,
 }: IdealProportionsLayerProps) {
   if (!rows || rows.length === 0) return null;
-  if (!landmarks || landmarks.length < 478) return null;
 
   const available = new Set(rows.map((r) => r.metric_id).filter(Boolean) as string[]);
-  const zonesByMetric = createAnatomicalZones(landmarks, viewBoxWidth, viewBoxHeight);
+
+  // Prefer backend-emitted zones (Pattern 3 — JSON + SVG). Fall back to
+  // landmarks-derived geometry only when backend has not provided them.
+  const zonesByMetric: Record<string, ZoneRect> = (() => {
+    if (overlay_zones?.zones?.length) {
+      const out: Record<string, ZoneRect> = {};
+      for (const z of overlay_zones.zones) {
+        out[z.metric_id] = {
+          x: z.rect.x,
+          y: z.rect.y,
+          width: z.rect.w,
+          height: z.rect.h,
+        };
+      }
+      return out;
+    }
+    if (!landmarks || landmarks.length < 478) return {};
+    return createAnatomicalZones(landmarks, viewBoxWidth, viewBoxHeight);
+  })();
+
+  if (Object.keys(zonesByMetric).length === 0) return null;
 
   return (
     <svg
@@ -144,7 +172,7 @@ export function IdealProportionsLayer({
       }}
       aria-hidden="true"
     >
-      {ZONES.filter((z) => available.has(z.metricId)).map((zone) => {
+      {ZONES.filter((z) => available.has(z.metricId) && zonesByMetric[z.metricId]).map((zone) => {
         const row = rows.find((r) => r.metric_id === zone.metricId);
         const severity = row?.severity_5 ?? "ideal";
         const stroke = SEVERITY_STROKE[severity] ?? "#94a3b8";

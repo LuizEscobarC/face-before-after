@@ -2,11 +2,12 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { evaluateFromLandmarks, fetchFindings, fetchGlossary, fetchNarrative, fetchReportRecommendations, type NarrativeFinding, type NarrativeRecommendation } from "../api";
 import { MetricExplainer } from "../components/MetricExplainer";
-import { DEFAULT_OVERLAYS, HeatmapImageLayer, OverlayLayer, OverlayToggleBar } from "../components/OverlayLayer";
+import { DEFAULT_OVERLAYS, DEFAULT_LANDMARKS_OVERLAYS, HeatmapImageLayer, LandmarkToggleBar, OverlayLayer, OverlayToggleBar } from "../components/OverlayLayer";
 import { OverlaySidebar } from "../components/OverlaySidebar";
 import { BeforeIdealOverlay } from "../components/BeforeIdealOverlay";
 import { MetricsMapLayer } from "../components/MetricsMapLayer";
 import { IdealProportionsLayer } from "../components/IdealProportionsLayer";
+import { AsymmetryAnalysisLayer } from "../components/AsymmetryAnalysisLayer";
 import type { AnalysisResult, GlossaryTerm, MetricEvaluationResult, NarrativeResponseDto, PremiumMetricCategory } from "../types";
 
 type LocationState = { result?: AnalysisResult };
@@ -371,6 +372,7 @@ export function PremiumResultPage() {
   const [selectedRegion, setSelectedRegion] = useState<string | null>(null);
   const [selectedIdealMetric, setSelectedIdealMetric] = useState<string | null>(null);
   const [idealDims, setIdealDims] = useState<{ naturalW: number; naturalH: number } | null>(null);
+  const [activeLandmarkOverlays, setActiveLandmarkOverlays] = useState<string[]>(DEFAULT_LANDMARKS_OVERLAYS);
 
   // PR-62 (M4.5) — PDF download state
   const [pdfLoading, setPdfLoading] = useState(false);
@@ -397,6 +399,12 @@ export function PremiumResultPage() {
 
   const handleOverlayToggle = (id: string) => {
     setActiveOverlays((prev) =>
+      prev.includes(id) ? prev.filter((o) => o !== id) : [...prev, id]
+    );
+  };
+
+  const handleLandmarkToggle = (id: string) => {
+    setActiveLandmarkOverlays((prev) =>
       prev.includes(id) ? prev.filter((o) => o !== id) : [...prev, id]
     );
   };
@@ -681,7 +689,7 @@ export function PremiumResultPage() {
         <aside className="view-sidebar">
           <div className="view-sidebar-label">Visualizações</div>
 
-          {annotatedUrl && (
+          {canonicalUrl && (
             <button
               className={`view-btn${view === "landmarks" ? " view-btn-active" : ""}`}
               onClick={() => setView("landmarks")}
@@ -751,6 +759,13 @@ export function PremiumResultPage() {
 
           {view === "overlays" && result.landmarks && (
             <OverlayToggleBar activeOverlays={activeOverlays} onToggle={handleOverlayToggle} />
+          )}
+
+          {view === "landmarks" && (
+            <LandmarkToggleBar
+              activeOverlays={activeLandmarkOverlays}
+              onToggle={handleLandmarkToggle}
+            />
           )}
 
           {/* PR-43 — toggle controls for the before/ideal composition */}
@@ -905,12 +920,46 @@ export function PremiumResultPage() {
             </div>
 
             <div className="image-viewer-body">
-              {view === "landmarks" && annotatedUrl && (
-                <img src={annotatedUrl} alt="Rosto analisado com landmarks" className="panel-img" />
+              {view === "landmarks" && canonicalUrl && (
+                <div className="overlay-stage">
+                  <div className="overlay-media">
+                    <img
+                      src={canonicalUrl}
+                      alt="Rosto analisado com landmarks"
+                      className="panel-img overlay-stage-image"
+                      onLoad={(e) => {
+                        const img = e.currentTarget;
+                        setIdealDims({ naturalW: img.naturalWidth, naturalH: img.naturalHeight });
+                      }}
+                    />
+                    {result.overlay_annotations?.asymmetry_analysis && (
+                      <AsymmetryAnalysisLayer
+                        viewBoxWidth={idealDims?.naturalW || result.overlay_annotations.asymmetry_analysis.image_size?.width || 1200}
+                        viewBoxHeight={idealDims?.naturalH || result.overlay_annotations.asymmetry_analysis.image_size?.height || 800}
+                        landmarks={result.landmarks}
+                        data={result.overlay_annotations.asymmetry_analysis}
+                        activeOverlays={activeLandmarkOverlays}
+                      />
+                    )}
+                    {activeLandmarkOverlays.includes("metrics_regions") && result.metric_evaluations && result.metric_evaluations.length > 0 && (
+                      <MetricsMapLayer
+                        viewBoxWidth={idealDims?.naturalW || 1200}
+                        viewBoxHeight={idealDims?.naturalH || 800}
+                        metric_evaluations={result.metric_evaluations}
+                        region_adherence={buildRegionAdherence(result)}
+                        overlay_metrics_map={result.overlay_annotations?.metrics_map}
+                        onRegionClick={(region) => {
+                          setSelectedRegion((prev) => (prev === region ? null : region));
+                        }}
+                        selectedRegion={selectedRegion}
+                      />
+                    )}
+                  </div>
+                </div>
               )}
-              {view === "landmarks" && !annotatedUrl && (
+              {view === "landmarks" && !canonicalUrl && (
                 <div style={{ color: "var(--muted)", padding: 40, textAlign: "center" }}>
-                  Imagem anotada não disponível
+                  Imagem canônica não disponível
                 </div>
               )}
 
@@ -932,6 +981,7 @@ export function PremiumResultPage() {
                         viewBoxHeight={idealDims?.naturalH || 800}
                         landmarks={result.landmarks ?? []}
                         rows={result.overlay_annotations.ideal_proportions}
+                        overlay_zones={result.overlay_annotations.ideal_proportions_zones}
                         selectedMetricId={selectedIdealMetric}
                         onSelectMetric={(metricId) => {
                           setSelectedIdealMetric((prev) => (prev === metricId ? null : metricId));
@@ -1029,15 +1079,6 @@ export function PremiumResultPage() {
                         <OverlaySidebar variant="grid_fifths" data={result.overlay_annotations} />}
                       {activeOverlays.includes("face_extents") &&
                         <OverlaySidebar variant="face_extents" data={result.overlay_annotations} />}
-                      {activeOverlays.includes("heatmap_ideal_adherence") && !!buildRegionAdherence(result).length && (
-                        <OverlaySidebar
-                          variant="metrics_map"
-                          data={result.overlay_annotations}
-                          regionAdherence={buildRegionAdherence(result)}
-                          selectedKey={selectedRegion}
-                          onSelectKey={(key) => setSelectedRegion((prev) => (prev === key ? null : key))}
-                        />
-                      )}
                     </div>
                   )}
                 </div>

@@ -22,6 +22,11 @@ interface MetricsMapLayerProps {
   overlay_metrics_map?: { regions: MetricsMapRegion[] };
   onRegionClick?: (region: string) => void;
   selectedRegion?: string | null;
+  /**
+   * Active metric_id filter. `null` = all visible (default).
+   * When set, regions with NO selected metrics are dimmed to opacity 0.06.
+   */
+  selectedMetrics?: string[] | null;
 }
 
 interface RegionBounds {
@@ -46,14 +51,34 @@ interface RegionBounds {
  *   - 0.7–0.9 (good): amber (#f59e0b)
  *   - < 0.7 (needs work): red (#ef4444)
  */
+// Canonical region key: normalize any case to uppercase.
+const toRegionKey = (r: string) => r.toUpperCase();
+
+const REGION_LABEL: Record<string, string> = {
+  BROWS:      "Sobrancelhas",
+  FOREHEAD:   "Testa",
+  EYES:       "Olhos",
+  NOSE:       "Nariz",
+  MOUTH:      "Boca",
+  JAW:        "Mandíbula",
+  CHEEKBONES: "Maçãs do rosto",
+  SYMMETRY:   "Simetria",
+  GLOBAL:     "Global",
+};
+
 // Fallback bounds in canonical image space (1200×800) — used only when
 // backend does not emit overlay_annotations.metrics_map.
+// Keys are uppercase to match normalized region values.
 const REGION_BOUNDS_FALLBACK: Record<string, RegionBounds> = {
-  FOREHEAD: { x: 250, y: 80,  width: 700, height: 150 },
-  EYES:     { x: 300, y: 210, width: 600, height: 120 },
-  NOSE:     { x: 450, y: 310, width: 300, height: 140 },
-  MOUTH:    { x: 380, y: 450, width: 440, height: 110 },
-  JAW:      { x: 220, y: 530, width: 760, height: 180 },
+  BROWS:      { x: 280, y: 140, width: 640, height:  80 },
+  FOREHEAD:   { x: 250, y:  80, width: 700, height: 150 },
+  EYES:       { x: 300, y: 210, width: 600, height: 120 },
+  NOSE:       { x: 450, y: 310, width: 300, height: 140 },
+  MOUTH:      { x: 380, y: 450, width: 440, height: 110 },
+  JAW:        { x: 220, y: 530, width: 760, height: 180 },
+  CHEEKBONES: { x: 200, y: 250, width: 800, height: 160 },
+  SYMMETRY:   { x: 400, y: 100, width: 400, height: 520 },
+  GLOBAL:     { x: 180, y:  80, width: 840, height: 640 },
 };
 
 export const MetricsMapLayer: React.FC<MetricsMapLayerProps> = ({
@@ -64,38 +89,71 @@ export const MetricsMapLayer: React.FC<MetricsMapLayerProps> = ({
   overlay_metrics_map,
   onRegionClick,
   selectedRegion,
+  selectedMetrics,
 }) => {
-  // Normalize region_adherence to object format
+  // Normalize region_adherence to object format — keys uppercased to match REGION_BOUNDS
   const adherenceMap = useMemo(() => {
     if (Array.isArray(region_adherence)) {
-      return Object.fromEntries(region_adherence.map(r => [r.region, r.adherence]));
+      return Object.fromEntries(region_adherence.map(r => [toRegionKey(r.region), r.adherence]));
     }
-    return region_adherence;
+    return Object.fromEntries(Object.entries(region_adherence).map(([k, v]) => [toRegionKey(k), v]));
   }, [region_adherence]);
 
   // Build REGION_BOUNDS: prefer backend-computed landmarks-based bounds; fall back to hardcoded.
+  // Keys uppercased for consistent lookup.
   const REGION_BOUNDS: Record<string, RegionBounds> = useMemo(() => {
     if (overlay_metrics_map?.regions?.length) {
       return Object.fromEntries(
         overlay_metrics_map.regions.map(r => [
-          r.region,
+          toRegionKey(r.region),
           { x: r.bounds.x, y: r.bounds.y, width: r.bounds.w, height: r.bounds.h },
         ])
       );
     }
+    // Derive fallback from actual regions present in region_adherence, filtered by known bounds
     return REGION_BOUNDS_FALLBACK;
   }, [overlay_metrics_map]);
 
-  // Count metrics per region
+  // Count metrics per region (keys uppercased)
   const metricsByRegion = useMemo(() => {
     const count: Record<string, number> = {};
     for (const metric of metric_evaluations) {
       if (metric.region) {
-        count[metric.region] = (count[metric.region] || 0) + 1;
+        const key = toRegionKey(metric.region);
+        count[key] = (count[key] || 0) + 1;
       }
     }
     return count;
   }, [metric_evaluations]);
+
+  // metric_id set per region — keys uppercased
+  const metricIdsByRegion = useMemo(() => {
+    const map: Record<string, Set<string>> = {};
+    for (const metric of metric_evaluations) {
+      if (metric.region) {
+        const key = toRegionKey(metric.region);
+        if (!map[key]) map[key] = new Set();
+        map[key].add(metric.metric_id);
+      }
+    }
+    return map;
+  }, [metric_evaluations]);
+
+  // Pre-compute which regions are "active" given the current selectedMetrics filter
+  const selectedSet = useMemo(
+    () => (selectedMetrics ? new Set(selectedMetrics) : null),
+    [selectedMetrics],
+  );
+
+  const isRegionActive = (region: string): boolean => {
+    if (!selectedSet) return true;  // null = all
+    const ids = metricIdsByRegion[region];
+    if (!ids) return false;
+    for (const id of ids) {
+      if (selectedSet.has(id)) return true;
+    }
+    return false;
+  };
 
   // Map adherence to color
   const adherenceToColor = (adherence: number | undefined): string => {
@@ -124,16 +182,20 @@ export const MetricsMapLayer: React.FC<MetricsMapLayerProps> = ({
         zIndex: 25,
       }}
     >
-      {/* Region heatmap rectangles */}
-      {Object.entries(REGION_BOUNDS).map(([region, bounds]) => {
+      {/* Region heatmap rectangles — iterate over regions present in adherence data */}
+      {Object.entries(adherenceMap)
+        .filter(([region]) => REGION_BOUNDS[region] !== undefined)
+        .map(([region]) => {
+        const bounds = REGION_BOUNDS[region];
         const adherence = adherenceMap[region];
         const color = adherenceToColor(adherence);
         const opacity = adherenceToOpacity(adherence);
         const isSelected = selectedRegion === region;
         const metricCount = metricsByRegion[region] ?? 0;
+        const active = isRegionActive(region);
 
         return (
-          <g key={`region-${region}`}>
+          <g key={`region-${region}`} style={{ opacity: active ? 1 : 0.06, transition: "opacity 0.25s ease" }}>
             {/* Background rectangle (clickable) */}
             <rect
               x={bounds.x}
@@ -143,14 +205,16 @@ export const MetricsMapLayer: React.FC<MetricsMapLayerProps> = ({
               fill={color}
               opacity={isSelected ? opacity * 1.5 : opacity}
               stroke={color}
-              strokeWidth={isSelected ? 3 : 1.5}
+              strokeWidth={isSelected ? 3 : active && selectedSet ? 2 : 1.5}
+              strokeDasharray={active && selectedSet && !isSelected ? "none" : undefined}
               rx={6}
               style={{
-                cursor: 'pointer',
-                transition: 'all 0.2s ease',
+                cursor: active ? "pointer" : "default",
+                transition: "all 0.2s ease",
               }}
-              onClick={() => onRegionClick?.(region)}
+              onClick={() => active && onRegionClick?.(region)}
               onMouseEnter={(e) => {
+                if (!active) return;
                 (e.currentTarget as SVGRectElement).style.opacity = String(
                   isSelected ? opacity * 1.8 : opacity * 1.3
                 );
@@ -177,7 +241,7 @@ export const MetricsMapLayer: React.FC<MetricsMapLayerProps> = ({
                 transition: 'all 0.2s ease',
               }}
             >
-              {region}
+              {REGION_LABEL[region] ?? region.charAt(0) + region.slice(1).toLowerCase()}
             </text>
 
             {/* Metric count sub-label */}

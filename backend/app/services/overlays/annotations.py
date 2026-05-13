@@ -29,6 +29,14 @@ P_ZYGO_IMG_LEFT       = 234
 P_EYE_OUTER_IMG_LEFT  = 33
 P_EYE_OUTER_IMG_RIGHT = 263
 
+# Asymmetry analysis landmarks (mirrors face_asymmetry.py)
+LM_LEFT_EYE_ASYM  = [33, 7, 163, 144, 145, 153]
+LM_RIGHT_EYE_ASYM = [263, 249, 390, 373, 374, 380]
+P_NOSE_TIP_ASYM   = 1
+P_UPPER_LIP_ASYM  = 13
+P_LEFT_MOUTH      = 61
+P_RIGHT_MOUTH     = 291
+
 # Forehead ridge landmark indices (mirrors IdealProportionsLayer.tsx LM_FOREHEAD_RIDGE)
 _FOREHEAD_RIDGE = [109, 67, 103, 54, 21, 162, 10, 338, 297, 332, 284, 251]
 
@@ -170,11 +178,19 @@ def build_face_extents_annotations(
 def build_ideal_proportions_zones(
     lm: Sequence[Sequence[float]],
     metric_evals: Iterable[dict] | None = None,
+    trichion_y_px: float | None = None,
 ) -> dict:
     """Compute anatomical zone rects for IdealProportionsLayer from landmarks.
 
     Returns JSON consumed by IdealProportionsLayer.tsx so the frontend can
     render SVG rects without any hardcoded geometry.
+
+    Parameters
+    ----------
+    trichion_y_px : float | None
+        When provided (from the pipeline's BiSeNet virtual_landmarks["trichion"][1]),
+        this pixel y is used directly as the top of the forehead zone.  When absent,
+        falls back to algebraic derivation from upper_third_ratio.
 
     Output shape::
 
@@ -196,10 +212,12 @@ def build_ideal_proportions_zones(
     y_brow_r = _xy(lm, P_BROW_RIGHT_INNER)[1]
     y_brow   = (y_brow_l + y_brow_r) / 2.0
 
-    # Trichion: top of face (min y of forehead ridge landmarks)
-    ridge_ys = [_xy(lm, idx)[1] for idx in _FOREHEAD_RIDGE if idx < len(lm)]
-    y_top    = min(ridge_ys) if ridge_ys else _xy(lm, P_FOREHEAD_CROWN)[1]
-    y_top    = max(0.0, min(y_top, y_brow - 1))
+    # Priority: direct pixel trichion from BiSeNet virtual_landmarks > metric roundtrip > lm[10]
+    if trichion_y_px is not None:
+        y_top = float(trichion_y_px)
+    else:
+        y_top = _derive_trichion_y_px(lm, metric_evals)
+    y_top = max(0.0, min(y_top, y_brow - 1))
 
     y_sub = _xy(lm, P_SUBNASALE)[1]
     y_men = _xy(lm, P_MENTON)[1]
@@ -302,3 +320,80 @@ def build_metrics_map_metadata(
         })
 
     return {"regions": regions}
+
+
+def build_asymmetry_analysis_annotations(
+    lm: Sequence[Sequence[float]],
+    asymmetry_measurements: dict | None,
+    image_size: tuple[int, int],
+) -> dict:
+    """Build JSON for the AsymmetryAnalysisLayer SVG renderer.
+
+    Replaces the burned-in OpenCV markings in ``*_mvp_annotated.jpg`` with
+    pure data: Frankfort horizontal y-line, facial midline anchor points,
+    and the deviation of each anatomical key-point relative to the midline.
+    """
+    width, height = int(image_size[0]), int(image_size[1])
+
+    def _avg_xy(indices: Sequence[int]) -> tuple[float, float]:
+        xs = [_xy(lm, i)[0] for i in indices if i < len(lm)]
+        ys = [_xy(lm, i)[1] for i in indices if i < len(lm)]
+        if not xs or not ys:
+            return (0.0, 0.0)
+        return (sum(xs) / len(xs), sum(ys) / len(ys))
+
+    left_eye  = _avg_xy(LM_LEFT_EYE_ASYM)
+    right_eye = _avg_xy(LM_RIGHT_EYE_ASYM)
+    eye_y     = (left_eye[1] + right_eye[1]) / 2.0
+
+    glabella_x = (_xy(lm, P_BROW_LEFT_INNER)[0] + _xy(lm, P_BROW_RIGHT_INNER)[0]) / 2.0
+    eye_mid_x  = (left_eye[0] + right_eye[0]) / 2.0
+    midline_x  = (glabella_x + eye_mid_x) / 2.0
+
+    glabella_y = (_xy(lm, P_BROW_LEFT_INNER)[1] + _xy(lm, P_BROW_RIGHT_INNER)[1]) / 2.0
+    menton_y   = _xy(lm, P_MENTON)[1]
+    y_top      = max(0.0, glabella_y - 30.0)
+    y_bot      = min(float(height), menton_y + 30.0)
+
+    deviation_defs = [
+        ("Ponta do nariz", P_NOSE_TIP_ASYM),
+        ("Mento",          P_MENTON),
+        ("Lábio superior", P_UPPER_LIP_ASYM),
+        ("Canto E. boca",  P_LEFT_MOUTH),
+        ("Canto D. boca",  P_RIGHT_MOUTH),
+    ]
+    deviations = []
+    for label, idx in deviation_defs:
+        if idx >= len(lm):
+            continue
+        x, y = _xy(lm, idx)
+        deviations.append({
+            "label":         label,
+            "landmark_idx":  idx,
+            "x":             round(x, 1),
+            "y":             round(y, 1),
+            "midline_x":     round(midline_x, 1),
+            "deviation_px":  round(abs(x - midline_x), 2),
+        })
+
+    measurements = asymmetry_measurements or {}
+    overall_score   = measurements.get("overall_asymmetry_score")
+    overall_pct_ipd = measurements.get("overall_asymmetry_score_pct_ipd")
+
+    return {
+        "image_size": {"width": width, "height": height},
+        "frankfort_horizontal": {
+            "y":         round(eye_y, 1),
+            "eye_left":  {"x": round(left_eye[0], 1),  "y": round(left_eye[1], 1)},
+            "eye_right": {"x": round(right_eye[0], 1), "y": round(right_eye[1], 1)},
+        },
+        "facial_midline": {
+            "x_top":    round(midline_x, 1),
+            "y_top":    round(y_top, 1),
+            "x_bottom": round(midline_x, 1),
+            "y_bottom": round(y_bot, 1),
+        },
+        "deviations": deviations,
+        "overall_asymmetry_score":         overall_score,
+        "overall_asymmetry_score_pct_ipd": overall_pct_ipd,
+    }

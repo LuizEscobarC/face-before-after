@@ -940,13 +940,13 @@ def build_shareable_report(
             sep,
             f"  📸 VISUALIZACOES GERADAS",
             sep,
-            f"  → {os.path.basename(simulation_paths.get('symmetrized', ''))}",
+            f"  → {os.path.basename(simulation_paths.get('symmetrized') or '')}",
             f"     Como você ficaria com a assimetria zerada",
             '',
-            f"  → {os.path.basename(simulation_paths.get('ideal_proportions', ''))}",
+            f"  → {os.path.basename(simulation_paths.get('ideal_proportions') or '')}",
             f"     Proporções ideais sobrepostas — referência dos ajustes possíveis",
             '',
-            f"  → {os.path.basename(simulation_paths.get('comparison_grid', ''))}",
+            f"  → {os.path.basename(simulation_paths.get('comparison_grid') or '')}",
             f"     Grade comparativa: atual vs. projeção lado a lado",
             '',
         ]
@@ -1425,6 +1425,7 @@ def run(image_path: str, output_dir: str, mode: str = "premium") -> dict:
             build_face_extents_annotations,
             build_ideal_proportions_zones,
             build_metrics_map_metadata,
+            build_asymmetry_analysis_annotations,
         )
         _lm_xy = [[float(canonical.landmarks[i, 0]), float(canonical.landmarks[i, 1])]
                   for i in range(len(canonical.landmarks))]
@@ -1453,11 +1454,21 @@ def run(image_path: str, output_dir: str, mode: str = "premium") -> dict:
             'ideal_proportions_zones': build_ideal_proportions_zones(
                 _lm_xy,
                 metric_evals=_metric_evaluations_v2,
+                trichion_y_px=(
+                    float(_fused.virtual_landmarks["trichion"][1])
+                    if _fused is not None and _fused.virtual_landmarks.get("trichion")
+                    else None
+                ),
             ),
             'metrics_map': build_metrics_map_metadata(
                 _lm_xy,
                 metric_evals=_metric_evaluations_v2,
                 region_adherence=result.get('region_adherence'),
+            ),
+            'asymmetry_analysis': build_asymmetry_analysis_annotations(
+                _lm_xy,
+                asymmetry_measurements=asymmetry_measurements,
+                image_size=(canonical.width, canonical.height),
             ),
         }
     except Exception as _ann_exc:  # pylint: disable=broad-except

@@ -7,7 +7,7 @@
  * em CLAUDE.md.
  */
 
-import type { AnalysisResult } from "../types";
+import type { AnalysisResult, MetricEvaluationResult } from "../types";
 import React from "react";
 
 type Annotations = NonNullable<AnalysisResult["overlay_annotations"]>;
@@ -25,6 +25,8 @@ interface Props {
   selectedKey?: string | null;
   onSelectKey?: (key: string) => void;
   regionAdherence?: Array<{ region: string; adherence: number; confidence: number }>;
+  /** metric_evaluations from backend — used by metrics_map variant. */
+  metricEvaluations?: MetricEvaluationResult[];
 }
 
 const SEVERITY_BG: Record<string, string> = {
@@ -91,7 +93,14 @@ function idealProportionLabel(metricId?: string): string {
   return IDEAL_PROPORTION_LABELS[metricId] ?? metricId.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
-export function OverlaySidebar({ variant, data, selectedKey, onSelectKey, regionAdherence }: Props) {
+export function OverlaySidebar({
+  variant,
+  data,
+  selectedKey,
+  onSelectKey,
+  regionAdherence,
+  metricEvaluations,
+}: Props) {
   switch (variant) {
     case "grid_thirds":
       return renderGridThirds(data.grid_thirds);
@@ -102,7 +111,12 @@ export function OverlaySidebar({ variant, data, selectedKey, onSelectKey, region
     case "ideal_proportions":
       return renderIdealProportions(data.ideal_proportions, selectedKey, onSelectKey);
     case "metrics_map":
-      return renderMetricsMap(regionAdherence ?? [], selectedKey, onSelectKey);
+      return renderMetricsMap(
+        regionAdherence ?? [],
+        selectedKey,
+        onSelectKey,
+        metricEvaluations,
+      );
   }
 }
 
@@ -238,51 +252,138 @@ function renderIdealProportions(
 
 function regionLabel(region: string): string {
   const MAP: Record<string, string> = {
-    FOREHEAD: "Testa",
-    EYES: "Olhos",
-    NOSE: "Nariz",
-    MOUTH: "Boca",
-    JAW: "Mandibula",
+    forehead:   "Testa",
+    brows:      "Sobrancelhas",
+    eyes:       "Olhos",
+    nose:       "Nariz",
+    mouth:      "Boca",
+    jaw:        "Mandíbula",
+    cheekbones: "Maçãs do rosto",
+    symmetry:   "Simetria",
+    global:     "Global",
   };
   return MAP[region] ?? region;
 }
+
+const ADHERENCE_COLOR = (a: number | undefined): string => {
+  if (a === undefined) return "#94a3b8";
+  if (a >= 0.9) return "#10b981";
+  if (a >= 0.7) return "#f59e0b";
+  return "#ef4444";
+};
+
+const SEV_FG: Record<string, string> = {
+  ideal:    "#86efac",
+  mild:     "#a3e635",
+  moderate: "#fde68a",
+  strong:   "#fdba74",
+  extreme:  "#fca5a5",
+};
 
 function renderMetricsMap(
   rows: Array<{ region: string; adherence: number; confidence: number }>,
   selectedKey?: string | null,
   onSelectKey?: (key: string) => void,
+  metricEvaluations?: MetricEvaluationResult[],
 ) {
-  if (!rows || rows.length === 0) return null;
-  const sorted = [...rows].sort((a, b) => a.region.localeCompare(b.region));
+  const hasRows = rows && rows.length > 0;
+  const hasMetrics = !!metricEvaluations && metricEvaluations.length > 0;
+  if (!hasRows && !hasMetrics) return null;
+
+  const REGION_ORDER = ["forehead", "brows", "eyes", "nose", "mouth", "jaw", "cheekbones", "symmetry", "global"];
+  // Normalize region keys to lowercase for consistent comparison
+  const sorted = [...rows]
+    .map((r) => ({ ...r, region: r.region.toLowerCase() }))
+    .sort(
+      (a, b) => {
+        const ia = REGION_ORDER.indexOf(a.region);
+        const ib = REGION_ORDER.indexOf(b.region);
+        return (ia === -1 ? 999 : ia) - (ib === -1 ? 999 : ib);
+      },
+    );
+
+  // Group metric evaluations by region (lowercase)
+  const metricsByRegion: Record<string, MetricEvaluationResult[]> = {};
+  for (const m of metricEvaluations ?? []) {
+    if (!m.region) continue;
+    const key = m.region.toLowerCase();
+    if (!metricsByRegion[key]) metricsByRegion[key] = [];
+    metricsByRegion[key].push(m);
+  }
 
   return (
     <aside style={cardStyle}>
-      <div style={titleStyle}>Mapa de metricas</div>
+      <div style={titleStyle}>Mapa de métricas</div>
+
+      {/* Region rows with metric sub-rows */}
       {sorted.map((r) => {
-        const pct = Math.round(r.adherence * 100);
+        const pct = typeof r.adherence === "number" && Number.isFinite(r.adherence)
+          ? Math.round(r.adherence * 100)
+          : null;
         const isSelected = selectedKey === r.region;
+        const color = ADHERENCE_COLOR(typeof r.adherence === "number" ? r.adherence : undefined);
+        const regionMetrics = metricsByRegion[r.region] ?? [];
+
         return (
-          <div
-            key={r.region}
-            style={{
-              ...rowStyle,
-              background: "rgba(255,255,255,0.04)",
-              cursor: "pointer",
-              border: isSelected ? "1px solid rgba(34,211,238,0.7)" : "1px solid transparent",
-            }}
-            onClick={() => onSelectKey?.(r.region)}
-          >
-            <div>
-              <strong>{regionLabel(r.region)}</strong>
-              <div style={{ color: "var(--muted)", fontSize: 11 }}>
-                Confianca {Math.round(r.confidence * 100)}%
+          <div key={r.region}>
+            <div
+              style={{
+                ...rowStyle,
+                background: "rgba(255,255,255,0.04)",
+                cursor: "pointer",
+                border: isSelected
+                  ? "1px solid rgba(34,211,238,0.7)"
+                  : "1px solid transparent",
+              }}
+              onClick={() => onSelectKey?.(r.region)}
+            >
+              <div>
+                <strong style={{ color }}>{regionLabel(r.region)}</strong>
+                <div style={{ color: "var(--muted)", fontSize: 11 }}>
+                  Confiança {typeof r.confidence === "number" && Number.isFinite(r.confidence) ? `${Math.round(r.confidence * 100)}%` : "—"}
+                </div>
+              </div>
+              <div style={{ fontVariantNumeric: "tabular-nums", color, fontWeight: 700 }}>
+                {pct != null ? `${pct}%` : "—"}
               </div>
             </div>
-            <div style={{ fontVariantNumeric: "tabular-nums" }}>{pct}%</div>
+
+            {regionMetrics.map((m: MetricEvaluationResult) => {
+              const sev = m.severity_5 ?? "ideal";
+              const sevColor = SEV_FG[sev] ?? "var(--muted)";
+              return (
+                <div
+                  key={m.metric_id}
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    padding: "3px 10px 3px 22px",
+                    fontSize: 11,
+                    color: "var(--muted)",
+                    borderLeft: `2px solid ${sevColor}`,
+                    marginLeft: 10,
+                    marginBottom: 2,
+                  }}
+                >
+                  <span>
+                    {m.metric_id
+                      .replace(/_/g, " ")
+                      .replace(/\b\w/g, (c: string) => c.toUpperCase())}
+                  </span>
+                  <span style={{ color: sevColor, fontSize: 10, fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>
+                    {typeof m.deviation_normalized === "number" && Number.isFinite(m.deviation_normalized)
+                      ? `${m.deviation_normalized > 0 ? "+" : ""}${m.deviation_normalized.toFixed(1)}σ`
+                      : sev}
+                  </span>
+                </div>
+              );
+            })}
           </div>
         );
       })}
-      <div style={legendStyle}>Clique em uma regiao para sincronizar destaque no SVG.</div>
+
+      <div style={legendStyle}>Clique em uma região para destacar no SVG.</div>
     </aside>
   );
 }

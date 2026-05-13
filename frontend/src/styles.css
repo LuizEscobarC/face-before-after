@@ -721,7 +721,8 @@ body {
   align-items: flex-start;
   justify-content: center;
   background: #060610;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: visible;
 }
 
 .overlay-stage {

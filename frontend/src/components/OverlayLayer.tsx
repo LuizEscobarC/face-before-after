@@ -544,3 +544,74 @@ export function OverlayToggleBar({ activeOverlays, onToggle }: OverlayToggleBarP
 }
 
 export { DEFAULT_OVERLAYS };
+
+// ─── Landmarks / Asymmetry view toggles ──────────────────────────────────────
+
+export const LANDMARKS_OVERLAY_LABELS: Record<string, string> = {
+  metrics_regions: "Regiões de métricas",
+  asymmetry_midline: "Linha mediana",
+  asymmetry_frankfort: "Frankfort Horizontal",
+  asymmetry_points: "Pontos de assimetria",
+  asymmetry_scores: "Score de assimetria",
+};
+
+export const DEFAULT_LANDMARKS_OVERLAYS = [
+  "metrics_regions",
+  "asymmetry_midline",
+  "asymmetry_frankfort",
+];
+
+const LANDMARKS_COLORS: Record<string, string> = {
+  metrics_regions: "#6366f1",
+  asymmetry_midline: "#60a5fa",
+  asymmetry_frankfort: "#facc15",
+  asymmetry_points: "#ef4444",
+  asymmetry_scores: "#22d3ee",
+};
+
+export function LandmarkToggleBar({
+  activeOverlays,
+  onToggle,
+}: {
+  activeOverlays: string[];
+  onToggle: (id: string) => void;
+}) {
+  const active = new Set(activeOverlays);
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 8 }}>
+      {Object.keys(LANDMARKS_OVERLAY_LABELS).map((id) => (
+        <button
+          key={id}
+          onClick={() => onToggle(id)}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            padding: "6px 10px",
+            background: active.has(id) ? "rgba(99,102,241,0.15)" : "var(--surface2)",
+            border: active.has(id)
+              ? "1px solid rgba(99,102,241,0.4)"
+              : "1px solid var(--border)",
+            borderRadius: 8,
+            color: active.has(id) ? "var(--text)" : "var(--muted)",
+            fontSize: 12,
+            cursor: "pointer",
+            textAlign: "left",
+          }}
+          aria-pressed={active.has(id)}
+        >
+          <span
+            style={{
+              width: 14,
+              height: 3,
+              background: LANDMARKS_COLORS[id] ?? "var(--accent)",
+              borderRadius: 2,
+              flexShrink: 0,
+            }}
+          />
+          {LANDMARKS_OVERLAY_LABELS[id]}
+        </button>
+      ))}
+    </div>
+  );
+}

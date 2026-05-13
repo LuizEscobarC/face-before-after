@@ -237,6 +237,27 @@ export type AnalysisResult = {
         confidence?: number | null;
       }>;
     };
+    asymmetry_analysis?: {
+      image_size: { width: number; height: number };
+      frankfort_horizontal: {
+        y: number;
+        eye_left: { x: number; y: number };
+        eye_right: { x: number; y: number };
+      };
+      facial_midline: {
+        x_top: number; y_top: number;
+        x_bottom: number; y_bottom: number;
+      };
+      deviations: Array<{
+        label: string;
+        landmark_idx: number;
+        x: number; y: number;
+        midline_x: number;
+        deviation_px: number;
+      }>;
+      overall_asymmetry_score?: number | null;
+      overall_asymmetry_score_pct_ipd?: number | null;
+    };
   };
   score: number;
   tier: string;
