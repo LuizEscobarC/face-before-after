@@ -1,3 +1,23 @@
+---
+tenant_id: "face-before-after"
+project: "face-before-after"
+module: "root/DEPLOY_HOSTINGER"
+file_path: "DEPLOY_HOSTINGER.md"
+doc_type: "architecture"
+created_at: "2026-05-24"
+updated_at: "2026-05-24"
+version: "1.0.0"
+summary_context: >
+  ---
+tags:
+  - "infra"
+rag_keywords:
+  - "deploy"
+  - "hostinger"
+related_modules: []
+depends_on: []
+used_by: []
+---
 # 🚀 Guia de Deploy - Hostinger/Hostgator + Docker + MinIO
 
 ## Pré-requisitos

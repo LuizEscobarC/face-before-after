@@ -1,3 +1,24 @@
+---
+tenant_id: "face-before-after"
+project: "face-before-after"
+module: "root/EXOESQUELETO_FACIAL_GUIDE"
+file_path: "EXOESQUELETO_FACIAL_GUIDE.md"
+doc_type: "concept"
+created_at: "2026-05-24"
+updated_at: "2026-05-24"
+version: "1.0.0"
+summary_context: >
+  > Documentação técnica + exemplos práticos para animar e controlar o esqueleto facial 3D/SVG. > Sistema de primitivas faciais mapeadas para grupos musculares reais.
+tags:
+  - "face-rig"
+rag_keywords:
+  - "exoesqueleto"
+  - "facial"
+  - "guide"
+related_modules: []
+depends_on: []
+used_by: []
+---
 # 🦴 Guia do Exoesqueleto Facial (Face Skeleton Animation System)
 
 > Documentação técnica + exemplos práticos para animar e controlar o esqueleto facial 3D/SVG.

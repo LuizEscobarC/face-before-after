@@ -1,3 +1,24 @@
+---
+tenant_id: "face-before-after"
+project: "face-before-after"
+module: "root/solucoes_para_rotina"
+file_path: "solucoes_para_rotina.md"
+doc_type: "decision"
+created_at: "2026-05-24"
+updated_at: "2026-05-24"
+version: "1.0.0"
+summary_context: >
+  201. Correção de 'Text Neck' Elevação do celular na linha dos olhos 202. Alongamento do Músculo Levantador da Escápula 203. Exercício 'Brugger's Relief' Abertura peitoral sentado 204. Fortalecimento de Romboides para Estabilidade Cervical 205. Liberação Fascial com Bola de Lacros
+tags:
+  - "misc"
+rag_keywords:
+  - "para"
+  - "rotina"
+  - "solucoes"
+related_modules: []
+depends_on: []
+used_by: []
+---
 201. Correção de "Text Neck" (Elevação do celular na linha dos olhos)
 202. Alongamento do Músculo Levantador da Escápula
 203. Exercício "Brugger's Relief" (Abertura peitoral sentado)

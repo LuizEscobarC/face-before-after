@@ -1,3 +1,22 @@
+---
+tenant_id: "face-before-after"
+project: "face-before-after"
+module: "root/AGENTS"
+file_path: "AGENTS.md"
+doc_type: "architecture"
+created_at: "2026-05-24"
+updated_at: "2026-05-24"
+version: "1.0.0"
+summary_context: >
+  Este arquivo documenta agentes e skills disponíveis no projeto.
+tags:
+  - "misc"
+rag_keywords:
+  - "agents"
+related_modules: []
+depends_on: []
+used_by: []
+---
 # AGENTS
 
 Este arquivo documenta agentes e skills disponíveis no projeto.
@@ -6,7 +25,7 @@ Este arquivo documenta agentes e skills disponíveis no projeto.
 
 Antes de implementar ou diagnosticar **qualquer** coisa em face-analysis:
 
-1. **Ler primeiro** [.claude/face-analysis/00-index.md](.claude/face-analysis/00-index.md) — índice canônico do domínio.
+1. **Ler primeiro** [.claude/local/face-analysis/00-index.md](.claude/local/face-analysis/00-index.md) — índice canônico do domínio.
 2. **Carregar SÓ os arquivos relevantes ao assunto da sessão**, usando o mapa abaixo. Nunca puxe todos os 8 arquivos do domínio "para garantir" — janela de contexto é finita e ruído derruba precisão. Se a sessão tocar um assunto não-listado, carregue apenas `00-index.md` + o arquivo que o índice apontar.
 
 | Assunto da sessão | Arquivos a carregar |
@@ -29,12 +48,12 @@ Antes de implementar ou diagnosticar **qualquer** coisa em face-analysis:
 <!-- skills-index-start -->
 | Skill | Descrição |
 |-------|-----------|
-| auto-execute-prompt | Auto-routing wrapper que lê o plano mais recente em .claude/plans/, extrai o modelo recomendado (opus|sonnet|ha... |
+| auto-execute-prompt | Auto-routing wrapper que lê o plano mais recente em .claude/local/plans/, extrai o modelo recomendado (opus|sonnet|ha... |
 | execute-prompt | Gateway obrigatório para execução de qualquer arquivo .prompt.md. SEMPRE invocar quando o usuário disser 'execute o p... |
 | full-auto-pipeline | End-to-end orchestrator que encadeia /planner → /prompt-initializer → /auto-execute-prompt em uma única invocação. Us... |
 | planner | Decomposes a task into steps, selects the right skills, and orchestrates execution order. Use when the user says 'pla... |
 | prompt-initializer | **MANDATORY** high-fidelity context orchestrator: creates .prompt.md file for ANY task arriving in chat. Executes 6-l... |
-| session-save | Salva o contexto comprimido da sessão atual em .claude/window-context/current.md para injeção automática na pró... |
+| session-save | Salva o contexto comprimido da sessão atual em .claude/local/window-context/current.md para injeção automática na pró... |
 <!-- skills-index-end -->
 
 

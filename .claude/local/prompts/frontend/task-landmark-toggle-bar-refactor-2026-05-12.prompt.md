@@ -1,3 +1,32 @@
+---
+tenant_id: "face-before-after"
+project: "face-before-after"
+module: "frontend/task-landmark-toggle-bar-refactor-2026-05-12.prompt"
+file_path: ".claude/local/prompts/frontend/task-landmark-toggle-bar-refactor-2026-05-12.prompt.md"
+doc_type: "decision"
+created_at: "2026-05-24"
+updated_at: "2026-05-24"
+version: "1.0.0"
+summary_context: >
+  Módulo: frontend/overlays Tipo: refactor Data: 2026-05-12 Plano: .claude/local/plans/landmark-toggle-bar-refactor-2026-05-12.md Modelo recomendado: sonnet
+tags:
+  - "task-prompt"
+  - "landmark"
+  - "frontend"
+rag_keywords:
+  - "MediaPipe FaceMesh"
+  - "dlib 68 landmarks"
+  - "frontend"
+  - "landmark"
+  - "local"
+  - "prompt"
+  - "prompts"
+  - "refactor"
+  - "toggle"
+related_modules: []
+depends_on: []
+used_by: []
+---
 # Task: Refatorar view "landmarks" com LandmarkToggleBar
 
 **Módulo:** frontend/overlays  

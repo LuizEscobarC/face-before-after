@@ -1,3 +1,25 @@
+---
+tenant_id: "face-before-after"
+project: "face-before-after"
+module: "root/solucoes-para-rotina-de-exercicios"
+file_path: "solucoes-para-rotina-de-exercicios.md"
+doc_type: "decision"
+created_at: "2026-05-24"
+updated_at: "2026-05-24"
+version: "1.0.0"
+summary_context: >
+  Sendo brutalmente crítico: Fotos e textos são terríveis para ensinar exercícios faciais.
+tags:
+  - "misc"
+rag_keywords:
+  - "exercicios"
+  - "para"
+  - "rotina"
+  - "solucoes"
+related_modules: []
+depends_on: []
+used_by: []
+---
 Sendo brutalmente crítico: **Fotos e textos são terríveis para ensinar exercícios faciais.**
 
 O rosto humano tem dezenas de músculos interconectados. Se você disser "sorria tensionando as bochechas", o usuário comum vai franzir os olhos, contrair o pescoço e fazer tudo errado (o que pode piorar as assimetrias ou criar rugas). Pior ainda: **muitos exercícios (como Mewing ou engolir) acontecem *dentro* da boca**, onde a câmera não vê.

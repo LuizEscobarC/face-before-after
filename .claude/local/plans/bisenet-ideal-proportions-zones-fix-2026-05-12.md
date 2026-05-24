@@ -1,3 +1,33 @@
+---
+tenant_id: "face-before-after"
+project: "face-before-after"
+module: "plans/bisenet-ideal-proportions-zones-fix-2026-05-12"
+file_path: ".claude/local/plans/bisenet-ideal-proportions-zones-fix-2026-05-12.md"
+doc_type: "decision"
+created_at: "2026-05-24"
+updated_at: "2026-05-24"
+version: "1.0.0"
+summary_context: >
+  Data: 2026-05-12 Módulo: backend/overlays + frontend/IdealProportionsLayer Tipo: bugfix
+tags:
+  - "planning"
+  - "bisenet"
+  - "ideal-proportions"
+rag_keywords:
+  - "BiSeNet"
+  - "bisenet"
+  - "golden ratio facial"
+  - "hair segmentation"
+  - "ideal"
+  - "ideal proportions"
+  - "local"
+  - "plans"
+  - "proportions"
+  - "zones"
+related_modules: []
+depends_on: []
+used_by: []
+---
 # Plan: Fix — IdealProportionsLayer zones ignoravam trichion BiSeNet
 
 **Data:** 2026-05-12  

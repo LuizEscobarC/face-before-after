@@ -1,14 +1,31 @@
+---
+tenant_id: "face-before-after"
+project: "face-before-after"
+module: "root/CLAUDE"
+file_path: "CLAUDE.md"
+doc_type: "architecture"
+created_at: "2026-05-24"
+updated_at: "2026-05-24"
+version: "1.0.0"
+summary_context: >
+  Sempre que a sessão tocar qualquer parte do domínio de análise facial métricas, scores, ideais, recomendações, landmarks, severidade, narrative, scorer:
+tags:
+  - "misc"
+related_modules: []
+depends_on: []
+used_by: []
+---
 # Claude Development Rules & Guidelines
 
 ## Context loading (MANDATÓRIO antes de qualquer task de face-analysis)
 
 Sempre que a sessão tocar qualquer parte do domínio de análise facial (métricas, scores, ideais, recomendações, landmarks, severidade, narrative, scorer):
 
-1. **Comece lendo [.claude/face-analysis/00-index.md](.claude/face-analysis/00-index.md).** Este é o índice canônico do domínio e aponta para o conteúdo certo.
+1. **Comece lendo [.claude/local/face-analysis/00-index.md](.claude/local/face-analysis/00-index.md).** Este é o índice canônico do domínio e aponta para o conteúdo certo.
 2. **Carregue SOMENTE os arquivos relevantes ao assunto da sessão.** A regra de mapeamento (assunto → arquivos) está em [AGENTS.md → Context-loading policy](./AGENTS.md). Nunca puxe todos os 8 arquivos do domínio — janela de contexto é finita e ruído derruba precisão.
 3. **Justifique antes de abrir.** Para cada arquivo do domínio que for ler, declare numa linha **por que ele importa para a sessão**. Se não der para justificar, não abra.
 4. **Poda quando o assunto mudar.** Se o foco da sessão pivotar (ex: começou em recomendações e virou bug de landmark), releia `00-index.md` e ajuste o conjunto — não acumule arquivos do escopo anterior.
-5. **Fonte canônica de bugs/fixes:** [`.claude/face-analysis/CALIBRATION_AUDIT_2026-05-12.md`](./.claude/face-analysis/CALIBRATION_AUDIT_2026-05-12.md). Referenciar; não duplicar.
+5. **Fonte canônica de bugs/fixes:** [`.claude/local/face-analysis/CALIBRATION_AUDIT_2026-05-12.md`](./.claude/local/face-analysis/CALIBRATION_AUDIT_2026-05-12.md). Referenciar; não duplicar.
 
 A mesma política vale para a documentação fora de `face-analysis/` (skills, hooks, plans): leia o índice/README do diretório primeiro e puxe só o que justifica o assunto.
 

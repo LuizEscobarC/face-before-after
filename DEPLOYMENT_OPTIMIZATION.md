@@ -1,3 +1,23 @@
+---
+tenant_id: "face-before-after"
+project: "face-before-after"
+module: "root/DEPLOYMENT_OPTIMIZATION"
+file_path: "DEPLOYMENT_OPTIMIZATION.md"
+doc_type: "architecture"
+created_at: "2026-05-24"
+updated_at: "2026-05-24"
+version: "1.0.0"
+summary_context: >
+  File: .github/workflows/deploy.yml
+tags:
+  - "infra"
+rag_keywords:
+  - "deployment"
+  - "optimization"
+related_modules: []
+depends_on: []
+used_by: []
+---
 # Deployment Optimization — May 2026
 
 ## Problem

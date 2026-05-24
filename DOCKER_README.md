@@ -1,3 +1,23 @@
+---
+tenant_id: "face-before-after"
+project: "face-before-after"
+module: "root/DOCKER_README"
+file_path: "DOCKER_README.md"
+doc_type: "architecture"
+created_at: "2026-05-24"
+updated_at: "2026-05-24"
+version: "1.0.0"
+summary_context: >
+  Este projeto inclui configurações Docker otimizadas para ambientes de desenvolvimento local e produção.
+tags:
+  - "infra"
+rag_keywords:
+  - "docker"
+  - "readme"
+related_modules: []
+depends_on: []
+used_by: []
+---
 # Face Before After - Docker Setup
 
 Este projeto inclui configurações Docker otimizadas para ambientes de desenvolvimento local e produção.

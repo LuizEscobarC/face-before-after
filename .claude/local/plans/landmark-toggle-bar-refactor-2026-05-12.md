@@ -1,3 +1,29 @@
+---
+tenant_id: "face-before-after"
+project: "face-before-after"
+module: "plans/landmark-toggle-bar-refactor-2026-05-12"
+file_path: ".claude/local/plans/landmark-toggle-bar-refactor-2026-05-12.md"
+doc_type: "decision"
+created_at: "2026-05-24"
+updated_at: "2026-05-24"
+version: "1.0.0"
+summary_context: >
+  Data: 2026-05-12 Módulo: frontend/overlays Tipo: refactor
+tags:
+  - "planning"
+  - "landmark"
+rag_keywords:
+  - "MediaPipe FaceMesh"
+  - "dlib 68 landmarks"
+  - "landmark"
+  - "local"
+  - "plans"
+  - "refactor"
+  - "toggle"
+related_modules: []
+depends_on: []
+used_by: []
+---
 # Plan: Refatorar view "landmarks" com LandmarkToggleBar
 
 **Data:** 2026-05-12  

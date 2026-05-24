@@ -1,3 +1,26 @@
+---
+tenant_id: "face-before-after"
+project: "face-before-after"
+module: "local/debug-overlays"
+file_path: "local/debug-overlays.md"
+doc_type: "concept"
+created_at: "2026-05-24"
+updated_at: "2026-05-24"
+version: "1.0.0"
+summary_context: >
+  Já consigo ver o problema. Vou ler o JSON de métricas e o código dos overlays para entender os cálculos. find /home/luizescobal/study/face-before-after/frontend/src -name '.tsx' -o -name '.ts' | xargs grep -l 'third\|fifth\|terço\|quinto\|overlay\|Overlay' 2>/dev/null | head -10
+tags:
+  - "misc"
+rag_keywords:
+  - "SVG overlay"
+  - "debug"
+  - "face overlay"
+  - "local"
+  - "overlays"
+related_modules: []
+depends_on: []
+used_by: []
+---
 Já consigo ver o problema. Vou ler o JSON de métricas e o código dos overlays para entender os cálculos.
 find /home/luizescobal/study/face-before-after/frontend/src -name "*.tsx" -o -name "*.ts" | xargs grep -l "third\|fifth\|terço\|quinto\|overlay\|Overlay" 2>/dev/null | head -10
 

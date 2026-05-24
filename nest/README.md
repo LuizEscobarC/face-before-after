@@ -1,3 +1,23 @@
+---
+tenant_id: "face-before-after-nest"
+project: "face-before-after-nest"
+module: "nest/README"
+file_path: "nest/README.md"
+doc_type: "concept"
+created_at: "2026-05-24"
+updated_at: "2026-05-24"
+version: "1.0.0"
+summary_context: >
+  NestJS + Fastify orchestrator que faz ponte entre o frontend React e o vision-service FastAPI/Python.
+tags:
+  - "misc"
+rag_keywords:
+  - "nest"
+  - "readme"
+related_modules: []
+depends_on: []
+used_by: []
+---
 # Face Orchestrator (NestJS)
 
 NestJS + Fastify orchestrator que faz ponte entre o frontend React e o `vision-service` (FastAPI/Python).

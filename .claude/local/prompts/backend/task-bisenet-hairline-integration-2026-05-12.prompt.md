@@ -1,3 +1,32 @@
+---
+tenant_id: "face-before-after"
+project: "face-before-after"
+module: "backend/task-bisenet-hairline-integration-2026-05-12.prompt"
+file_path: ".claude/local/prompts/backend/task-bisenet-hairline-integration-2026-05-12.prompt.md"
+doc_type: "decision"
+created_at: "2026-05-24"
+updated_at: "2026-05-24"
+version: "1.0.0"
+summary_context: >
+  > Type: feature + infra > Module: backend segmentation + landmarks + metrics + frontend overlays > Date: 2026-05-12 > Stack: FastAPI · Python 3.12 · MediaPipe Mesh-478 · ONNX Runtime CPU · Docker · React/TS > Plan: .claude/local/plans/bisenet-hairline-integration-2026-05-12.md >
+tags:
+  - "task-prompt"
+  - "bisenet"
+  - "backend"
+rag_keywords:
+  - "BiSeNet"
+  - "backend"
+  - "bisenet"
+  - "hair segmentation"
+  - "hairline"
+  - "integration"
+  - "local"
+  - "prompt"
+  - "prompts"
+related_modules: []
+depends_on: []
+used_by: []
+---
 # BiSeNet Hairline Integration
 
 > **Type:** feature + infra

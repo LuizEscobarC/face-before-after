@@ -1,3 +1,24 @@
+---
+tenant_id: "face-before-after"
+project: "face-before-after"
+module: "root/ANIMATION_CONFIG_REFERENCE"
+file_path: "ANIMATION_CONFIG_REFERENCE.md"
+doc_type: "concept"
+created_at: "2026-05-24"
+updated_at: "2026-05-24"
+version: "1.0.0"
+summary_context: >
+  > Consolidação de todos os 63 exercícios faciais seeded com animationconfig na migration 1746000260000-M44AnimationConfigSeed.ts. > Cada exercício inclui: primitives animados, duração, regiões de calor heatregions e captions instrucionais em português.
+tags:
+  - "animation"
+rag_keywords:
+  - "animation"
+  - "config"
+  - "reference"
+related_modules: []
+depends_on: []
+used_by: []
+---
 # 📖 Referência Completa: Exercícios Faciais com Animation Config (PR-D)
 
 > Consolidação de todos os 63 exercícios faciais seeded com `animation_config` na migration `1746000260000-M44AnimationConfigSeed.ts`.

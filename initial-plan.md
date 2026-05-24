@@ -1,3 +1,23 @@
+---
+tenant_id: "face-before-after"
+project: "face-before-after"
+module: "root/initial-plan"
+file_path: "initial-plan.md"
+doc_type: "decision"
+created_at: "2026-05-24"
+updated_at: "2026-05-24"
+version: "1.0.0"
+summary_context: >
+  1. Diagnóstico entrada - simetria - proporção facial - pontos fortes isso é MUITO importante pra autoestima - recomendações para tirar a foto. - frente e lado - visagismos - analise de potencial - analise de cirurgias possíveis - analise de tratamentos possíveis para o caso espec
+tags:
+  - "misc"
+rag_keywords:
+  - "initial"
+  - "plan"
+related_modules: []
+depends_on: []
+used_by: []
+---
 # plano para assinatura:
 
 1. Diagnóstico (entrada)
