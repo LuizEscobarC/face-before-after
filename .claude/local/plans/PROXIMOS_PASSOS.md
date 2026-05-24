@@ -125,13 +125,14 @@ M2 ✅ ────────────────────────�
 |----|---------------|--------|--------|---------|
 | **PR-22** | 30–50 fotos analisadas + planilha de override de faixas | ⏳ humano (adiado) | humano | 3h–1 dia |
 | **PR-21 v2.0** | Pesos validados empiricamente, promove `is_active=TRUE` | ⏳ bloqueado em PR-22 | Opus | 1 dia |
-| **PR-53** | ~300–500 templates de diagnóstico em PT-BR (`diagnostic_template`) — escrita Opus + revisão | 🟡 168 entregues em PR-53a (medium-only); falta short+long e cobrir ~30 métricas restantes | Opus | 1–2 dias |
-| **PR-54** | Revisão humana dos templates antes de virar v1.0 | ⏳ depende de PR-53 fechar | humano + Opus | 1 dia |
+| **PR-53b** | 336 templates short+long (504 total v1.0) | ✅ DONE 2026-05-11 (M42b) | Opus | — |
+| **PR-54** | Auto-revisão de tom + blacklist v0.2 (25 termos) | ✅ DONE 2026-05-11 (M42c) | Opus | — |
+| ~~PR-53 fase C~~ | 30 métricas novas | ⏳ DEFERRED — ver `pr53b-pr54-30-metrics-2026-05-11.md` | — | — |
 | **PR-55** | DDL `recommendation_catalog` + 4 tabelas | ✅ DONE | Sonnet | — |
 | **PR-55b** | Migration `M44RecommendationLadder` — adiciona `exercise` + `aesthetic_procedure`, `evidence_level`, `invasiveness_level`, `clinical_pathway_required`, `disclaimer_template`, `references_jsonb` + extensão de `professional_type` | ✅ DONE (1746000225000+230000) | Sonnet | — |
 | **PR-56** | ~50 recomendações com gatilho `metric × severity` + categoria | ✅ DONE — **427 recomendações + 8.352 triggers** entregues | Sonnet+humano | — |
 | **PR-56b** | Catálogo `aesthetic_procedure` (nível 4a) — botox masseter, preenchimento labial/malar/mento, fios PDO, rinomodelação. ~10–15 entradas com risk_level + disclaimer estético | ⏳ TODO | Opus | 4h |
-| **PR-57** | `RecommendationEngine` que faz match + ranqueia + persiste — **com regra "menor invasiveness primeiro, max 2 categorias, nunca 4b isolado"** (escada PR-55b) | ⏳ próximo | Sonnet | 1 dia |
+| **PR-57** | `RecommendationEngine` match + rank + persist + escada de invasividade | ✅ DONE 2026-05-24 (`recommendation-engine.service.ts:_applyLadderRule`) | Sonnet | — |
 | **PR-58** | `DiagnosticPriorityService` (fórmula I×S×C×A) — usar `risk_level` + `effort_estimate` + `invasiveness_level` na fórmula | ⏳ TODO | Opus | 1 dia |
 | **PR-59** | `GET /v1/analysis/:id/narrative` (top-3 findings + top-5 recs + disclaimer) | ⏳ TODO | Sonnet | 4h |
 | **PR-60..63** | M5 Admin UX (SvgAnatomicalHand + liveState + WASM offline) | ✅ DONE | Sonnet | — |

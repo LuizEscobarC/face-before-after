@@ -25,6 +25,8 @@ used_by: []
 > Plano mestre da expansão de métricas, ideais, overlays e diagnóstico.
 > Documento de referência permanente. Releia no início de cada sessão.
 > Última atualização: 2026-05-11 (PR-67/68/69 — Grupo D M4.5 PDF: PdfBuilder ReportLab + Nest POST /v1/analysis/:id/pdf + botão frontend).
+>
+> **⚠️ 2026-05-24:** A tabela §0 abaixo não foi reauditada linha-a-linha. Para o estado verificado em código dos PRs 53b / 54 / 57 / BiSeNet / overlays-refactor, consulte [STATUS_LEDGER_2026-05-24.md](./STATUS_LEDGER_2026-05-24.md) — o ledger vence em caso de conflito.
 
 ---
 

@@ -23,7 +23,7 @@ rag_keywords:
 related_modules: []
 depends_on: []
 used_by: []
-status_2026_05_24: "✅ DONE (PLAN_A + PLAN_B). Verified: IdealProportionsLayer.tsx:140-156 reads backend zones with fallback (A.2 ✓); annotations.py:325 emits build_asymmetry_analysis_annotations (B.1 ✓); AsymmetryAnalysisLayer.tsx exists and wired in PremiumResultPage:935-940 (B.2+B.3 ✓). Residual: legacy `*_mvp_annotated.jpg` endpoint still served as background — cleanup-only, no plan-scope work. PLAN_D (MetricsMap dropdown) deferred — never executed. See STATUS_LEDGER_2026-05-24.md."
+status_2026_05_24: "🟡 PARTIAL. Codificação SVG do PLAN_A.2/B.1/B.2/B.3 entregue (IdealProportionsLayer.tsx:140-156, annotations.py:325, AsymmetryAnalysisLayer.tsx, PremiumResultPage.tsx:935-940). MAS o goal explícito do plano — 'nenhuma imagem sai do backend com texto/linhas queimadas via OpenCV' — NÃO está cumprido: o backend ainda produz e serve `*_mvp_annotated.jpg` (vision/routers/results.py:61,72) e o frontend ainda usa esse JPG como background (FreeResultPage.tsx:72, PremiumResultPage.tsx:641). Falta: remover a queima OpenCV no backend e trocar background do frontend para a canonical. PLAN_D (MetricsMap dropdown) deferred — nunca executado. Ver STATUS_LEDGER_2026-05-24.md."
 ---
 # Plano Refator: Centralizar Backend Data para Overlays
 

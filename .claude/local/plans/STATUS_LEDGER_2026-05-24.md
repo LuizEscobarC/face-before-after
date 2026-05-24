@@ -36,7 +36,7 @@ used_by: []
 | `pr57-recommendation-engine-ladder-2026-05-24.md` | PR-57 | ✅ DONE | `nest/src/modules/diagnosis/recommendation-engine.service.ts` lines 199, 270, 318, 347 — ladder rule + invasiveness gate implemented |
 | `pr53b-pr54-30-metrics-2026-05-11.md` | PR-53b + PR-54 | 🟡 PARTIAL | Phases A+B (336 templates + tone review) ✅ done. **Phase C (30 new metrics) NOT done** — `backend/app/services/metrics/*.py` count = 19, not 49. |
 | `overlays-tasks-3-4-5-2026-05-12.md` | M3 tasks 3-4-5 | ✅ DONE | M3.1-M3.4 overlays + heatmaps + before/ideal all live (see commits `2140a7e`, `d95e218`, `d861a4e`, `8d5e4e2`) |
-| `refactor-overlays-central-backend-2026-05-12.md` | Overlays Padrão 3 | ✅ DONE (PLAN_A + PLAN_B) | A.2 verified at `IdealProportionsLayer.tsx:140-156`; B.1 at `annotations.py:325`; B.2/B.3 at `AsymmetryAnalysisLayer.tsx` + `PremiumResultPage.tsx:935-940`. Residual cleanup only: `*_mvp_annotated.jpg` background still served. PLAN_D (dropdown) deferred. |
+| `refactor-overlays-central-backend-2026-05-12.md` | Overlays Padrão 3 | 🟡 PARTIAL | SVG layer (A.2/B.1/B.2/B.3) entregue, mas o **goal explícito do plano** ("nenhuma imagem sai do backend com texto/linhas queimadas via OpenCV") **não** está cumprido: `*_mvp_annotated.jpg` ainda é produzido e usado como background (`FreeResultPage.tsx:72`, `PremiumResultPage.tsx:641`). PLAN_D deferred. |
 | `o-pdf-ainda-n-o-lovely-salamander.md` | PDF persistence fix | ✅ DONE | PDF builder (`backend/app/vision/services/pdf_builder.py`) shipped in PR-67/68/69 |
 | `crystalline-growing-sundae.md` | Doc/RAG plan | 🟡 IN PROGRESS | Documentation pipeline for `.claude/local/context/` — active work as of this date |
 

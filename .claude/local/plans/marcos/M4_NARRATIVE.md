@@ -184,9 +184,9 @@ Templates que usem placeholder fora dessa lista **falham no render** com `Unknow
 - [x] **PR-55 (DDL recommendation_catalog)** ✅ DONE.
 - [x] **PR-55b (escada de invasividade — `exercise` + `aesthetic_procedure` + `evidence_level` + `clinical_pathway_required`)** ✅ DONE (migration 1746000225000+230000).
 - [x] **PR-56 (catálogo Opus)** ✅ DONE — **427 recomendações** populadas (vs ~50 originalmente planejadas), 8.352 triggers, 84 anecdotal com disclaimer obrigatório.
-- [ ] **PR-53 (templates v1.0)** — 168 entregues em medium-only (PR-53a); falta short+long e cobertura para ~30 métricas restantes.
+- [x] **PR-53b/PR-54 (templates v1.0 — 504 rows)** ✅ DONE 2026-05-11 (M42b + M42c). Cobertura para 30 métricas novas (fase C) DEFERRED.
 - [ ] **PR-56b** — catálogo `aesthetic_procedure` (nível 4a): botox, preenchimentos, fios PDO, rinomodelação. ~10–15 entradas.
-- [ ] **PR-57 (RecommendationEngine)** com regra DEC-38 (menor invasiveness primeiro, max 2 categorias, nunca 4b isolado).
+- [x] **PR-57 (RecommendationEngine)** ✅ DONE 2026-05-24 (`nest/src/modules/diagnosis/recommendation-engine.service.ts:_applyLadderRule`).
 - [ ] **PR-58 (DiagnosticPriorityService)** — usar `risk_level` + `effort_estimate` + `invasiveness_level` na fórmula.
 - [ ] **PR-59 (endpoint narrative)**, **PR-60–62 (PDF)**.
 - [ ] ~~**PR-70 + PR-71 (vídeo — DEC-39)**~~ Arquivado.

@@ -79,9 +79,8 @@ used_by: []
 ### Fase 4 — Seeding de texto (PR-53)
 
 **T1 — diagnostic_template completo** *(desbloqueia B1, B2, B4)*
-- Estado: 168 templates medium-only; falta short+long + ~30 métricas
-- Fix: migration `SeedDiagnosticTemplatesFull` com short+medium+long para 93 métricas
-- **Este é o gargalo principal** — sem isso B1/B2 retornam fallback text, B4 fica vazio
+- Estado: ✅ 504 templates short+medium+long entregues (PR-53b/PR-54, M42b/M42c). Cobertura de 30 métricas novas (fase C) DEFERRED.
+- Ver `pr53b-pr54-30-metrics-2026-05-11.md` + STATUS_LEDGER_2026-05-24.md.
 
 **T2 — aesthetic_procedure catalog (PR-56b)**
 - ~15 entradas: botox masseter, preenchimento labial/malar/mento, fios PDO, rinomodelação
