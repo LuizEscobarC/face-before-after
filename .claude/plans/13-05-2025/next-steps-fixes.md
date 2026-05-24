@@ -1,0 +1,2 @@
+- normalizar todas as fotos maiores para 1080p logo no upload antes da analises.
+- corrigir overlay de formato de rosto para considerar basiline para acertividade de formato do rosto
