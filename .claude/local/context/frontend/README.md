@@ -1,21 +1,25 @@
 ---
-tenant_id: "face-before-after"
-project: "face-before-after"
+tenant_id: "face-before-after-frontend"
+project: "face-before-after-frontend"
 module: "frontend/README"
-file_path: ".claude/context/frontend/README.md"
+file_path: ".claude/local/context/frontend/README.md"
 doc_type: "architecture"
 created_at: "2026-05-24"
 updated_at: "2026-05-24"
 version: "1.0.0"
 summary_context: >
-  Documentação técnica do frontend React. Carregue apenas os arquivos relevantes ao assunto da sessão.
+  Índice legado do frontend (pre-monorepo). Apontamento humano para overlay-system,
+  data-flow e layout-css, com mapa dos arquivos-fonte principais em frontend/src
+  (PremiumResultPage, OverlayLayer, OverlaySidebar, MetricsMapLayer,
+  IdealProportionsLayer, AsymmetryAnalysisLayer). Use 00-index.md como índice canônico.
 tags:
-  - "context"
   - "frontend"
+  - "index"
 rag_keywords:
-  - "context"
-  - "frontend"
-  - "readme"
+  - "frontend source map"
+  - "PremiumResultPage orchestrator"
+  - "overlay layer components inventory"
+  - "TypeScript AnalysisResult types"
 related_modules: []
 depends_on: []
 used_by: []

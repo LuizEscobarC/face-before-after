@@ -1,24 +1,31 @@
 ---
-tenant_id: "face-before-after"
-project: "face-before-after"
+tenant_id: "face-before-after-frontend"
+project: "face-before-after-frontend"
 module: "frontend/overlay-system"
-file_path: ".claude/context/frontend/overlay-system.md"
+file_path: ".claude/local/context/frontend/overlay-system.md"
 doc_type: "architecture"
 created_at: "2026-05-24"
 updated_at: "2026-05-24"
 version: "1.0.0"
 summary_context: >
-  Última revisão: 2026-05-12 Commit de referência: b50b81e PLANA unified
+  Arquitetura PLAN_A unified (commit b50b81e): dois sistemas paralelos sobre a mesma
+  canonical_url — SVG Layer geométrico (OverlayLayer, MetricsMapLayer,
+  IdealProportionsLayer, AsymmetryAnalysisLayer) e Sidebar textual (OverlaySidebar) —
+  ambos alimentados pelo mesmo AnalysisResult com overlay_annotations pré-formatado
+  pelo backend. Estado de orquestração vive em PremiumResultPage.
 tags:
-  - "context"
   - "frontend"
+  - "overlays"
+  - "svg"
+  - "premium-result"
 rag_keywords:
-  - "SVG overlay"
-  - "context"
-  - "face overlay"
-  - "frontend"
-  - "overlay"
-  - "system"
+  - "PLAN_A unified overlay refactor"
+  - "OverlayLayer SVG geometric"
+  - "MetricsMapLayer regions adherence"
+  - "IdealProportionsLayer zones"
+  - "AsymmetryAnalysisLayer Frankfort midline"
+  - "OverlaySidebar textual annotations"
+  - "centralized backend overlay_annotations"
 related_modules: []
 depends_on: []
 used_by: []

@@ -1,21 +1,28 @@
 ---
-tenant_id: "face-before-after"
-project: "face-before-after"
+tenant_id: "face-before-after-frontend"
+project: "face-before-after-frontend"
 module: "frontend/layout-css"
-file_path: ".claude/context/frontend/layout-css.md"
+file_path: ".claude/local/context/frontend/layout-css.md"
 doc_type: "architecture"
 created_at: "2026-05-24"
 updated_at: "2026-05-24"
 version: "1.0.0"
 summary_context: >
-  Última revisão: 2026-05-12 Fonte: frontend/src/styles.css
+  Layout CSS do overlay-stage em frontend/src/styles.css: grid 2-col (imagem à esquerda,
+  sidebar 220-280px à direita), .overlay-media position:relative para SVGs absolutos
+  empilhados, colapso mobile <=640px para coluna única. Resolve bugs de overflow e
+  sobreposição dos SVG layers sobre o canonical image.
 tags:
-  - "context"
   - "frontend"
-rag_keywords:
-  - "context"
-  - "frontend"
+  - "css"
   - "layout"
+  - "overlays"
+rag_keywords:
+  - "overlay-stage grid layout"
+  - "overlay-media position relative"
+  - "responsive 640px breakpoint"
+  - "SVG absolute positioning"
+  - "overlay-sidebars flex column"
 related_modules: []
 depends_on: []
 used_by: []

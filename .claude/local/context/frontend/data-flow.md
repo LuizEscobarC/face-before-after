@@ -1,22 +1,29 @@
 ---
-tenant_id: "face-before-after"
-project: "face-before-after"
+tenant_id: "face-before-after-frontend"
+project: "face-before-after-frontend"
 module: "frontend/data-flow"
-file_path: ".claude/context/frontend/data-flow.md"
+file_path: ".claude/local/context/frontend/data-flow.md"
 doc_type: "architecture"
 created_at: "2026-05-24"
 updated_at: "2026-05-24"
 version: "1.0.0"
 summary_context: >
-  Última revisão: 2026-05-12
+  Mapa de origem de cada campo visual do PremiumResultPage: documenta como o JSON
+  AnalysisResult de POST /v1/vision/full-pipeline alimenta OverlayLayer, MetricsMapLayer,
+  IdealProportionsLayer e OverlaySidebar. Resolve a dúvida "de onde vem este overlay" em
+  bugs de renderização ligando campo do JSON ao arquivo backend que o produz.
 tags:
-  - "context"
   - "frontend"
+  - "data-flow"
+  - "overlays"
+  - "analysis-result"
 rag_keywords:
-  - "context"
-  - "data"
-  - "flow"
-  - "frontend"
+  - "AnalysisResult JSON contract"
+  - "overlay_annotations payload"
+  - "metric_evaluations improvement_vector"
+  - "canonical_url Frankfort alignment"
+  - "region_adherence derivation"
+  - "buildRegionAdherence helper"
 related_modules: []
 depends_on: []
 used_by: []
