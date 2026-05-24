@@ -36,14 +36,14 @@ used_by: []
 | `pr57-recommendation-engine-ladder-2026-05-24.md` | PR-57 | ✅ DONE | `nest/src/modules/diagnosis/recommendation-engine.service.ts` lines 199, 270, 318, 347 — ladder rule + invasiveness gate implemented |
 | `pr53b-pr54-30-metrics-2026-05-11.md` | PR-53b + PR-54 | 🟡 PARTIAL | Phases A+B (336 templates + tone review) ✅ done. **Phase C (30 new metrics) NOT done** — `backend/app/services/metrics/*.py` count = 19, not 49. |
 | `overlays-tasks-3-4-5-2026-05-12.md` | M3 tasks 3-4-5 | ✅ DONE | M3.1-M3.4 overlays + heatmaps + before/ideal all live (see commits `2140a7e`, `d95e218`, `d861a4e`, `8d5e4e2`) |
-| `refactor-overlays-central-backend-2026-05-12.md` | Overlays Padrão 3 | 🟡 PARTIAL | M3 SVG renderers complete. **Legacy `*_mvp_annotated.jpg` still served** by `backend/app/vision/routers/results.py:61,72` (Padrão 4 leak). PLAN_B conversion still open. |
+| `refactor-overlays-central-backend-2026-05-12.md` | Overlays Padrão 3 | ✅ DONE (PLAN_A + PLAN_B) | A.2 verified at `IdealProportionsLayer.tsx:140-156`; B.1 at `annotations.py:325`; B.2/B.3 at `AsymmetryAnalysisLayer.tsx` + `PremiumResultPage.tsx:935-940`. Residual cleanup only: `*_mvp_annotated.jpg` background still served. PLAN_D (dropdown) deferred. |
 | `o-pdf-ainda-n-o-lovely-salamander.md` | PDF persistence fix | ✅ DONE | PDF builder (`backend/app/vision/services/pdf_builder.py`) shipped in PR-67/68/69 |
 | `crystalline-growing-sundae.md` | Doc/RAG plan | 🟡 IN PROGRESS | Documentation pipeline for `.claude/local/context/` — active work as of this date |
 
 ## Known sujeira (do NOT plan against these)
 
 1. **`backend/app/services/scoring/` does not exist.** Any plan step referencing this path is stale — scoring lives inline in `nest/src/modules/diagnosis/` and in metric calculators under `backend/app/services/metrics/`.
-2. **`*_mvp_annotated.jpg` legacy endpoint** still served (`vision/routers/results.py:61,72`). The Padrão-3 refactor (`refactor-overlays-central-backend-2026-05-12.md`) is incomplete here.
+2. **`*_mvp_annotated.jpg` legacy endpoint** still served (`vision/routers/results.py:61,72`) and used as background image in `FreeResultPage.tsx:72` and `PremiumResultPage.tsx:641`. The SVG overlay layer renders correctly on top; this is a cleanup task (remove burned-in OpenCV annotations from the JPG and switch background to canonical), not a plan-scope item.
 3. **Phase C of PR-53b/PR-54** (30 new metrics) was never executed. Metric file count is 19 (`backend/app/services/metrics/`). If a future plan re-opens Phase C, it must list exactly which 30 metrics and where they slot.
 4. **PR-21 v1.5 remains provisional** (`is_active=FALSE`, `is_provisional=TRUE`). Promotion to v2.0 is gated on **PR-22** (real-photo calibration — human task, see `marcos/M2_PR22_real_photos.md`).
 5. **`aesthetic_procedure` recommendations** never fully populated. PR-56 phases 1-3 (427 recos) ✅; "PR-56b" for botox/fillers/PDO was never opened.

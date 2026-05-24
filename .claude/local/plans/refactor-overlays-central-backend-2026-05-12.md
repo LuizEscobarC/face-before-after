@@ -23,7 +23,7 @@ rag_keywords:
 related_modules: []
 depends_on: []
 used_by: []
-status_2026_05_24: "🟡 PARTIAL — M3 SVG renderers done (Padrão 3 for overlay/heatmap/before-ideal). Legacy `*_mvp_annotated.jpg` still served by backend/app/vision/routers/results.py:61,72 (Padrão 4 leak). PLAN_B conversion open. See STATUS_LEDGER_2026-05-24.md."
+status_2026_05_24: "✅ DONE (PLAN_A + PLAN_B). Verified: IdealProportionsLayer.tsx:140-156 reads backend zones with fallback (A.2 ✓); annotations.py:325 emits build_asymmetry_analysis_annotations (B.1 ✓); AsymmetryAnalysisLayer.tsx exists and wired in PremiumResultPage:935-940 (B.2+B.3 ✓). Residual: legacy `*_mvp_annotated.jpg` endpoint still served as background — cleanup-only, no plan-scope work. PLAN_D (MetricsMap dropdown) deferred — never executed. See STATUS_LEDGER_2026-05-24.md."
 ---
 # Plano Refator: Centralizar Backend Data para Overlays
 
@@ -81,30 +81,20 @@ Serve `*_mvp_annotated.jpg` — imagem gerada por `face_asymmetry.py:draw_annota
 
 ## Planos Restantes
 
-### PLAN_A.2 — Frontend IdealProportionsLayer (pendente)
+### PLAN_A.2 — Frontend IdealProportionsLayer
 
-**Problema:** `IdealProportionsLayer.tsx` ainda usa `const ZONES` hardcoded e `createAnatomicalZones()` para geometria. Não consome `overlay_annotations.ideal_proportions_zones` mesmo que o backend já emita.
-
-**Tarefas:**
-
-1. `IdealProportionsLayer.tsx` — adicionar prop:
-   ```ts
-   overlay_zones?: { zones: Array<{ metric_id: string; rect: { x: number; y: number; w: number; h: number }; severity_5?: string; direction?: string }> }
-   ```
-2. No `useMemo()`: se `overlay_zones` disponível → montar `zonesByMetric` direto; senão → fallback para `createAnatomicalZones()` + `ZONES` hardcoded
-3. `PremiumResultPage.tsx` → passar `overlay_zones={result.overlay_annotations?.ideal_proportions_zones}`
-
-**Files:**
-- `frontend/src/components/IdealProportionsLayer.tsx`
-- `frontend/src/pages/PremiumResultPage.tsx`
-
-**Esforço:** ~1.5h
+> ✅ DONE. `IdealProportionsLayer.tsx:140-156` consome `overlay_annotations.ideal_proportions_zones` com fallback para `createAnatomicalZones()`.
 
 ---
 
-### PLAN_B — Asymmetry Analysis: JSON + SVG (novo)
+### PLAN_B — Asymmetry Analysis: JSON + SVG
 
-**Objetivo:** Eliminar `*_mvp_annotated.jpg` como output primário da pipeline. Todos os dados visuais de assimetria (Frankfort, midline, desvios, landmarks) saem como JSON em `overlay_annotations.asymmetry_analysis`. O frontend renderiza SVG.
+> ✅ DONE (B.1 + B.2 + B.3). Backend emite `overlay_annotations.asymmetry_analysis` (annotations.py:325, pipeline.py:1428/1468). Frontend renderiza via `AsymmetryAnalysisLayer.tsx` wired em `PremiumResultPage.tsx:935-940`.
+>
+> **Resíduo (cleanup, não scope):** `*_mvp_annotated.jpg` continua sendo servido por `vision/routers/results.py:61,72` e usado como background em `FreeResultPage.tsx:72` + `PremiumResultPage.tsx:641`. Remover o endpoint e trocar background para o canonical é tarefa de cleanup isolada — não pertence mais a este plano.
+
+<details>
+<summary>Especificação histórica (PLAN_B.1/B.2/B.3) — colapsada após entrega</summary>
 
 #### PLAN_B.1 — Backend: `build_asymmetry_analysis_annotations()`
 
@@ -219,9 +209,13 @@ Por:
 
 **Esforço:** ~0.5h
 
+</details>
+
 ---
 
 ### PLAN_D — MetricsMapLayer: Dropdown de Seleção de Métricas + Sidebar Explicativo
+
+> ⏳ DEFERRED — nunca executado. Mantido como referência de produto. Reabrir só sob demanda explícita.
 
 **Objetivo:** O usuário pode filtrar quais métricas individuais ficam visíveis no SVG heatmap, via dropdown multi-select. O sidebar ao lado mostra as informações de cada métrica selecionada (severity, valor, desvio, label) vindas do backend.
 
