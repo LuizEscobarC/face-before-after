@@ -23,6 +23,7 @@ rag_keywords:
 related_modules: []
 depends_on: []
 used_by: []
+status_2026_05_24: "🟡 PARTIAL — M3 SVG renderers done (Padrão 3 for overlay/heatmap/before-ideal). Legacy `*_mvp_annotated.jpg` still served by backend/app/vision/routers/results.py:61,72 (Padrão 4 leak). PLAN_B conversion open. See STATUS_LEDGER_2026-05-24.md."
 ---
 # Plano Refator: Centralizar Backend Data para Overlays
 

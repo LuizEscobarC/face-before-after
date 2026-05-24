@@ -23,6 +23,7 @@ rag_keywords:
   - "local"
   - "plans"
   - "proportions"
+status_2026_05_24: "✅ DONE — trichion_source propagates through pipeline (domain/pipeline.py:1222/1274/1414/1437); ideal zones consume fused trichion. See STATUS_LEDGER_2026-05-24.md."
   - "zones"
 related_modules: []
 depends_on: []

@@ -1,14 +1,15 @@
-<!-- Session: 0b1bf4a9-9156-49c4-93c0-3d672d2441ec | Stop hook | 2026-05-24T03:11:31.936886 -->
+<!-- Session: 0b1bf4a9-9156-49c4-93c0-3d672d2441ec | Stop hook | 2026-05-24T05:25:19.463463 -->
 
-## Session Summary -- Execution Phase
-**Saved:** 2026-05-24 03:11:31  |  Session: 0b1bf4a9-9156-49c4-93c0-3d672d2441ec
+## Session Summary -- Planning Phase
+**Saved:** 2026-05-24 05:25:19  |  Session: 0b1bf4a9-9156-49c4-93c0-3d672d2441ec
 
 ### Last User Request
-> sim
+> entenda a linha cronologica dos prs dos planos oq foi implementado, se no código mudou, ajuste todos os prs para ficar retrocompatível removendo sujeira
 
 ### Key Decisions & Actions
-- Entendi. Quer que eu faça o quê concretamente agora?  1. **Auditar** os scripts/skills de harvest existentes em `.claude/local/` e listar quais estão genéricos (multi-stack/Laravel) vs adaptados para 
-- Stack confirmado: **PostgreSQL** (`face-postgres`, db `face_analysis`, port 9019). Skills de harvest moram globais em `~/.claude/skills/` (várias são Laravel/MySQL-centric).  Vou registrar a regra com
+- Correções importantes: BiSeNet **está implementado** (segmenter + fusion + thirds + pipeline propagation), e PR-57 **já foi mergeado** (linha 318 de recommendation-engine.service.ts referencia PR-57 +
+- Agora os banners. Vou inserir um bloco de status uniforme logo abaixo do frontmatter de cada plano com ambiguidade.
+- Por último, atualizo o README dos planos para apontar para o ledger e marcar a sujeira conhecida.
 
 ### Chain-of-Session
 ```
@@ -16,35 +17,33 @@ Discovery  -- read code, generate summary
 Planning   -- read summary, create task plan
 Execution  -- read plan, build
 ```
-**Current phase:** [Execution] Execution
+**Current phase:** [Planning] Planning
 
 ### Recent Messages (last 8)
-- **USER:** sim
-- **ASSISTANT:** [tool:Bash]
-- **ASSISTANT:** [tool:Bash]
-- **ASSISTANT:** Stack confirmado: **PostgreSQL** (`face-postgres`, db `face_analysis`, port 9019). Skills de harvest moram globais em `~/.claude/skills/` (várias são Laravel/MySQL-centric).  Vou registrar a regra como preferência do projeto e criar um override local
-- **ASSISTANT:** [tool:Write]
-- **ASSISTANT:** [tool:Write]
-- **ASSISTANT:** [tool:Bash]
-- **ASSISTANT:** [tool:Write]
+- **ASSISTANT:** [tool:Edit]
+- **ASSISTANT:** [tool:Edit]
+- **ASSISTANT:** [tool:Edit]
+- **ASSISTANT:** [tool:Edit]
+- **ASSISTANT:** [tool:Edit]
+- **ASSISTANT:** [tool:Edit]
+- **ASSISTANT:** Por último, atualizo o README dos planos para apontar para o ledger e marcar a sujeira conhecida.
+- **ASSISTANT:** [tool:Edit]
 
 ---
 
-<!-- Session: a01c82fc-d36e-443c-86f0-a2a1f16f11d6 | Stop hook | 2026-05-24T03:09:41.892101 -->
+<!-- Session: a01c82fc-d36e-443c-86f0-a2a1f16f11d6 | Stop hook | 2026-05-24T05:14:47.564472 -->
 
 ## Session Summary -- Execution Phase
-**Saved:** 2026-05-24 03:09:41  |  Session: a01c82fc-d36e-443c-86f0-a2a1f16f11d6
+**Saved:** 2026-05-24 05:14:47  |  Session: a01c82fc-d36e-443c-86f0-a2a1f16f11d6
 
 ### Last User Request
-> ajuste o plano
+> Pocure por taps ão cbertos na documents
 
 ### Key Decisions & Actions
-- Vou criar o `_meta/00-index.md` mandatório e os `00-index.md` faltantes em database/, infra/, root-pipeline/.
-- Agora atualizo o changelog do frontend com a entrada de hoje e registro no `_meta/00-index.md` (já feito).
-- Documentação ajustada:  - **`_meta/00-index.md`** criado (mandatório pela skill global; era o que faltava como porta de entrada) — lista os 6 subsistemas com tenant RAG e status. - **`00-index.md`** c
-- Revisão crítica do plano após verificação no código:  ## Pontos sólidos - Contagem **23 endpoints (8 + 15)** confere ✓ - Hierarquia de famílias de métrica bate com `backend/app/services/metrics/*.py` 
-- Verificação feita. Resultado:  ## Confirmado  - **`backend/app/services/scoring/` não existe** ✓ — etapa 9 do plano fica órfã. - **Capture-guidelines duplicada** ✓ — `/api/capture-guidelines` e `/visi
-- Verifiquei o que faltava — métricas reais, status do ai-first, domain/layers. Atualizando o plano com as correções.
+- Now fix the `e_line_deviation` directions and formula in 2D:
+- Now I have the exact formula. Let me fix the doc:
+- GPU worker is offline. The ingest can't complete right now. The doc fixes are saved on disk and will be picked up next time the ingest runs successfully.  Let me update the backend changelog to record
+- Audit complete. Found and fixed **6 factual errors total** across the agent-generated docs:  **Session total — errors fixed:** 1. `22-calc-symmetry.md` — `midline_deviation`: wrong formula + wrong dep
 
 ### Chain-of-Session
 ```
@@ -56,10 +55,28 @@ Execution  -- read plan, build
 
 ### Recent Messages (last 8)
 - **ASSISTANT:** [tool:Bash]
-- **ASSISTANT:** Verificação feita. Resultado:  ## Confirmado  - **`backend/app/services/scoring/` não existe** ✓ — etapa 9 do plano fica órfã. - **Capture-guidelines duplicada** ✓ — `/api/capture-guidelines` e `/vision/capture-guidelines` retornam o mesmo conceito p
-- **USER:** ajuste o plano
 - **ASSISTANT:** [tool:Bash]
 - **ASSISTANT:** [tool:Bash]
 - **ASSISTANT:** [tool:Bash]
-- **ASSISTANT:** Verifiquei o que faltava — métricas reais, status do ai-first, domain/layers. Atualizando o plano com as correções.
-- **ASSISTANT:** [tool:Write]
+- **ASSISTANT:** [tool:Bash]
+- **ASSISTANT:** [tool:Bash]
+- **ASSISTANT:** [tool:Bash]
+- **ASSISTANT:** [tool:Bash]
+
+---
+
+<!-- Session: a01c82fc-d36e-443c-86f0-a2a1f16f11d6 | PreCompact | 2026-05-24T04:19:37.997839 -->
+
+## Auto-saved before compaction
+**Timestamp:** 2026-05-24 04:19:37  |  Session: a01c82fc-d36e-443c-86f0-a2a1f16f11d6
+
+### Recent Messages
+- **ASSISTANT:** [tool: Bash]
+- **ASSISTANT:** [tool: Bash]
+- **ASSISTANT:** [tool: Bash]
+- **ASSISTANT:** [tool: Bash]
+- **ASSISTANT:** [tool: Bash]
+- **ASSISTANT:** [tool: Bash]
+
+### Last User Request
+> Base directory for this skill: /home/luizescobal/.claude/skills/planner  # Planner — stack-agnostic  Decomposes a task into a numbered plan, mapping each step to a skill that **actually exists** in the current project.  ## When to use  - User says "plan this task", "break this down", "what's the approach" - Task touches multiple modules or layers - Task has unclear scope or ambiguous requirements - Before implementing anything with 3+ interdependent files  ## Instructions  ### Step 1 — Discover

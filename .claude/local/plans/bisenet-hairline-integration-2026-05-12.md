@@ -7,6 +7,8 @@ type: feature + infra
 
 # Plan — BiSeNet Hairline Integration
 
+> **Status (2026-05-24): ✅ DONE.** Verified in `backend/app/services/segmentation/bisenet_segmenter.py`, `services/landmarks/fusion_layer.py`, `services/metrics/thirds.py` (lines 73-158) and `domain/pipeline.py` (1222/1274/1414/1437). `trichion_source` propagation lands end-to-end. See [STATUS_LEDGER_2026-05-24.md](./STATUS_LEDGER_2026-05-24.md). Historical document — do not re-execute.
+
 ## Goal
 Substituir o uso de `lm[10]` (P_FOREHEAD_CROWN do MediaPipe) como proxy de hairline por um **trichion virtual** derivado de máscara de cabelo do BiSeNet (face parsing). Métricas de terço superior (`upper_third_ratio` para `bradpitt-reference.jpg` hoje = 0.20; alvo ≈ 0.33) devem refletir a hairline real, com fallback geométrico quando confidence < 0.8.
 

@@ -67,6 +67,13 @@ export interface RecommendationMatch {
 // Severity weight map (pre-PR-58 baseline scoring)
 // ──────────────────────────────────────────────────────────────────────────────
 
+// Accumulator entry used internally during matching + ladder filtering
+export interface AccEntry {
+  score: number;
+  triggeredBy: Set<string>;
+  catalog: RecommendationCatalogEntity;
+}
+
 const SEVERITY_WEIGHTS: Record<string, number> = {
   minimal: 0.1,
   mild: 0.3,
@@ -189,16 +196,14 @@ export class RecommendationEngine {
       .where('ai.metric_evaluation_id IN (:...ids)', { ids: evalIds })
       .getMany();
 
+    // 4b. Detect extreme severity — needed for invasiveness ladder gate
+    const hasExtremeEval = againstIdeals.some((ai) => ai.severity5 === 'extreme');
+
     // 5. Build a lookup map: metricEvaluationId → {metricId, confidenceFinal, severity5, directionLabel}
     const evalMap = new Map(evaluations.map((e) => [e.id, e]));
 
     // 6. Match triggers against evaluations
     //    Accumulator: recommendation_id → { score, triggeredBy: Set<uuid> }
-    interface AccEntry {
-      score: number;
-      triggeredBy: Set<string>;
-      catalog: RecommendationCatalogEntity;
-    }
     const acc = new Map<string, AccEntry>();
 
     for (const ai of againstIdeals) {
@@ -262,10 +267,9 @@ export class RecommendationEngine {
       return [];
     }
 
-    // 7. Sort by score desc, take top 5
-    const sorted = Array.from(acc.entries())
-      .sort((a, b) => b[1].score - a[1].score)
-      .slice(0, 5);
+    // 7. Sort by score desc, apply invasiveness ladder rule, take top 5
+    const rawSorted = Array.from(acc.entries()).sort((a, b) => b[1].score - a[1].score);
+    const sorted = this._applyLadderRule(rawSorted, hasExtremeEval);
 
     // 8. Delete existing links for this report (idempotency)
     await this.linkRepo
@@ -308,6 +312,45 @@ export class RecommendationEngine {
       category: entry.catalog.category,
       displayTextShortPt: entry.catalog.displayTextShortPt,
     }));
+  }
+
+  /**
+   * Apply the PR-57 invasiveness ladder rule to a pre-sorted list of matches.
+   *
+   * Rules (PROXIMOS_PASSOS.md — "menor invasiveness primeiro, max 2 categorias,
+   * nunca 4b isolado"):
+   *   1. Drop `professional_referral` unless hasExtremeEval OR clinicalPathwayRequired.
+   *   2. Admit at most 2 distinct categories (scanned highest-score first).
+   *   3. Re-sort by invasivenessLevel ASC, score DESC.
+   *   4. Slice top 5.
+   */
+  private _applyLadderRule(
+    sorted: Array<[string, AccEntry]>,
+    hasExtremeEval: boolean,
+  ): Array<[string, AccEntry]> {
+    // Gate 1: 4b block
+    const gated = sorted.filter(([, e]) => {
+      if (e.catalog.category !== 'professional_referral') return true;
+      return hasExtremeEval || e.catalog.clinicalPathwayRequired;
+    });
+
+    // Gate 2: max 2 distinct categories (preserve score order during scan)
+    const seen = new Set<string>();
+    const capped = gated.filter(([, e]) => {
+      const cat = e.catalog.category;
+      if (seen.has(cat)) return true;
+      if (seen.size >= 2) return false;
+      seen.add(cat);
+      return true;
+    });
+
+    // Gate 3: re-sort invasiveness ASC, score DESC; top 5
+    return capped
+      .sort((a, b) => {
+        const diff = a[1].catalog.invasivenessLevel - b[1].catalog.invasivenessLevel;
+        return diff !== 0 ? diff : b[1].score - a[1].score;
+      })
+      .slice(0, 5);
   }
 
   /**

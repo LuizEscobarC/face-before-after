@@ -24,9 +24,10 @@ used_by: []
 
 ## Comece aqui
 
-1. **[`PLAN_METRICS.md`](./PLAN_METRICS.md)** — plano-mestre. Tabela de PRs (1 → 50+), seção §0 = "estado atual" sempre atualizada. **Releia §0 no início de cada sessão.**
-2. **[`DDL_REVIEW.md`](./DDL_REVIEW.md)** — review transversal do schema (gap de tabelas faltando: factor, metric_evaluation, overlay, etc.). Não é cronograma — é checklist arquitetural.
-3. **[`CLAUDE_CONTEXT.md`](./CLAUDE_CONTEXT.md)** — meta-doc de prompt engineering. Reler só quando configurar nova sessão.
+1. **[`STATUS_LEDGER_2026-05-24.md`](./STATUS_LEDGER_2026-05-24.md)** — verdade canônica verificada em código (per-PR plans). Se um plano individual contradiz este ledger, o ledger vence.
+2. **[`PLAN_METRICS.md`](./PLAN_METRICS.md)** — plano-mestre. Tabela de PRs (1 → 50+), seção §0 = "estado atual" sempre atualizada. **Releia §0 no início de cada sessão.**
+3. **[`DDL_REVIEW.md`](./DDL_REVIEW.md)** — review transversal do schema (gap de tabelas faltando: factor, metric_evaluation, overlay, etc.). Não é cronograma — é checklist arquitetural.
+4. **[`CLAUDE_CONTEXT.md`](./CLAUDE_CONTEXT.md)** — meta-doc de prompt engineering. Reler só quando configurar nova sessão.
 
 ## Marcos ativos
 

@@ -24,6 +24,8 @@ used_by: []
 ---
 # Plan: Interactive Overlay Controls (Tasks 3-4-5)
 
+> **Status (2026-05-24): ✅ DONE.** M3.1-M3.4 overlays + heatmaps + before/ideal all shipped (commits `2140a7e`, `d95e218`, `d861a4e`, `8d5e4e2`). See [STATUS_LEDGER_2026-05-24.md](./STATUS_LEDGER_2026-05-24.md). Historical document.
+
 **Date:** 2026-05-12  
 **Status:** Ready for execution  
 **Recommended Execution Model:** opus  

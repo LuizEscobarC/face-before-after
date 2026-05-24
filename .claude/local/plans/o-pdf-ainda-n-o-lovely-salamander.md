@@ -22,6 +22,8 @@ used_by: []
 ---
 # PDF em branco — corrigir persistência de `analysis_report`
 
+> **Status (2026-05-24): ✅ DONE.** Fix shipped together with PR-67/68/69 (`backend/app/vision/services/pdf_builder.py` + Nest `PdfService` + frontend button). See [STATUS_LEDGER_2026-05-24.md](./STATUS_LEDGER_2026-05-24.md). Historical document.
+
 ## Contexto
 
 Sintoma reportado: ao baixar o PDF da análise, somente a capa com o score aparece; as páginas de "Principais Achados" e "Recomendações Clínicas" saem em branco.
