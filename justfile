@@ -429,3 +429,17 @@ stack-logs:
 # Status
 stack-status:
     docker compose ps
+
+##############################
+# CONTEXT HARVESTER (RAG)
+##############################
+
+# Roda o context-harvester local. Flags: --only step | --skip-db
+# Pré-req: cp .claude/.env.harvest.example .claude/.env.harvest && preencher
+harvest-context *FLAGS:
+    cd scripts/context && npm install --silent --no-audit --no-fund 2>/dev/null || true
+    cd scripts/context && npx --yes tsx harvest.ts {{FLAGS}}
+
+# Smoke test sem DB (só migrations index)
+harvest-context-smoke:
+    just harvest-context --only migrations

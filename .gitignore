@@ -20,3 +20,6 @@ resultado_mvp/
 review/
 scripts/__pycache__
 scripts/node_modules
+# Harvester credentials (read-only Postgres role)
+.claude/.env.harvest
+scripts/context/node_modules

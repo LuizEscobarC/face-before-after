@@ -1,0 +1,10 @@
+project: face-before-after
+services:
+  face-before-after:
+    related: [face-before-after-backend, face-before-after-nest]
+  face-before-after-backend:
+    related: [face-before-after, face-before-after-nest]
+  face-before-after-nest:
+    related: [face-before-after-backend, face-before-after-frontend]
+  face-before-after-frontend:
+    related: [face-before-after-nest]
