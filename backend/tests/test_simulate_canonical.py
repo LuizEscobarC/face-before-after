@@ -116,7 +116,10 @@ def test_simulate_uses_frame_image_no_disk_read():
         assert "symmetrized" in out
         assert "ideal_proportions" in out
         assert "comparison_grid" in out
-        for key in ("canonical", "symmetrized", "ideal_proportions", "comparison_grid"):
+        # ideal_proportions PNG is deprecated — backend now emits SVG zones via
+        # overlay_annotations.ideal_proportions_zones, so its path is None.
+        assert out["ideal_proportions"] is None
+        for key in ("canonical", "symmetrized", "comparison_grid"):
             assert os.path.exists(out[key]), f"{key} não foi salva"
 
 

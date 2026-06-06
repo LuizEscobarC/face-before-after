@@ -19,6 +19,8 @@ from typing import Tuple, Optional, Dict, List, Any
 
 import app.domain.face_metrics as face_metrics
 from app.domain.landmarks_mesh import (
+    FACE_OVAL_MIRROR_PAIRS,
+    LIP_MIRROR_PAIRS,
     LM_INNER_MOUTH,
     LM_JAWLINE,
     LM_LEFT_BROW,
@@ -598,15 +600,17 @@ class FaceAsymmetryAnalyzer:
         # Left landmarks: 0-16 (left half of jaw), 17-21 (left brow), 36-41 (left eye)
         # Right landmarks mirror these
         
-        # Mirror pairs in Mesh-478 indices (built from region lists).
+        # Mirror pairs in Mesh-478 indices. Face oval uses the verified
+        # FACE_OVAL_MIRROR_PAIRS table (LM_JAWLINE is one-sided: crown + right
+        # half only, so positional arithmetic would pair right with right).
         pairs: list[tuple[int, int]] = []
-        pairs += list(zip(LM_JAWLINE[:8], list(reversed(LM_JAWLINE[9:]))))
+        pairs += list(FACE_OVAL_MIRROR_PAIRS)
         pairs += list(zip(LM_LEFT_EYE, LM_RIGHT_EYE))
         pairs += list(zip(LM_LEFT_BROW, list(reversed(LM_RIGHT_BROW))))
         pairs += [(P_NOSE_LEFT, P_NOSE_RIGHT)]
-        om = LM_OUTER_MOUTH
-        pairs += [(om[0], om[6]), (om[1], om[5]), (om[2], om[4]),
-                  (om[11], om[7]), (om[10], om[8])]
+        # Lip mirror pairs — shared canonical MediaPipe table (positional
+        # arithmetic on LM_OUTER_MOUTH would mis-pair against midline points).
+        pairs += list(LIP_MIRROR_PAIRS)
         
         for left_idx, right_idx in pairs:
             left_point = landmarks[left_idx]

@@ -31,13 +31,13 @@ import numpy as np
 # Constants — sourced from landmarks_mesh (Mesh-478 indices).
 # ---------------------------------------------------------------------------
 from app.domain.landmarks_mesh import (  # noqa: E402
-    LM_INNER_MOUTH,
+    FACE_OVAL_MIRROR_PAIRS,
+    LIP_MIRROR_PAIRS,
     LM_JAWLINE,
     LM_LEFT_BROW,
     LM_LEFT_EYE,
     LM_NOSE_BRIDGE,
     LM_NOSE_TIP,
-    LM_OUTER_MOUTH,
     LM_RIGHT_BROW,
     LM_RIGHT_EYE,
     P_BROW_LEFT_INNER,
@@ -429,26 +429,24 @@ def marquardt_deviation(lm: np.ndarray, ipd: float) -> Dict[str, Any]:
     roll_deg_est = math.degrees(math.atan2(dy_eye, dx_eye))
     if abs(roll_deg_est) > 5.0:
         return {"marquardt_deviation_px": None, "marquardt_deviation_pct_ipd": None}
-    # Mirror pairs mapped to Mesh-478 indices. Built from region lists in
-    # landmarks_mesh so each pair is anatomically symmetric (left ↔ right).
-    # Jawline: 8 pairs around the menton (LM_JAWLINE[8] is centre).
+    # Mirror pairs mapped to Mesh-478 indices, each anatomically symmetric
+    # (left ↔ right).
+    # Face oval: shared FACE_OVAL_MIRROR_PAIRS table. NOT zip(LM_JAWLINE...) —
+    # LM_JAWLINE is the crown + RIGHT half of the oval only (all x >= midline),
+    # so positional arithmetic would pair right-side points with each other.
     pairs: list[tuple[int, int]] = []
-    pairs += list(zip(LM_JAWLINE[:8], list(reversed(LM_JAWLINE[9:]))))
+    pairs += list(FACE_OVAL_MIRROR_PAIRS)
     # Brows: outer/middle/inner left ↔ inner/middle/outer right.
     pairs += list(zip(LM_LEFT_BROW, list(reversed(LM_RIGHT_BROW))))
     # Eyes: 6-point eye contours.
     pairs += list(zip(LM_LEFT_EYE, LM_RIGHT_EYE))
     # Nose alar wings (left/right) — mesh equivalents of dlib 31/35 and 32/34.
     pairs += [(P_NOSE_LEFT, P_NOSE_RIGHT)]
-    # Outer mouth: dlib 48↔54, 49↔53, 50↔52, 59↔55, 58↔56 — mapped from LM_OUTER_MOUTH.
-    # LM_OUTER_MOUTH dlib order: [48,49,50,51,52,53,54,55,56,57,58,59]
-    om = LM_OUTER_MOUTH
-    pairs += [(om[0], om[6]), (om[1], om[5]), (om[2], om[4]),
-              (om[11], om[7]), (om[10], om[8])]
-    # Inner mouth: dlib 60↔64, 61↔63, 67↔65 — mapped from LM_INNER_MOUTH.
-    # LM_INNER_MOUTH dlib order: [60,61,62,63,64,65,66,67]
-    im = LM_INNER_MOUTH
-    pairs += [(im[0], im[4]), (im[1], im[3]), (im[7], im[5])]
+    # Lip mirror pairs — canonical MediaPipe left↔right correspondences. Using
+    # the shared LIP_MIRROR_PAIRS table (NOT positional arithmetic on
+    # LM_OUTER_MOUTH/LM_INNER_MOUTH, which are MediaPipe contour order and would
+    # mis-pair left-side points with the midline cupid's-bow/lip-centre points).
+    pairs += list(LIP_MIRROR_PAIRS)
     # Linha média = média entre eye_midpoint e glabela (le/re já computados pelo pose-gate)
     midline_x = float(((le[0] + re[0]) / 2.0 + _glabella(lm)[0]) / 2.0)
 

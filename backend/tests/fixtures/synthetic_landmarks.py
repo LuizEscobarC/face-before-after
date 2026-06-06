@@ -23,6 +23,7 @@ import math
 import numpy as np
 
 from app.domain.landmarks_mesh import (
+    FACE_OVAL_MIRROR_PAIRS,
     LM_LEFT_BROW,
     LM_LEFT_EYE,
     LM_RIGHT_BROW,
@@ -268,7 +269,14 @@ def _canonical_key_points() -> dict[int, tuple[float, float]]:
 def perfect_frontal() -> np.ndarray:
     """(478, 3) — idealized frontal face, inner canthi at y=300, ICD=100 px."""
     grid = _base_grid()
-    return _set_key_points(grid, _canonical_key_points())
+    out = _set_key_points(grid, _canonical_key_points())
+    # Bilaterally symmetric face oval: _base_grid() scatters the silhouette
+    # points randomly, so mirror the right-half oval onto the left over the
+    # inner-canthal midline (_FACE_CX). Without this a "perfect" face yields a
+    # non-white asymmetry heatmap once the face-oval mirror pairs are correct.
+    for r_idx, l_idx in FACE_OVAL_MIRROR_PAIRS:
+        out[l_idx] = [2 * _FACE_CX - out[r_idx][0], out[r_idx][1], 0.0]
+    return out
 
 
 def known_asymmetric() -> np.ndarray:

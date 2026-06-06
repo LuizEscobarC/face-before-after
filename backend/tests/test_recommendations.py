@@ -30,7 +30,7 @@ def test_recommend_excelente_em_metricas_perfeitas():
             "fifths_std_dev": 0.0,
             "marquardt_deviation_pct_ipd": 0.5,
             "jaw_width_pct_ipd": 155.0,
-            "jawline_definition_score": 8.0,
+            "jawline_definition_score": 0.8,
             "upper_lower_lip_ratio": 0.62,
             "philtrum_length_pct_ipd": 22.0,
             "face_shape_label": "oval",
@@ -51,7 +51,7 @@ def test_recommend_gera_acoes_para_severidade_alta():
         "advanced": {
             "fwhr": 1.40,                          # bem abaixo do ideal
             "marquardt_deviation_pct_ipd": 7.5,    # acentuada
-            "jawline_definition_score": 2.0,       # acentuada
+            "jawline_definition_score": 0.2,       # acentuada
         },
     }
     items = rm.recommend(measurements)
@@ -71,7 +71,7 @@ def test_recommend_ordena_por_severidade_desc():
         "advanced": {
             "fwhr": 1.85,           # excelente
             "marquardt_deviation_pct_ipd": 9.0,  # severa
-            "jawline_definition_score": 6.0,     # leve
+            "jawline_definition_score": 0.6,     # leve
         },
     }
     items = rm.recommend(measurements)

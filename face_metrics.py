@@ -207,7 +207,15 @@ def masculinity(lm: np.ndarray, ipd: float) -> Dict[str, Any]:
         v2 = jaw[i + 1] - jaw[i]
         a = math.degrees(math.atan2(v2[1], v2[0]) - math.atan2(v1[1], v1[0]))
         angles.append(abs(a))
-    jaw_def_score = float(np.std(angles)) if angles else 0.0
+    # Normalizado em [0,1], MAIOR = MAIS DEFINIDO (std=0°→1.0, std=15°→0.0).
+    # Antes retornava std em graus, inconsistente com os consumidores que tratam
+    # como [0,1] (visual_status, impression, evolution_path, top_leverage e
+    # _FALLBACK_IDEALS ideal=0.65) — causava saturação/inversão de scores.
+    if angles:
+        std_deg = float(np.std(angles))
+        jaw_def_score = float(max(0.0, min(1.0, 1.0 - std_deg / 15.0)))
+    else:
+        jaw_def_score = 0.0
 
     return {
         "jaw_width_pct_ipd":             100.0 * _safe_div(bigonial, ipd),

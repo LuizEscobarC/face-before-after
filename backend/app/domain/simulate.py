@@ -369,7 +369,7 @@ def simulate(
     frame: "CanonicalFrame",
     output_dir: str,
     trichion_y_override: int | None = None,
-) -> Dict[str, str]:
+) -> Dict[str, str | None]:
     """Gera 3 imagens de simulação a partir do frame canônico.
 
     Roda sobre ``frame.image`` (já cropada e alinhada) e ``frame.landmarks``
