@@ -1431,10 +1431,10 @@ export function PremiumResultPage() {
                     {phase.confidence_score !== undefined && (
                       <div style={{ marginBottom: 8 }}>
                         <div style={{ fontSize: 11, color: "var(--muted)", marginBottom: 3 }}>
-                          Confiança do plano: {phase.confidence_score.toFixed(0)}%
+                          Confiança do plano: {(phase.confidence_score * 100).toFixed(0)}%
                         </div>
                         <div className="bar-track" style={{ height: 4 }}>
-                          <div className="bar-fill" style={{ width: `${phase.confidence_score}%` }} />
+                          <div className="bar-fill" style={{ width: `${phase.confidence_score * 100}%` }} />
                         </div>
                       </div>
                     )}

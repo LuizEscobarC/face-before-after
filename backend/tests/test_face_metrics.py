@@ -12,13 +12,12 @@ import pytest
 
 import app.domain.face_metrics as fm
 from app.domain.landmarks_mesh import (
-    LM_INNER_MOUTH,
+    FACE_OVAL_MIRROR_PAIRS,
     LM_JAWLINE,
     LM_LEFT_BROW,
     LM_LEFT_EYE,
     LM_NOSE_BRIDGE,
     LM_NOSE_TIP,
-    LM_OUTER_MOUTH,
     LM_RIGHT_BROW,
     LM_RIGHT_EYE,
     P_BROW_LEFT_INNER,
@@ -104,30 +103,34 @@ def _symmetric_landmarks() -> np.ndarray:
     lm[P_RIGHT_EYE_OUTER] = [50, -65]
     lm[P_RIGHT_EYE_INNER] = [20, -65]
 
-    # Boca externa (12 pts dlib 48..59) e interna (8 pts dlib 60..67).
-    outer_mouth = [
-        (-30, 30), (-15, 25), (-5, 22), (0, 20), (5, 22), (15, 25),
-        (30, 30), (15, 38), (5, 43), (0, 45), (-5, 43), (-15, 38),
-    ]
-    for k, mesh_idx in enumerate(LM_OUTER_MOUTH):
-        lm[mesh_idx] = list(outer_mouth[k])
+    # Lábios — valores bilateralmente simétricos atribuídos DIRETAMENTE aos
+    # índices MediaPipe. LM_OUTER_MOUTH/LM_INNER_MOUTH estão em ordem de contorno
+    # MediaPipe (não dlib), então cada par espelho (esq, dir) é definido por
+    # índice anatômico explícito (= LIP_MIRROR_PAIRS, mais o ponto inferior 375
+    # sem par). Cada par é simétrico sobre x = 0.
+    lip_points = {
+        # contorno externo superior (esquerda / direita)
+        61: (-30, 30), 291: (30, 30),
+        185: (-22, 24), 409: (22, 24),
+        40: (-14, 21), 270: (14, 21),
+        39: (-8, 19), 269: (8, 19),
+        37: (-4, 18), 267: (4, 18),
+        375: (12, 40),  # ponto externo inferior direito (sem par no Marquardt)
+        # contorno interno inferior (esquerda / direita)
+        78: (-22, 32), 308: (22, 32),
+        95: (-12, 35), 324: (12, 35),
+        88: (-15, 33), 318: (15, 33),
+        178: (-8, 37), 402: (8, 37),
+        87: (-5, 30), 317: (5, 30),
+    }
+    for idx, (x, y) in lip_points.items():
+        lm[idx] = [x, y]
 
-    inner_mouth = [
-        (-25, 32), (-10, 28), (0, 27), (10, 28),
-        (25, 32), (10, 38), (0, 40), (-10, 38),
-    ]
-    for k, mesh_idx in enumerate(LM_INNER_MOUTH):
-        lm[mesh_idx] = list(inner_mouth[k])
-
-    # Pontos canónicos especiais. P_LEFT_MOUTH / P_RIGHT_MOUTH / P_UPPER_LIP /
-    # P_LOWER_LIP coincidem com índices em LM_OUTER_MOUTH/LM_INNER_MOUTH; o loop
-    # acima já populou esses índices com valores simétricos. NÃO sobrescrever
-    # aqui para evitar quebrar a simetria das mirror pairs do Marquardt.
-    # Pontos não cobertos pelo loop:
-    lm[P_UPPER_LIP_TOP] = [0, 18]
-    lm[P_UPPER_LIP_BOT] = [0, 22]
-    lm[P_LOWER_LIP_TOP] = [0, 42]
-    lm[P_LOWER_LIP_BOT] = [0, 48]
+    # Pontos da linha média dos lábios (x = 0): cupid's bow + centros internos.
+    lm[P_UPPER_LIP_TOP] = [0, 18]   # idx 0  — cupid's bow centre
+    lm[P_UPPER_LIP_BOT] = [0, 27]   # idx 13 — inner upper-lip centre
+    lm[P_LOWER_LIP_TOP] = [0, 38]   # idx 14 — inner lower-lip centre
+    lm[P_LOWER_LIP_BOT] = [0, 48]   # idx 17 — lowermost lower-lip centre
 
     lm[P_NOSE_TIP] = [0, -30]
     lm[P_SUBNASALE] = [0, -10]
@@ -151,6 +154,13 @@ def _symmetric_landmarks() -> np.ndarray:
     lm[P_RIGHT_ZYGOMATIC] = [95, 60]
     lm[P_LEFT_CHEEK] = [-78, 135]
     lm[P_RIGHT_CHEEK] = [78, 135]
+
+    # Espelhar o contorno facial: LM_JAWLINE só cobre o lado direito do oval,
+    # então o lado esquerdo (índices em FACE_OVAL_MIRROR_PAIRS) é definido como
+    # o espelho exato sobre x=0 do ponto direito já populado. Mantém as
+    # FACE_OVAL_MIRROR_PAIRS do Marquardt simétricas.
+    for r_idx, l_idx in FACE_OVAL_MIRROR_PAIRS:
+        lm[l_idx] = [-lm[r_idx][0], lm[r_idx][1]]
 
     # Trasladar para coords positivas
     lm[:, 0] += 250

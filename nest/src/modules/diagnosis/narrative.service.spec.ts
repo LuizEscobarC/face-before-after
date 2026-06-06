@@ -146,6 +146,10 @@ function buildService(opts: {
   const linkRepo = { find: vi.fn().mockResolvedValue([]) };
   const catalogRepo = { find: vi.fn().mockResolvedValue([]) };
 
+  // Metric-definition repo backs getMetricLabel(); empty result → fallback to
+  // metricId.replace(/_/g, ' '), which the fallback-sentence test asserts.
+  const metricDefRepo = { find: vi.fn().mockResolvedValue([]) };
+
   // Sub-services
   const renderer = {
     render: vi.fn().mockReturnValue(rendererResult),
@@ -174,9 +178,10 @@ function buildService(opts: {
     globalScoreRepo as any,
     linkRepo as any,
     catalogRepo as any,
+    metricDefRepo as any,
   );
 
-  return { svc, reportRepo, globalScoreRepo, evalRepo, evalAgainstIdealRepo, templateRepo, renderer, recommendationEngine, priorityService };
+  return { svc, reportRepo, globalScoreRepo, evalRepo, evalAgainstIdealRepo, templateRepo, renderer, recommendationEngine, priorityService, metricDefRepo };
 }
 
 // ──────────────────────────────────────────────────────────────────────────────

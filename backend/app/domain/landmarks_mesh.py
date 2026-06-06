@@ -27,12 +27,38 @@ LM_LEFT_BROW = [70, 63, 105, 66, 107]                  # dlib 17–21
 LM_RIGHT_BROW = [336, 296, 334, 293, 300]              # dlib 22–26
 LM_NOSE_BRIDGE = [168, 6, 197, 195]                    # dlib 27–30
 LM_NOSE_TIP = [48, 115, 220, 45, 4]                    # dlib 31–35
-LM_OUTER_MOUTH = [61, 185, 40, 39, 37, 0, 267, 269, 270, 409, 291, 375]  # dlib 48–59
-LM_INNER_MOUTH = [78, 95, 88, 178, 87, 14, 317, 402]   # dlib 60–67
+LM_OUTER_MOUTH = [61, 185, 40, 39, 37, 0, 267, 269, 270, 409, 291, 375]  # MediaPipe upper-outer-lip contour (L→R), NOT dlib order
+LM_INNER_MOUTH = [78, 95, 88, 178, 87, 14, 317, 402]   # MediaPipe lower-inner-lip contour (L→centre), NOT dlib order
 # 17 entries — must stay >=12 so quality_evaluator's LM_JAWLINE[5:12] slice is valid.
 LM_JAWLINE = [10, 338, 297, 332, 284, 251, 389, 356, 454, 323, 361, 288, 397, 365, 379, 378, 400]  # dlib 0–16
 LM_LEFT_IRIS = [468, 469, 470, 471, 472]
 LM_RIGHT_IRIS = [473, 474, 475, 476, 477]
+
+# Bilateral lip mirror pairs (left ↔ right) in MediaPipe Mesh-478 index space.
+# Single source of truth for bilateral-asymmetry calculations (marquardt /
+# asymmetry heatmap). Midline points (0, 13, 14, 17) are intentionally excluded.
+# NOTE: do NOT derive these by positional arithmetic on LM_OUTER_MOUTH /
+# LM_INNER_MOUTH — those lists are MediaPipe contour order, so e.g. LM_OUTER_MOUTH[5]
+# is the cupid's-bow CENTRE (idx 0), not a right-side point.
+LIP_MIRROR_PAIRS = (
+    # upper outer lip
+    (61, 291), (185, 409), (40, 270), (39, 269), (37, 267),
+    # lower inner lip
+    (78, 308), (95, 324), (88, 318), (178, 402), (87, 317),
+)
+
+# Bilateral face-oval (jawline silhouette) mirror pairs (right ↔ left) in
+# MediaPipe Mesh-478 index space. CRITICAL: LM_JAWLINE is the crown + the RIGHT
+# half of the face oval only (every x >= midline), so positional arithmetic such
+# as zip(LM_JAWLINE[:8], reversed(LM_JAWLINE[9:])) pairs right-side points with
+# OTHER right-side points → garbage bilateral asymmetry on real faces. These
+# explicit pairs are verified against the canonical FaceMesh (x_r + x_l ≈ 100,
+# y_r ≈ y_l). Midline points (10 crown, 152 menton) are excluded.
+FACE_OVAL_MIRROR_PAIRS = (
+    (338, 109), (297, 67), (332, 103), (284, 54), (251, 21),
+    (389, 162), (356, 127), (454, 234), (323, 93), (361, 132),
+    (288, 58), (397, 172), (365, 136), (379, 150), (378, 149),
+)
 
 
 # ---------------------------------------------------------------------------
@@ -164,7 +190,9 @@ PNP_LANDMARK_INDICES = [P_NOSE_TIP, P_MENTON, P_LEFT_EYE_OUTER,
 # Mirror pairs (left ↔ right) for symmetry / Marquardt deviation.
 # Built from the region lists so they auto-stay consistent.
 # ---------------------------------------------------------------------------
-MIRROR_PAIRS_JAWLINE = list(zip(LM_JAWLINE[:8], list(reversed(LM_JAWLINE[9:]))))  # 8 pairs around menton (idx 8)
+# Jawline mirror pairs use the verified face-oval table — NOT positional
+# arithmetic on LM_JAWLINE (which is one-sided: crown + right half only).
+MIRROR_PAIRS_JAWLINE = list(FACE_OVAL_MIRROR_PAIRS)
 MIRROR_PAIRS_BROWS = list(zip(LM_LEFT_BROW, list(reversed(LM_RIGHT_BROW))))
 MIRROR_PAIRS_EYES = list(zip(LM_LEFT_EYE, LM_RIGHT_EYE))
 
@@ -173,7 +201,7 @@ __all__ = [
     "TOTAL_LANDMARKS",
     "LM_LEFT_EYE", "LM_RIGHT_EYE", "LM_LEFT_BROW", "LM_RIGHT_BROW",
     "LM_NOSE_BRIDGE", "LM_NOSE_TIP", "LM_OUTER_MOUTH", "LM_INNER_MOUTH",
-    "LM_JAWLINE", "LM_LEFT_IRIS", "LM_RIGHT_IRIS",
+    "LM_JAWLINE", "LM_LEFT_IRIS", "LM_RIGHT_IRIS", "LIP_MIRROR_PAIRS", "FACE_OVAL_MIRROR_PAIRS",
     "P_LEFT_EYE_TOP", "P_RIGHT_EYE_TOP", "P_LEFT_EYE_BOT", "P_RIGHT_EYE_BOT",
     "P_LEFT_IRIS_CENTER", "P_RIGHT_IRIS_CENTER",
     "P_LEFT_IRIS_BOT", "P_RIGHT_IRIS_BOT",

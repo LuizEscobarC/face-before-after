@@ -688,13 +688,15 @@ def recommend(measurements_after: Dict[str, Any]) -> List[Dict[str, Any]]:
         # Severidade
         ideal_tuple = _FALLBACK_IDEALS.get(key)
         if key == "jawline_definition_score":
-            # score "quanto maior melhor" — leve se < 5, excelente >= 7
+            # score normalizado [0,1], "quanto maior melhor" (1 − clip(std/15°)).
+            # Thresholds antigos (7/5/3) eram da escala de graus e ficavam
+            # inalcançáveis em [0,1] → tudo caía em "acentuada".
             if isinstance(value, (int, float)):
                 v = float(value)
-                if   v >= 7: sev = "excelente"
-                elif v >= 5: sev = "leve"
-                elif v >= 3: sev = "moderada"
-                else:        sev = "acentuada"
+                if   v >= 0.70: sev = "excelente"
+                elif v >= 0.50: sev = "leve"
+                elif v >= 0.30: sev = "moderada"
+                else:           sev = "acentuada"
             else:
                 sev = "excelente"
         elif key == "face_shape_label":
